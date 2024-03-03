@@ -1,4 +1,3 @@
-// General purpose consts
 package tsl2591
 
 const (
@@ -6,14 +5,8 @@ const (
 	TSL2591_INFRARED     byte = 1 ///< channel 1
 	TSL2591_FULLSPECTRUM byte = 0 ///< channel 0
 
-	TSL2591_ADDR uint16 = 0x29 ///< Default I2C address
-
-	TSL2591_COMMAND_BIT byte = 0xA0 ///< 1010 0000: bits 7 and 5 for 'command normal'
-
-	///! Special Function Command for "Clear ALS and no persist ALS interrupt"
-	TSL2591_CLEAR_INT byte = 0xE7
-	///! Special Function Command for "Interrupt set - forces an interrupt"
-	TSL2591_TEST_INT byte = 0xE4
+	TSL2591_ADDR        uint16 = 0x29 ///< Default I2C address
+	TSL2591_COMMAND_BIT byte   = 0xA0 ///< 1010 0000: bits 7 and 5 for 'command normal'
 
 	TSL2591_WORD_BIT  byte = 0x20 ///< 1 = read/write word rather than byte
 	TSL2591_BLOCK_BIT byte = 0x10 ///< 1 = using block read/write

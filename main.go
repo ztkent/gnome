@@ -5,31 +5,38 @@ import (
 	"log"
 	"time"
 
+	"github.com/Ztkent/sunlight-meter/internal/tools"
 	"github.com/Ztkent/sunlight-meter/tsl2591"
 )
 
-const Interval = 1 * time.Second
-
 func main() {
 	println("Bright, sunny day!")
-	//i2cdetect -l: find connected i2c devices
-	// This assumes were at i2c-1
 	tsl, err := tsl2591.NewTSL2591(&tsl2591.Opts{
-		Gain:   tsl2591.TSL2591_GAIN_LOW,
-		Timing: tsl2591.TSL2591_INTEGRATIONTIME_600MS,
+		Gain:    tsl2591.TSL2591_GAIN_LOW,
+		Timing:  tsl2591.TSL2591_INTEGRATIONTIME_600MS,
+		DevPath: "/dev/i2c-1",
 	})
 	if err != nil {
 		panic(err)
 	}
+	tsl.Enable()
+	defer tsl.Disable()
 
-	ticker := time.NewTicker(Interval)
+	ticker := time.NewTicker(1 * time.Second)
 	for {
 		channel0, channel1, err := tsl.GetFullLuminosity()
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("0x%04x 0x%04x\n", channel0, channel1)
-		fmt.Println(tsl.CalculateLux(channel0, channel1))
+		tools.DebugLog(fmt.Sprintf("0x%04x 0x%04x\n", channel0, channel1))
+		lux, err := tsl.CalculateLux(channel0, channel1)
+		// TSL2591_VISIBLE      byte = 2 ///< channel 0 - channel 1
+		// TSL2591_INFRARED     byte = 1 ///< channel 1
+		// TSL2591_FULLSPECTRUM byte = 0 ///< channel 0
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println(lux)
 		<-ticker.C
 	}
 }
