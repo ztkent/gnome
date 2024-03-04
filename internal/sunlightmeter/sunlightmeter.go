@@ -89,6 +89,8 @@ func (m *SLMeter) Start() http.HandlerFunc {
 				<-ticker.C
 			}
 		}()
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Sunlight Reading Started"))
 	}
 }
 
@@ -105,7 +107,7 @@ func (m *SLMeter) Stop() http.HandlerFunc {
 		m.cancel()
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Sensor Stopped"))
+		w.Write([]byte("Sunlight Reading Stopped"))
 	}
 }
 
@@ -118,26 +120,34 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		signalStr := strings.TrimSpace(string(output))
-		signalInt, err := strconv.Atoi(signalStr)
+		signalInt, err := strconv.Atoi(strings.TrimSpace(string(output)))
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Convert the signal to a strength value
 		// https://git.openwrt.org/?p=project/iwinfo.git;a=blob;f=iwinfo_nl80211.c;hb=HEAD#l2885
-		strength := (signalInt + 110) * 10 / 7
-		log.Println("Signal: ", signalStr, " dBm")
+		if signalInt < -110 {
+			signalInt = -110
+		} else if signalInt > -40 {
+			signalInt = -40
+		}
+		strength := signalInt + 110
+
+		log.Println("Signal: ", fmt.Sprintf("%d", signalInt), " dBm")
 		log.Println("Strength: ", strength, "%")
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Signal Strength: " + signalStr + " dBm\n Quality: " + fmt.Sprintf("%d", strength) + "%"))
+		w.Write([]byte("Signal Strength: " + fmt.Sprintf("%d", signalInt) + " dBm\nQuality: " + fmt.Sprintf("%d", strength) + "%"))
 	}
 }
 
 func (m *SLMeter) ServeResults() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "sunlight.db"))
+		w.Header().Set("Content-Type", "application/octet-stream")
 		http.ServeFile(w, r, DB_PATH)
 	}
 }
