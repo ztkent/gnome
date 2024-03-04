@@ -30,6 +30,8 @@ Connect remotely to:
 - Export historical data to a CSV file for download.
 - Check device wifi-signal strength.
 
+To ensure accurate readings and prevent saturation, this project will automatically adjust sensor gain and integration time.
+
 ## Understanding Lux Values
 <img width="400" alt="image" src="https://github.com/Ztkent/sunlight-meter/assets/7357311/f4ba0f6f-eb35-4d8b-86a6-11862363be98">
 

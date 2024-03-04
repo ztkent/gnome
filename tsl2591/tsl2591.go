@@ -138,11 +138,11 @@ func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 func (tsl *TSL2591) SetOptimalGain() error {
 	// Try each gain option and see if the sensor is saturated
 	gainOptions := []byte{TSL2591_GAIN_LOW, TSL2591_GAIN_MED, TSL2591_GAIN_HIGH, TSL2591_GAIN_MAX}
-	integrationOptions := []byte{TSL2591_INTEGRATIONTIME_100MS, TSL2591_INTEGRATIONTIME_200MS, TSL2591_INTEGRATIONTIME_300MS, TSL2591_INTEGRATIONTIME_400MS, TSL2591_INTEGRATIONTIME_500MS, TSL2591_INTEGRATIONTIME_600MS}
-	for _, gain := range gainOptions {
-		tsl.SetGain(gain)
-		for _, time := range integrationOptions {
-			tsl.SetTiming(time)
+	integrationOptions := []byte{TSL2591_INTEGRATIONTIME_600MS, TSL2591_INTEGRATIONTIME_500MS, TSL2591_INTEGRATIONTIME_400MS, TSL2591_INTEGRATIONTIME_300MS, TSL2591_INTEGRATIONTIME_200MS, TSL2591_INTEGRATIONTIME_100MS}
+	for _, time := range integrationOptions {
+		tsl.SetTiming(time)
+		for _, gain := range gainOptions {
+			tsl.SetGain(gain)
 			log.Println(fmt.Sprintf("Attempting - Gain: %v, Integration Time: %v", gain, time))
 			ch0, ch1, err := tsl.GetFullLuminosity()
 			if err != nil {
