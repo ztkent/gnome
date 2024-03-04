@@ -58,6 +58,7 @@ func (m *SLMeter) Start() http.HandlerFunc {
 			jobID := uuid.New().String()
 			ticker := time.NewTicker(RECORD_INTERVAL)
 			for {
+				// Check if we've cancelled this job.
 				select {
 				case <-ctx.Done():
 					log.Println("Job Cancelled, stopping sensor")
@@ -69,6 +70,9 @@ func (m *SLMeter) Start() http.HandlerFunc {
 				ch0, ch1, err := m.GetFullLuminosity()
 				if err != nil {
 					log.Println(fmt.Sprintf("The sensor failed to get luminosity: %s", err.Error()))
+					m.LuxResultsChan <- LuxResults{
+						JobID: jobID,
+					}
 					<-ticker.C
 					continue
 				}
@@ -78,6 +82,13 @@ func (m *SLMeter) Start() http.HandlerFunc {
 				lux, err := m.CalculateLux(ch0, ch1)
 				if err != nil {
 					log.Println(fmt.Sprintf("The sensor failed to calculate lux: %s", err.Error()))
+					m.LuxResultsChan <- LuxResults{
+						Lux:          0,
+						Visible:      tsl2591.GetNormalizedOutput(tsl2591.TSL2591_VISIBLE, ch0, ch1),
+						Infrared:     tsl2591.GetNormalizedOutput(tsl2591.TSL2591_INFRARED, ch0, ch1),
+						FullSpectrum: tsl2591.GetNormalizedOutput(tsl2591.TSL2591_FULLSPECTRUM, ch0, ch1),
+						JobID:        jobID,
+					}
 					<-ticker.C
 					continue
 				}
@@ -90,7 +101,6 @@ func (m *SLMeter) Start() http.HandlerFunc {
 					FullSpectrum: tsl2591.GetNormalizedOutput(tsl2591.TSL2591_FULLSPECTRUM, ch0, ch1),
 					JobID:        jobID,
 				}
-
 				<-ticker.C
 			}
 		}()
