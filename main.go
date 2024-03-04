@@ -48,7 +48,7 @@ func main() {
 	})
 
 	// Start server
-	app_port := "8080"
+	app_port := "80"
 	if os.Getenv("APP_PORT") != "" {
 		app_port = os.Getenv("APP_PORT")
 	}
