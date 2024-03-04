@@ -12,7 +12,7 @@ With the collected data, we are able to:
 - Calculate the lux value for the current light conditions.
 - Report real-time data for monitoring or automation.
 - Save historical data to give insight on changes over time.
-- Provde a dashboard to display the data in a user-friendly way.
+- Provide a dashboard to display the data in a user-friendly way.
 - Most importantly, determine if your location is: ☁️ shade, partial shade, partial sun, or full sun ☀️
 
 ## How it works
@@ -26,11 +26,12 @@ Connecting the sensor to the Pi:
 "Sunlight Meter" runs a web server on device to allow remote access to the sensor data and jobs.  
 Connect remotely to:
 - Start/Stop any recording job.
-- Report real-time readings and light conditions. 
-- Export historical data to a CSV file for download.
+- Receive real-time readings and light conditions. 
+- Download historical data as a SQLite DB.
 - Check device wifi-signal strength.
+- View the Sunlight Dashboard.
 
-To ensure accurate readings and prevent saturation, this project will automatically adjust sensor gain and integration time.
+To ensure accurate readings and avoid saturation, this service will automatically adjust sensor gain and integration time.
 
 ## Understanding Lux Values
 <img width="400" alt="image" src="https://github.com/Ztkent/sunlight-meter/assets/7357311/f4ba0f6f-eb35-4d8b-86a6-11862363be98">
