@@ -30,6 +30,7 @@ type LuxResults struct {
 
 const (
 	MAX_JOB_DURATION = 3 * time.Minute
+	RECORD_INTERVAL  = 5 * time.Second
 	DB_PATH          = "results/sunlightmeter.db"
 )
 
@@ -50,7 +51,7 @@ func (m *SLMeter) Start() http.HandlerFunc {
 			defer m.Disable()
 
 			jobID := uuid.New().String()
-			ticker := time.NewTicker(5 * time.Second)
+			ticker := time.NewTicker(RECORD_INTERVAL)
 			for {
 				select {
 				case <-ctx.Done():
