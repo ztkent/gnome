@@ -111,9 +111,9 @@ func (m *SLMeter) MonitorAndRecordResults() {
 				"INSERT INTO sunlight (job_id, lux, full_spectrum, visible, infrared) VALUES (?, ?, ?, ?, ?)",
 				result.JobID,
 				fmt.Sprintf("%.5f", result.Lux),
-				fmt.Sprintf("%.5f", result.FullSpectrum),
-				fmt.Sprintf("%.5f", result.Visible),
-				fmt.Sprintf("%.5f", result.Infrared),
+				fmt.Sprintf("%.5e", result.FullSpectrum),
+				fmt.Sprintf("%.5e", result.Visible),
+				fmt.Sprintf("%.5e", result.Infrared),
 			)
 			if err != nil {
 				log.Println(err)

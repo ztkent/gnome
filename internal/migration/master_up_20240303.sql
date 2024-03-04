@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS "sunlight" (
-    "id" SERIAL PRIMARY KEY,
+    "id" INTEGER PRIMARY KEY,
     "job_id" varchar(255) NOT NULL,
     "lux" varchar(255) NOT NULL,
     "full_spectrum" varchar(255) NOT NULL,
