@@ -134,7 +134,14 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 		} else if signalInt > -40 {
 			signalInt = -40
 		}
-		strength := signalInt + 110
+
+		// Scale the signal to a percentage
+		strength := (signalInt + 110) * 100 / 70
+		if strength < 0 {
+			strength = 0
+		} else if strength > 100 {
+			strength = 100
+		}
 
 		log.Println("Signal: ", fmt.Sprintf("%d", signalInt), " dBm")
 		log.Println("Strength: ", strength, "%")
