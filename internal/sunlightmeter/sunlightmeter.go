@@ -68,16 +68,18 @@ func (m *SLMeter) Start() http.HandlerFunc {
 				// Read the sensor
 				ch0, ch1, err := m.GetFullLuminosity()
 				if err != nil {
-					log.Println("The sensor failed to get luminosity, ending job")
-					return
+					log.Println("The sensor failed to get luminosity")
+					time.Sleep(5 * time.Second)
+					continue
 				}
 				tools.DebugLog(fmt.Sprintf("0x%04x 0x%04x\n", ch0, ch1))
 
 				// Calculate the lux value from the sensor readings
 				lux, err := m.CalculateLux(ch0, ch1)
 				if err != nil {
-					log.Println("The sensor failed to calculate lux, ending job")
-					return
+					log.Println("The sensor failed to calculate lux")
+					time.Sleep(5 * time.Second)
+					continue
 				}
 
 				// Send the results to the LuxResultsChan
@@ -88,6 +90,7 @@ func (m *SLMeter) Start() http.HandlerFunc {
 					FullSpectrum: tsl2591.GetNormalizedOutput(tsl2591.TSL2591_FULLSPECTRUM, ch0, ch1),
 					JobID:        jobID,
 				}
+
 				<-ticker.C
 			}
 		}()
