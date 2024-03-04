@@ -42,6 +42,8 @@ func NewTSL2591(gain byte, timing byte, path string) (*TSL2591, error) {
 		Device:  device,
 		Mutex:   &sync.Mutex{},
 		Enabled: true,
+		Timing:  timing,
+		Gain:    gain,
 	}
 
 	// Read the device ID from the TSL2591
