@@ -7,8 +7,8 @@ The [TSL2591](https://www.adafruit.com/product/1980) is a high dynamic range dig
 It can read infrared, full-spectrum or human-visible light, and transmit that data over a serial connection.   
 
 
-This project monitors and records that data from each of the three sources.  
-With the collected data, we are able to do a few things:  
+This project monitors and records data from each of the three sources.  
+With the collected data, we are able to:  
 - Calculate the lux value for the current light conditions.
 - Report real-time data for monitoring or automation.
 - Use historical data to give insight on changes over time.
