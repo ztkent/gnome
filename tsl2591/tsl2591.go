@@ -136,12 +136,9 @@ func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 }
 
 func (tsl *TSL2591) SetOptimalGain() error {
-	// TODO: do i need to disable the sensor before changing the gain?
-	// tsl.Disable()
-
 	// Try each gain option and see if the sensor is saturated
 	gainOptions := []byte{TSL2591_GAIN_LOW, TSL2591_GAIN_MED, TSL2591_GAIN_HIGH, TSL2591_GAIN_MAX}
-	integrationOptions := []byte{TSL2591_INTEGRATIONTIME_100MS, TSL2591_INTEGRATIONTIME_200MS, TSL2591_INTEGRATIONTIME_300MS, TSL2591_INTEGRATIONTIME_400MS}
+	integrationOptions := []byte{TSL2591_INTEGRATIONTIME_100MS, TSL2591_INTEGRATIONTIME_200MS, TSL2591_INTEGRATIONTIME_300MS, TSL2591_INTEGRATIONTIME_400MS, TSL2591_INTEGRATIONTIME_500MS, TSL2591_INTEGRATIONTIME_600MS}
 	for _, gain := range gainOptions {
 		tsl.SetGain(gain)
 		for _, time := range integrationOptions {
@@ -165,6 +162,9 @@ func (tsl *TSL2591) SetOptimalGain() error {
 			return nil
 		}
 	}
+	// Use default options
+	tsl.SetGain(TSL2591_GAIN_LOW)
+	tsl.SetTiming(TSL2591_INTEGRATIONTIME_600MS)
 	return errors.New("All gain options are saturated")
 }
 
