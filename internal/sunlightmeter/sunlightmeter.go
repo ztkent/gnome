@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -14,6 +15,10 @@ import (
 
 	"github.com/Ztkent/sunlight-meter/internal/tools"
 	"github.com/Ztkent/sunlight-meter/tsl2591"
+	"github.com/go-echarts/go-echarts/v2/charts"
+	"github.com/go-echarts/go-echarts/v2/components"
+	"github.com/go-echarts/go-echarts/v2/opts"
+	"github.com/go-echarts/go-echarts/v2/types"
 	"github.com/google/uuid"
 )
 
@@ -167,17 +172,127 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 
 func (m *SLMeter) ServeResultsDB() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "sunlight.db"))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "sunlightmeter.db"))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		http.ServeFile(w, r, DB_PATH)
 	}
 }
 
-// TODO: https://github.com/go-echarts/go-echarts
-func (m *SLMeter) ServeResultsDashboard() http.HandlerFunc {
+func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(""))
+		// Query the database for the lux and created_at values
+		rows, err := m.ResultsDB.Query("SELECT lux, created_at FROM sunlight ORDER BY created_at")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		// Prepare the data for the chart
+		var luxValues []opts.LineData
+		var timeValues []string
+		var maxLux int
+		for rows.Next() {
+			var lux string
+			var createdAt time.Time
+			if err := rows.Scan(&lux, &createdAt); err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Convert lux to float64
+			luxFloat, err := strconv.ParseFloat(lux, 64)
+			if err != nil {
+				log.Println(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Format the timestamp
+			timeString := createdAt.Format("2006-01-02 15:04:05")
+			if luxFloat > float64(maxLux) {
+				// Round up to the nearest 1000
+				maxLux = int(math.Ceil(luxFloat/1000) * 1000)
+			}
+			luxValues = append(luxValues, opts.LineData{Value: luxFloat})
+			timeValues = append(timeValues, timeString)
+		}
+
+		// Create a new line chart
+		line := charts.NewLine()
+
+		// Add series for each level
+		levels := map[int]string{
+			500:   "DarkGrey",
+			1000:  "WhiteSmoke",
+			10000: "SkyBlue",
+			25000: "Yellow",
+		}
+		titles := map[int]string{
+			500:   "Shade",
+			1000:  "Partial Shade",
+			10000: "Partial Sun",
+			25000: "Full Sun",
+		}
+
+		for level, color := range levels {
+			line.AddSeries(
+				fmt.Sprintf("%s", titles[level]),
+				func(level int, length int) []opts.LineData {
+					data := make([]opts.LineData, length)
+					for i := range data {
+						data[i] = opts.LineData{Value: level}
+					}
+					return data
+				}(level, len(timeValues)),
+				charts.WithLineChartOpts(opts.LineChart{
+					Color: color,
+				}),
+			)
+		}
+
+		line.SetGlobalOptions(
+			charts.WithInitializationOpts(opts.Initialization{
+				Theme: types.ThemeChalk,
+			}),
+			charts.WithTitleOpts(opts.Title{
+				Title: "Lux over time",
+			}),
+			charts.WithYAxisOpts(opts.YAxis{
+				Min: "0",
+				Max: fmt.Sprintf("%d", maxLux),
+			}),
+			charts.WithTooltipOpts(opts.Tooltip{
+				Show: true,
+			}),
+			charts.WithToolboxOpts(opts.Toolbox{
+				Show: true,
+				Feature: &opts.ToolBoxFeature{
+					SaveAsImage: &opts.ToolBoxFeatureSaveAsImage{
+						Show:  true,
+						Title: "Save as Image",
+					},
+				},
+			}),
+		)
+		line.SetXAxis(timeValues).AddSeries("Lux", luxValues)
+
+		// Create a new page and add the line chart to it
+		page := components.NewPage()
+		page.AddCharts(line)
+		page.AddCustomizedJSAssets("chart.js")
+
+		// Render the graphs
+		w.Header().Set("Content-Type", "text/html")
+		page.Render(w)
+	}
+}
+
+func (m *SLMeter) ServeDashboard() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
 	}
 }
 
@@ -188,6 +303,10 @@ func (m *SLMeter) MonitorAndRecordResults() {
 		select {
 		case result := <-m.LuxResultsChan:
 			log.Println(fmt.Sprintf("- JobID: %s, Lux: %.5f", result.JobID, result.Lux))
+			if math.IsInf(result.Lux, 1) {
+				log.Println("Lux is infinite, skipping record")
+				continue
+			}
 			_, err := m.ResultsDB.Exec(
 				"INSERT INTO sunlight (job_id, lux, full_spectrum, visible, infrared) VALUES (?, ?, ?, ?, ?)",
 				result.JobID,

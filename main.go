@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/Ztkent/sunlight-meter/internal/db"
 	slm "github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
@@ -63,29 +62,20 @@ func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
 	go meter.MonitorAndRecordResults()
 
 	// Sunlight Meter Controls
-	r.Get("/", meter.Start())
+	r.Get("/", meter.ServeResultsGraph())
+	r.Get("/start", meter.Start())
 	r.Get("/stop", meter.Stop())
 	r.Get("/signal-strength", meter.SignalStrength())
 	r.Get("/current-conditions", meter.CurrentConditions())
 	r.Get("/export", meter.ServeResultsDB())
-	r.Get("/results", meter.ServeResultsDashboard())
 
 	// Serve static files
 	workDir, _ := os.Getwd()
-	filesDir := filepath.Join(workDir, "internal", "html", "img")
-	FileServer(r, "/img", http.Dir(filesDir))
-	FileServer(r, "/favicon.ico", http.Dir(filesDir))
+	filesDir := filepath.Join(workDir, "internal", "sunlightmeter")
+	FileServer(r, "/", http.Dir(filesDir))
 }
 
 func FileServer(r chi.Router, path string, root http.FileSystem) {
-	if strings.ContainsAny(path, "{}*") {
-		panic("FileServer does not permit any URL parameters.")
-	}
-
-	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
-		path += "/"
-	}
 	r.Get(path+"*", func(w http.ResponseWriter, r *http.Request) {
 		http.StripPrefix(path, http.FileServer(root)).ServeHTTP(w, r)
 	})

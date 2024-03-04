@@ -4,7 +4,7 @@ Using the Adafruit TSL2591 Digital Light Sensor and a Raspberry Pi to monitor da
 
 ## About
 The [TSL2591](https://www.adafruit.com/product/1980) is a high dynamic range digital light sensor.  
-It can read infrared, full-spectrum and human-visible light, then transmit that data over a serial connection.   
+It can detect infrared, full-spectrum and human-visible light, then transmit that data over a serial connection.   
 
 
 This project monitors and records data from each of the three sources.  
