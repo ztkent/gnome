@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/Ztkent/sunlight-meter/internal/tools"
@@ -98,6 +100,19 @@ func (m *SLMeter) Stop() http.HandlerFunc {
 		log.Println("Stopping the sensor...")
 		defer m.Disable()
 		m.cancel()
+	}
+}
+
+func (m *SLMeter) SignalStrength() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cmd := exec.Command("sh", "-c", "iw dev wlan0 link | grep 'signal:' | awk '{print $2}'")
+		output, err := cmd.Output()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		signalStrength := strings.TrimSpace(string(output))
+		log.Println("Signal strength: ", signalStrength)
 	}
 }
 
