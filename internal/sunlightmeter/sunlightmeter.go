@@ -98,9 +98,12 @@ func (m *SLMeter) Stop() http.HandlerFunc {
 			http.Error(w, "The sensor is already stopped", http.StatusConflict)
 			return
 		}
+
+		// Stop the sensor, cancel the job context
 		log.Println("Stopping the sensor...")
 		defer m.Disable()
 		m.cancel()
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Sensor Stopped"))
 	}
@@ -112,24 +115,24 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 		output, err := cmd.Output()
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusConflict)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		signalStrength := strings.TrimSpace(string(output))
-		ssInt, err := strconv.Atoi(signalStrength)
+		signalStr := strings.TrimSpace(string(output))
+		signalInt, err := strconv.Atoi(signalStr)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusConflict)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		// https://git.openwrt.org/?p=project/iwinfo.git;a=blob;f=iwinfo_nl80211.c;hb=HEAD#l2885
-		strength := (ssInt + 110) * 10 / 7
-		log.Println("Signal strength: ", signalStrength, " dBm")
-		log.Println("Quality: ", strength, "%")
+		strength := (signalInt + 110) * 10 / 7
+		log.Println("Signal: ", signalStr, " dBm")
+		log.Println("Strength: ", strength, "%")
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Signal Strength: " + fmt.Sprintf("%d", ssInt) + " dBm\n Quality: " + fmt.Sprintf("%d", strength) + "%"))
+		w.Write([]byte("Signal Strength: " + signalStr + " dBm\n Quality: " + fmt.Sprintf("%d", strength) + "%"))
 	}
 }
 
