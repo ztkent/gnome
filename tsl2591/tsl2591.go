@@ -43,8 +43,6 @@ func NewTSL2591(gain byte, timing byte, path string) (*TSL2591, error) {
 		Device:  device,
 		Mutex:   &sync.Mutex{},
 		Enabled: true,
-		Timing:  timing,
-		Gain:    gain,
 	}
 
 	// Read the device ID from the TSL2591
@@ -65,6 +63,7 @@ func NewTSL2591(gain byte, timing byte, path string) (*TSL2591, error) {
 }
 
 // Read from the light sensor's channels
+// TODO: Select high/low channel
 func (tsl *TSL2591) GetFullLuminosity() (uint16, uint16, error) {
 	if !tsl.Enabled {
 		return 0, 0, errors.New("sensor must be enabled")
