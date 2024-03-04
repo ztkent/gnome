@@ -68,8 +68,8 @@ func (m *SLMeter) Start() http.HandlerFunc {
 				// Read the sensor
 				ch0, ch1, err := m.GetFullLuminosity()
 				if err != nil {
-					log.Println("The sensor failed to get luminosity")
-					time.Sleep(5 * time.Second)
+					log.Println(fmt.Sprintf("The sensor failed to get luminosity: %s", err.Error()))
+					<-ticker.C
 					continue
 				}
 				tools.DebugLog(fmt.Sprintf("0x%04x 0x%04x\n", ch0, ch1))
@@ -77,8 +77,8 @@ func (m *SLMeter) Start() http.HandlerFunc {
 				// Calculate the lux value from the sensor readings
 				lux, err := m.CalculateLux(ch0, ch1)
 				if err != nil {
-					log.Println("The sensor failed to calculate lux")
-					time.Sleep(5 * time.Second)
+					log.Println(fmt.Sprintf("The sensor failed to calculate lux: %s", err.Error()))
+					<-ticker.C
 					continue
 				}
 
