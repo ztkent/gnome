@@ -14,10 +14,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-const (
-	DB_PATH = "results/sunlightmeter.db"
-)
-
 func main() {
 	// connect to the lux sensor
 	device, err := tsl2591.NewTSL2591(
@@ -29,7 +25,7 @@ func main() {
 		log.Fatalf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 	// connect to the sqlite database
-	slmDB, err := db.ConnectSqlite(DB_PATH)
+	slmDB, err := db.ConnectSqlite(slm.DB_PATH)
 	if err != nil {
 		log.Fatalf("Failed to connect to the sqlite database: %v", err)
 	}

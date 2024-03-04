@@ -1,5 +1,5 @@
 # Sunlight Meter
-An integration with the Adafruit TSL2591 Digital Light Sensor and Raspberry Pi to monitor daily sunlight conditions.
+Using the Adafruit TSL2591 Digital Light Sensor and a Raspberry Pi to monitor daily sunlight conditions.
 
 ## About
 The TSL2591 is a high dynamic range digital light sensor.  

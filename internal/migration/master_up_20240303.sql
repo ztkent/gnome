@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS "sunlight" (
     "full_spectrum" varchar(255) NOT NULL,
     "visible" varchar(255) NOT NULL,
     "infrared" varchar(255) NOT NULL,
-    "time" timestamp DEFAULT CURRENT_TIMESTAMP,
+    "created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
 );

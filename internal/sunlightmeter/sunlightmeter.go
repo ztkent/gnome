@@ -28,14 +28,9 @@ type LuxResults struct {
 	JobID        string
 }
 
-/*
-TSL2591_VISIBLE      byte = 2 ///< channel 0 - channel 1
-TSL2591_INFRARED     byte = 1 ///< channel 1
-TSL2591_FULLSPECTRUM byte = 0 ///< channel 0
-*/
-
 const (
 	MAX_JOB_DURATION = 3 * time.Minute
+	DB_PATH          = "results/sunlightmeter.db"
 )
 
 // Start the sensor, and collect data in a loop
@@ -99,6 +94,7 @@ func (m *SLMeter) Stop() http.HandlerFunc {
 			http.Error(w, "The sensor is already stopped", http.StatusConflict)
 			return
 		}
+		log.Println("Stopping the sensor...")
 		defer m.Disable()
 		m.cancel()
 	}
