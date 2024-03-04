@@ -3,6 +3,7 @@ package sunlightmeter
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -181,10 +182,37 @@ func (m *SLMeter) MonitorAndRecordResults() {
 	}
 }
 
-// Get the most recent entry saved to the db
+// Return the most recent entry saved to the db
 func (m *SLMeter) CurrentConditions() http.HandlerFunc {
+	type Conditions struct {
+		JobID        string  `json:"jobID"`
+		Lux          float64 `json:"lux"`
+		FullSpectrum float64 `json:"fullSpectrum"`
+		Visible      float64 `json:"visible"`
+		Infrared     float64 `json:"infrared"`
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !m.Enabled {
+			http.Error(w, "The sensor is not running", http.StatusConflict)
+			return
+		}
+		data := Conditions{}
+		row := m.ResultsDB.QueryRow("SELECT job_id, lux, full_spectrum, visible, infrared FROM sunlight ORDER BY id DESC LIMIT 1")
+		err := row.Scan(&data.JobID, &data.Lux, &data.FullSpectrum, &data.Visible, &data.Infrared)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(""))
+		w.Write(jsonData)
 	}
 }
