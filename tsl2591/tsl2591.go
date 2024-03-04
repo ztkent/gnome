@@ -28,10 +28,6 @@ type TSL2591 struct {
 	*sync.Mutex
 }
 
-const (
-	MAX_SENSOR_VALUE = 0xFFFF
-)
-
 // Connect to a TSL2591 via I2C protocol & set gain/timing
 func NewTSL2591(gain byte, timing byte, path string) (*TSL2591, error) {
 	if path == "" {
@@ -213,11 +209,11 @@ func (tsl *TSL2591) GetNormalizedOutput(spectrumType byte, ch0, ch1 uint16) floa
 		if visible < 0 {
 			visible = 0
 		}
-		return visible / MAX_SENSOR_VALUE
+		return visible / 0xFFFF
 	case TSL2591_INFRARED:
-		return float64(ch1) / MAX_SENSOR_VALUE
+		return float64(ch1) / 0xFFFF
 	case TSL2591_FULLSPECTRUM:
-		return float64(ch0) / MAX_SENSOR_VALUE
+		return float64(ch0) / 0xFFFF
 	default:
 		return 0
 	}
