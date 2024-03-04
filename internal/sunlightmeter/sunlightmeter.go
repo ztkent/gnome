@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,8 +32,8 @@ type LuxResults struct {
 }
 
 const (
-	MAX_JOB_DURATION = 3 * time.Minute
-	RECORD_INTERVAL  = 5 * time.Second
+	MAX_JOB_DURATION = 8 * time.Hour
+	RECORD_INTERVAL  = 30 * time.Second
 	DB_PATH          = "results/sunlightmeter.db"
 )
 
@@ -108,13 +109,20 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 		cmd := exec.Command("sh", "-c", "iw dev wlan0 link | grep 'signal:' | awk '{print $2}'")
 		output, err := cmd.Output()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
+			return
 		}
 
 		signalStrength := strings.TrimSpace(string(output))
+		ssInt, err := strconv.Atoi(signalStrength)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 		log.Println("Signal strength: ", signalStrength, " dBm")
+		quality_percent = (ssInt + 110) * 10 / 7
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Signal Strength: " + signalStrength + " dBm"))
+		w.Write([]byte("Signal Strength: " + fmt.Sprintf("%d", ssInt) + " dBm"))
 	}
 }
 
