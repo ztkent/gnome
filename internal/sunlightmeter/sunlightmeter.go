@@ -165,11 +165,19 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 	}
 }
 
-func (m *SLMeter) ServeResults() http.HandlerFunc {
+func (m *SLMeter) ServeResultsDB() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "sunlight.db"))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		http.ServeFile(w, r, DB_PATH)
+	}
+}
+
+// TODO: https://github.com/go-echarts/go-echarts
+func (m *SLMeter) ServeResultsDashboard() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(""))
 	}
 }
 
