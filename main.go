@@ -61,8 +61,9 @@ func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
 	// Sunlight Meter Controls
 	r.Get("/", meter.Start())
 	r.Get("/stop", meter.Stop())
-	r.Get("/ss", meter.SignalStrength())
+	r.Get("/signal-strength", meter.SignalStrength())
 	r.Get("/export", meter.ServeResults())
+	r.Get("/current-conditions", meter.CurrentConditions())
 
 	// Serve static files
 	workDir, _ := os.Getwd()

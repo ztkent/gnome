@@ -180,3 +180,11 @@ func (m *SLMeter) MonitorAndRecordResults() {
 		}
 	}
 }
+
+// Get the most recent entry saved to the db
+func (m *SLMeter) CurrentConditions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(""))
+	}
+}
