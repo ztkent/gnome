@@ -41,6 +41,7 @@ const (
 // Start the sensor, and collect data in a loop
 func (m *SLMeter) Start() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("It's gonna be a bright, bright sun-shining day!")
 		if m.Enabled {
 			http.Error(w, "The sensor is already running", http.StatusConflict)
 			return
@@ -103,7 +104,6 @@ func (m *SLMeter) Stop() http.HandlerFunc {
 		}
 
 		// Stop the sensor, cancel the job context
-		log.Println("Stopping the sensor...")
 		defer m.Disable()
 		m.cancel()
 
