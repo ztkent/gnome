@@ -94,10 +94,10 @@ func (m *SLMeter) Start() http.HandlerFunc {
 					err = m.SetOptimalGain()
 					if err != nil {
 						log.Println(fmt.Sprintf("The sensor failed to determine new optimal gain: %s", err.Error()))
+						<-ticker.C
 					} else {
 						log.Println("The sensor has been reconfigured with a new optimal gain")
 					}
-					<-ticker.C
 					continue
 				}
 

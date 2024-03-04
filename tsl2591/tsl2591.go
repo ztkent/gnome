@@ -71,7 +71,7 @@ func (tsl *TSL2591) GetFullLuminosity() (uint16, uint16, error) {
 	}
 
 	for d := byte(0); d < tsl.Timing; d++ {
-		time.Sleep(120 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	// Reading from TSL2591_REGISTER_CHAN0_LOW, and TSL2591_REGISTER_CHAN1_LOW
@@ -139,11 +139,11 @@ func (tsl *TSL2591) SetOptimalGain() error {
 	// Try each gain option and see if the sensor is saturated
 	gainOptions := []byte{TSL2591_GAIN_LOW, TSL2591_GAIN_MED, TSL2591_GAIN_HIGH, TSL2591_GAIN_MAX}
 	integrationOptions := []byte{TSL2591_INTEGRATIONTIME_600MS, TSL2591_INTEGRATIONTIME_500MS, TSL2591_INTEGRATIONTIME_400MS, TSL2591_INTEGRATIONTIME_300MS, TSL2591_INTEGRATIONTIME_200MS, TSL2591_INTEGRATIONTIME_100MS}
-	for _, time := range integrationOptions {
-		tsl.SetTiming(time)
-		for _, gain := range gainOptions {
-			tsl.SetGain(gain)
-			log.Println(fmt.Sprintf("Attempting - Gain: %v, Integration Time: %v", GainToString(gain), IntegrationTimeToString(time)))
+	for _, gain := range gainOptions {
+		tsl.SetGain(gain)
+		for _, time := range integrationOptions {
+			tsl.SetTiming(time)
+			tools.DebugLog(fmt.Sprintf("Attempting - Gain: %v, Integration Time: %v", GainToString(gain), IntegrationTimeToString(time)))
 			ch0, ch1, err := tsl.GetFullLuminosity()
 			if err != nil {
 				continue
