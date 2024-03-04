@@ -62,3 +62,37 @@ const (
 	TSL2591_GAIN_HIGH byte = 0x20 /// medium gain (428x)
 	TSL2591_GAIN_MAX  byte = 0x30 /// max gain (9876x)
 )
+
+func IntegrationTimeToString(value byte) string {
+	switch value {
+	case TSL2591_INTEGRATIONTIME_100MS:
+		return "100ms"
+	case TSL2591_INTEGRATIONTIME_200MS:
+		return "200ms"
+	case TSL2591_INTEGRATIONTIME_300MS:
+		return "300ms"
+	case TSL2591_INTEGRATIONTIME_400MS:
+		return "400ms"
+	case TSL2591_INTEGRATIONTIME_500MS:
+		return "500ms"
+	case TSL2591_INTEGRATIONTIME_600MS:
+		return "600ms"
+	default:
+		return "Unknown"
+	}
+}
+
+func GainToString(value byte) string {
+	switch value {
+	case TSL2591_GAIN_LOW:
+		return "Low gain (1x)"
+	case TSL2591_GAIN_MED:
+		return "Medium gain (25x)"
+	case TSL2591_GAIN_HIGH:
+		return "High gain (428x)"
+	case TSL2591_GAIN_MAX:
+		return "Max gain (9876x)"
+	default:
+		return "Unknown"
+	}
+}
