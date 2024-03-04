@@ -153,9 +153,12 @@ func (tsl *TSL2591) SetOptimalGain() error {
 				log.Println(fmt.Sprintf("Gain: %v, Integration Time: %v is saturated 2", gain, time))
 				continue
 			}
-			_, err = tsl.CalculateLux(ch0, ch1)
+			lux, err := tsl.CalculateLux(ch0, ch1)
 			if err != nil {
 				log.Println(fmt.Sprintf("Gain: %v, Integration Time: %v is saturated 3", gain, time))
+				continue
+			} else if lux == 0 {
+				log.Println(fmt.Sprintf("Gain: %v, Integration Time: %v is saturated 4", gain, time))
 				continue
 			}
 			log.Println(fmt.Sprintf("Set - Gain: %v, Integration Time: %v", gain, time))
