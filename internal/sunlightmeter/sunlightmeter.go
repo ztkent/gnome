@@ -112,7 +112,9 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 		}
 
 		signalStrength := strings.TrimSpace(string(output))
-		log.Println("Signal strength: ", signalStrength)
+		log.Println("Signal strength: ", signalStrength, " dBm")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Signal Strength: " + signalStrength + " dBm"))
 	}
 }
 
