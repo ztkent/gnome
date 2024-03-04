@@ -82,22 +82,14 @@ func (m *SLMeter) Start() http.HandlerFunc {
 				lux, err := m.CalculateLux(ch0, ch1)
 				if err != nil {
 					log.Println(fmt.Sprintf("The sensor failed to calculate lux: %s", err.Error()))
-					m.LuxResultsChan <- LuxResults{
-						Lux:          0,
-						Visible:      tsl2591.GetNormalizedOutput(tsl2591.TSL2591_VISIBLE, ch0, ch1),
-						Infrared:     tsl2591.GetNormalizedOutput(tsl2591.TSL2591_INFRARED, ch0, ch1),
-						FullSpectrum: tsl2591.GetNormalizedOutput(tsl2591.TSL2591_FULLSPECTRUM, ch0, ch1),
-						JobID:        jobID,
-					}
-
 					log.Println("Attempting to set new optimal sensor gain")
 					err = m.SetOptimalGain()
 					if err != nil {
 						log.Println(fmt.Sprintf("The sensor failed to determine new optimal gain: %s", err.Error()))
-						<-ticker.C
 					} else {
 						log.Println("The sensor has been reconfigured with a new optimal gain")
 					}
+					time.Sleep(5 * time.Second)
 					continue
 				}
 

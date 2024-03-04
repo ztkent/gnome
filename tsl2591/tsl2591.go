@@ -93,7 +93,7 @@ func (tsl *TSL2591) GetFullLuminosity() (uint16, uint16, error) {
 func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 	// Check for channel overflow
 	if ch0 == 0xFFFF || ch1 == 0xFFFF {
-		return 0, fmt.Errorf("ch0/1 overflow")
+		return 0, fmt.Errorf(fmt.Sprintf("Overflow: Channel 0: %v, Channel 1: %v\n", ch0, ch1))
 	}
 
 	var int_time float64
@@ -166,6 +166,24 @@ func (tsl *TSL2591) SetOptimalGain() error {
 	return errors.New("All gain options are saturated")
 }
 
+// Returns the normalized output for a given spectrum type
+func GetNormalizedOutput(spectrumType byte, ch0, ch1 uint16) float64 {
+	switch spectrumType {
+	case TSL2591_VISIBLE:
+		visible := float64(ch0) - float64(ch1)
+		if visible < 0 {
+			visible = 0
+		}
+		return visible / 0xFFFF
+	case TSL2591_INFRARED:
+		return float64(ch1) / 0xFFFF
+	case TSL2591_FULLSPECTRUM:
+		return float64(ch0) / 0xFFFF
+	default:
+		return 0
+	}
+}
+
 // Enable the sensor
 func (tsl *TSL2591) Enable() error {
 	tsl.Lock()
@@ -233,22 +251,4 @@ func (tsl *TSL2591) SetTiming(timing byte) error {
 	}
 	tsl.Timing = timing
 	return nil
-}
-
-// Returns the normalized output for a given spectrum type
-func GetNormalizedOutput(spectrumType byte, ch0, ch1 uint16) float64 {
-	switch spectrumType {
-	case TSL2591_VISIBLE:
-		visible := float64(ch0) - float64(ch1)
-		if visible < 0 {
-			visible = 0
-		}
-		return visible / 0xFFFF
-	case TSL2591_INFRARED:
-		return float64(ch1) / 0xFFFF
-	case TSL2591_FULLSPECTRUM:
-		return float64(ch0) / 0xFFFF
-	default:
-		return 0
-	}
 }
