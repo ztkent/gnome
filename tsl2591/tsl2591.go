@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -61,75 +62,6 @@ func NewTSL2591(gain byte, timing byte, path string) (*TSL2591, error) {
 
 	tsl.Disable()
 	return tsl, nil
-}
-
-// Enable the sensor
-func (tsl *TSL2591) Enable() error {
-	tsl.Lock()
-	defer tsl.Unlock()
-
-	if tsl.Enabled {
-		return nil
-	}
-	var write []byte = []byte{
-		TSL2591_ENABLE_POWERON | TSL2591_ENABLE_AEN | TSL2591_ENABLE_AIEN | TSL2591_ENABLE_NPIEN,
-	}
-	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_ENABLE, write); err != nil {
-		return err
-	}
-	tsl.Enabled = true
-	return nil
-}
-
-// Disable the sensor
-func (tsl *TSL2591) Disable() error {
-	tsl.Lock()
-	defer tsl.Unlock()
-
-	if !tsl.Enabled {
-		return nil
-	}
-	var write []byte = []byte{
-		TSL2591_ENABLE_POWEROFF,
-	}
-	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_ENABLE, write); err != nil {
-		return err
-	}
-	tsl.Enabled = false
-	return nil
-}
-
-// Set the gain for the sensor
-func (tsl *TSL2591) SetGain(gain byte) error {
-	if !tsl.Enabled {
-		return errors.New("sensor must be enabled")
-	}
-
-	write := []byte{
-		tsl.Timing | gain,
-	}
-	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CONTROL, write); err != nil {
-		return err
-	}
-	tsl.Gain = gain
-	return nil
-}
-
-// Set the integration timing for the sensor
-func (tsl *TSL2591) SetTiming(timing byte) error {
-	if !tsl.Enabled {
-		return errors.New("sensor must be enabled")
-	}
-
-	write := []byte{
-		timing | tsl.Gain,
-	}
-	err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CONTROL, write)
-	if err != nil {
-		return err
-	}
-	tsl.Timing = timing
-	return nil
 }
 
 // Read from the light sensor's channels
@@ -201,6 +133,108 @@ func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 	cpl := (int_time * adj_gain) / TSL2591_LUX_DF
 	lux := (float64(ch0) - float64(ch1)) * (1.0 - (float64(ch1) / float64(ch0))) / cpl
 	return lux, nil
+}
+
+func (tsl *TSL2591) SetOptimalGain() error {
+	// TODO: do i need to disable the sensor before changing the gain?
+	// tsl.Disable()
+
+	// Try each gain option and see if the sensor is saturated
+	gainOptions := []byte{TSL2591_GAIN_LOW, TSL2591_GAIN_MED, TSL2591_GAIN_HIGH, TSL2591_GAIN_MAX}
+	integrationOptions := []byte{TSL2591_INTEGRATIONTIME_100MS, TSL2591_INTEGRATIONTIME_200MS, TSL2591_INTEGRATIONTIME_300MS, TSL2591_INTEGRATIONTIME_400MS}
+	for _, gain := range gainOptions {
+		tsl.SetGain(gain)
+		for _, time := range integrationOptions {
+			tsl.SetTiming(time)
+			log.Println(fmt.Sprintf("Attempting - Gain: %v, Integration Time: %v", gain, time))
+			ch0, ch1, err := tsl.GetFullLuminosity()
+			if err != nil {
+				log.Println(fmt.Sprintf("Gain: %v, Integration Time: %v is saturated 1", gain, time))
+				continue
+			}
+			if ch0 == 0xFFFF || ch1 == 0xFFFF {
+				log.Println(fmt.Sprintf("Gain: %v, Integration Time: %v is saturated 2", gain, time))
+				continue
+			}
+			_, err = tsl.CalculateLux(ch0, ch1)
+			if err != nil {
+				log.Println(fmt.Sprintf("Gain: %v, Integration Time: %v is saturated 3", gain, time))
+				continue
+			}
+			log.Println(fmt.Sprintf("Set - Gain: %v, Integration Time: %v", gain, time))
+			return nil
+		}
+	}
+	return errors.New("All gain options are saturated")
+}
+
+// Enable the sensor
+func (tsl *TSL2591) Enable() error {
+	tsl.Lock()
+	defer tsl.Unlock()
+
+	if tsl.Enabled {
+		return nil
+	}
+	var write []byte = []byte{
+		TSL2591_ENABLE_POWERON | TSL2591_ENABLE_AEN | TSL2591_ENABLE_AIEN | TSL2591_ENABLE_NPIEN,
+	}
+	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_ENABLE, write); err != nil {
+		return err
+	}
+	tsl.Enabled = true
+	return nil
+}
+
+// Disable the sensor
+func (tsl *TSL2591) Disable() error {
+	tsl.Lock()
+	defer tsl.Unlock()
+
+	if !tsl.Enabled {
+		return nil
+	}
+	var write []byte = []byte{
+		TSL2591_ENABLE_POWEROFF,
+	}
+	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_ENABLE, write); err != nil {
+		return err
+	}
+	tsl.Enabled = false
+	return nil
+}
+
+// Set the gain for the sensor
+func (tsl *TSL2591) SetGain(gain byte) error {
+	if !tsl.Enabled {
+		return errors.New("sensor must be enabled")
+	}
+
+	write := []byte{
+		tsl.Timing | gain,
+	}
+	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CONTROL, write); err != nil {
+		return err
+	}
+	tsl.Gain = gain
+	return nil
+}
+
+// Set the integration timing for the sensor
+func (tsl *TSL2591) SetTiming(timing byte) error {
+	if !tsl.Enabled {
+		return errors.New("sensor must be enabled")
+	}
+
+	write := []byte{
+		timing | tsl.Gain,
+	}
+	err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CONTROL, write)
+	if err != nil {
+		return err
+	}
+	tsl.Timing = timing
+	return nil
 }
 
 // Returns the normalized output for a given spectrum type
