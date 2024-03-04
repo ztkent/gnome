@@ -1,12 +1,12 @@
 package tools
 
 import (
-	"fmt"
+	"log"
 	"os"
 )
 
 func DebugLog(message string) {
 	if os.Getenv("LOG_LEVEL") == "debug" {
-		fmt.Println(message)
+		log.Println(message)
 	}
 }

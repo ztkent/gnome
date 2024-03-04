@@ -20,38 +20,37 @@ import (
 	"golang.org/x/exp/io/i2c"
 )
 
-type Opts struct {
-	Gain    byte
-	Timing  byte
-	DevPath string
-}
-
 type TSL2591 struct {
-	enabled bool
-	timing  byte
-	gain    byte
-	dev     *i2c.Device
+	Enabled bool
+	Timing  byte
+	Gain    byte
+	Device  *i2c.Device
 	*sync.Mutex
 }
 
+const (
+	MAX_SENSOR_VALUE = 0xFFFF
+)
+
 // Connect to a TSL2591 via I2C protocol & set gain/timing
-func NewTSL2591(opts *Opts) (*TSL2591, error) {
-	path := "/dev/i2c-1"
-	if opts.DevPath != "" {
-		path = opts.DevPath
+func NewTSL2591(gain byte, timing byte, path string) (*TSL2591, error) {
+	if path == "" {
+		// i2c-1 is the default I2C bus for the Raspberry Pi
+		path = "/dev/i2c-1"
 	}
 	device, err := i2c.Open(&i2c.Devfs{Dev: path}, int(TSL2591_ADDR))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open: %w", err)
 	}
 	tsl := &TSL2591{
-		dev:   device,
-		Mutex: &sync.Mutex{},
+		Device:  device,
+		Mutex:   &sync.Mutex{},
+		Enabled: true,
 	}
 
-	// Read the device ID from the TSL2591. It should be 0x50
+	// Read the device ID from the TSL2591
 	buf := make([]byte, 1)
-	err = tsl.dev.ReadReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_DEVICE_ID, buf)
+	err = tsl.Device.ReadReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_DEVICE_ID, buf)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read ref: %w", err)
 	}
@@ -59,83 +58,96 @@ func NewTSL2591(opts *Opts) (*TSL2591, error) {
 		return nil, errors.New("Can't find a TSL2591 on I2C bus /dev/i2c-1")
 	}
 
-	tsl.SetTiming(opts.Timing)
-	tsl.SetGain(opts.Gain)
+	tsl.SetTiming(timing)
+	tsl.SetGain(gain)
 
 	tsl.Disable()
 	return tsl, nil
 }
 
+// Enable the sensor
 func (tsl *TSL2591) Enable() error {
 	tsl.Lock()
 	defer tsl.Unlock()
 
-	if tsl.enabled {
+	if tsl.Enabled {
 		return nil
 	}
 	var write []byte = []byte{
 		TSL2591_ENABLE_POWERON | TSL2591_ENABLE_AEN | TSL2591_ENABLE_AIEN | TSL2591_ENABLE_NPIEN,
 	}
-	if err := tsl.dev.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_ENABLE, write); err != nil {
+	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_ENABLE, write); err != nil {
 		return err
 	}
-	tsl.enabled = true
+	tsl.Enabled = true
 	return nil
 }
 
+// Disable the sensor
 func (tsl *TSL2591) Disable() error {
 	tsl.Lock()
 	defer tsl.Unlock()
 
-	if !tsl.enabled {
+	if !tsl.Enabled {
 		return nil
 	}
 	var write []byte = []byte{
 		TSL2591_ENABLE_POWEROFF,
 	}
-	if err := tsl.dev.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_ENABLE, write); err != nil {
+	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_ENABLE, write); err != nil {
 		return err
 	}
-	tsl.enabled = false
+	tsl.Enabled = false
 	return nil
 }
 
+// Set the gain for the sensor
 func (tsl *TSL2591) SetGain(gain byte) error {
-	tsl.Enable()
-	write := []byte{
-		tsl.timing | gain,
+	if !tsl.Enabled {
+		return errors.New("sensor must be enabled")
 	}
-	if err := tsl.dev.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CONTROL, write); err != nil {
+
+	write := []byte{
+		tsl.Timing | gain,
+	}
+	if err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CONTROL, write); err != nil {
 		return err
 	}
-	tsl.gain = gain
-	tsl.Disable()
+	tsl.Gain = gain
 	return nil
 }
 
+// Set the integration timing for the sensor
 func (tsl *TSL2591) SetTiming(timing byte) error {
-	tsl.Enable()
-	write := []byte{
-		timing | tsl.gain,
+	if !tsl.Enabled {
+		return errors.New("sensor must be enabled")
 	}
-	err := tsl.dev.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CONTROL, write)
+
+	write := []byte{
+		timing | tsl.Gain,
+	}
+	err := tsl.Device.WriteReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CONTROL, write)
 	if err != nil {
 		return err
 	}
-	tsl.timing = timing
-	tsl.Disable()
+	tsl.Timing = timing
 	return nil
 }
 
+// Read from the light sensor's channels
 func (tsl *TSL2591) GetFullLuminosity() (uint16, uint16, error) {
-	for d := byte(0); d < tsl.timing; d++ {
+	if !tsl.Enabled {
+		return 0, 0, errors.New("sensor must be enabled")
+	}
+
+	for d := byte(0); d < tsl.Timing; d++ {
 		time.Sleep(120 * time.Millisecond)
 	}
 
 	// Reading from TSL2591_REGISTER_CHAN0_LOW, and TSL2591_REGISTER_CHAN1_LOW
 	// They are 2 bytes each, so we read 4 bytes in total
 	bytes := make([]byte, 4)
-	err := tsl.dev.ReadReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CHAN0_LOW, bytes)
+	err := tsl.Device.ReadReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CHAN0_LOW, bytes)
 	if err != nil {
 		fmt.Printf("Error reading from register: %v\n", err)
 		return 0, 0, err
@@ -150,13 +162,13 @@ func (tsl *TSL2591) GetFullLuminosity() (uint16, uint16, error) {
 }
 
 func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
-	// Return +Inf for overflow
+	// Check for channel overflow
 	if ch0 == 0xFFFF || ch1 == 0xFFFF {
 		return 0, fmt.Errorf("ch0/1 overflow")
 	}
 
 	var int_time float64
-	switch tsl.timing {
+	switch tsl.Timing {
 	case TSL2591_INTEGRATIONTIME_100MS:
 		int_time = 100.0
 	case TSL2591_INTEGRATIONTIME_200MS:
@@ -174,7 +186,7 @@ func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 	}
 
 	var adj_gain float64
-	switch tsl.gain {
+	switch tsl.Gain {
 	case TSL2591_GAIN_LOW:
 		adj_gain = 1.0
 	case TSL2591_GAIN_MED:
@@ -187,7 +199,26 @@ func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 		adj_gain = 1.0
 	}
 
+	// Based on the formula provided in the datasheet of the TSL2591 sensor
 	cpl := (int_time * adj_gain) / TSL2591_LUX_DF
 	lux := (float64(ch0) - float64(ch1)) * (1.0 - (float64(ch1) / float64(ch0))) / cpl
 	return lux, nil
+}
+
+// Returns the normalized output for a given spectrum type
+func (tsl *TSL2591) GetNormalizedOutput(spectrumType byte, ch0, ch1 uint16) float64 {
+	switch spectrumType {
+	case TSL2591_VISIBLE:
+		visible := float64(ch0) - float64(ch1)
+		if visible < 0 {
+			visible = 0
+		}
+		return visible / MAX_SENSOR_VALUE
+	case TSL2591_INFRARED:
+		return float64(ch1) / MAX_SENSOR_VALUE
+	case TSL2591_FULLSPECTRUM:
+		return float64(ch0) / MAX_SENSOR_VALUE
+	default:
+		return 0
+	}
 }
