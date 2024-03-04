@@ -106,7 +106,7 @@ func (m *SLMeter) MonitorAndRecordResults() {
 	for {
 		select {
 		case result := <-m.LuxResultsChan:
-			log.Println("Received result message: ", result)
+			log.Println(fmt.Sprintf("Received result message: JobID: %s, Lux: %f", result.JobID, result.Lux))
 			_, err := m.ResultsDB.Exec(
 				"INSERT INTO sunlight (job_id, lux, full_spectrum, visible, infrared) VALUES (?, ?, ?, ?, ?)",
 				result.JobID, result.Lux, result.FullSpectrum, result.Visible, result.Infrared,
