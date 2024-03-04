@@ -202,7 +202,7 @@ func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 }
 
 // Returns the normalized output for a given spectrum type
-func (tsl *TSL2591) GetNormalizedOutput(spectrumType byte, ch0, ch1 uint16) float64 {
+func GetNormalizedOutput(spectrumType byte, ch0, ch1 uint16) float64 {
 	switch spectrumType {
 	case TSL2591_VISIBLE:
 		visible := float64(ch0) - float64(ch1)

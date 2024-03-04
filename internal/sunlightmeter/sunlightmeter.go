@@ -83,9 +83,9 @@ func (m *SLMeter) Start() http.HandlerFunc {
 				// Send the results to the LuxResultsChan
 				m.LuxResultsChan <- LuxResults{
 					Lux:          lux,
-					Visible:      m.GetNormalizedOutput(tsl2591.TSL2591_VISIBLE, ch0, ch1),
-					Infrared:     m.GetNormalizedOutput(tsl2591.TSL2591_INFRARED, ch0, ch1),
-					FullSpectrum: m.GetNormalizedOutput(tsl2591.TSL2591_FULLSPECTRUM, ch0, ch1),
+					Visible:      tsl2591.GetNormalizedOutput(tsl2591.TSL2591_VISIBLE, ch0, ch1),
+					Infrared:     tsl2591.GetNormalizedOutput(tsl2591.TSL2591_INFRARED, ch0, ch1),
+					FullSpectrum: tsl2591.GetNormalizedOutput(tsl2591.TSL2591_FULLSPECTRUM, ch0, ch1),
 					JobID:        jobID,
 				}
 				<-ticker.C
