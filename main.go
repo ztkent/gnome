@@ -15,6 +15,10 @@ import (
 )
 
 func main() {
+	// Log the process ID, in case we need it.
+	pid := os.Getpid()
+	log.Println("Process ID: ", pid)
+
 	// connect to the lux sensor
 	device, err := tsl2591.NewTSL2591(
 		tsl2591.TSL2591_GAIN_LOW,
