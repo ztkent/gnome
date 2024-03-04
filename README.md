@@ -11,7 +11,7 @@ This project monitors and records data from each of the three sources.
 With the collected data, we are able to:  
 - Calculate the lux value for the current light conditions.
 - Report real-time data for monitoring or automation.
-- Use historical data to give insight on changes over time.
+- Save historical data to give insight on changes over time.
 - Provde a dashboard to display the data in a user-friendly way.
 - Most importantly, determine if your location is: ☁️ shade, partial shade, partial sun, or full sun ☀️
 
