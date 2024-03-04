@@ -38,17 +38,26 @@ func main() {
 
 	// Define routes
 	defineRoutes(r, &slm.SLMeter{
-		TSL2591:   device,
-		ResultsDB: slmDB,
+		TSL2591:        device,
+		ResultsDB:      slmDB,
+		LuxResultsChan: make(chan slm.LuxResults),
 	})
 
 	// Start server
-	log.Println("SunlightMeter is running on port " + os.Getenv("APP_PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("APP_PORT"), r))
+	app_port := "8080"
+	if os.Getenv("APP_PORT") != "" {
+		app_port = os.Getenv("APP_PORT")
+	}
+
+	log.Println("SunlightMeter is running on port " + app_port)
+	log.Fatal(http.ListenAndServe(":"+app_port, r))
 	return
 }
 
 func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
+	// Listen for any messages from our jobs, record them in sqlite
+	go meter.MonitorAndRecordResults()
+
 	// Sunlight Meter Controls
 	r.Get("/", meter.Start())
 	r.Get("/stop", meter.Stop())

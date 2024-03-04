@@ -40,51 +40,51 @@ func (m *SLMeter) Start() http.HandlerFunc {
 			http.Error(w, "The sensor is already running", http.StatusConflict)
 			return
 		}
+		go func() {
+			// Create a new context with a timeout to manage the sensor lifecycle
+			ctx, cancel := context.WithTimeout(context.Background(), MAX_JOB_DURATION)
+			m.cancel = cancel
 
-		// Create a new context with a timeout to manage the sensor lifecycle
-		ctx, cancel := context.WithTimeout(r.Context(), MAX_JOB_DURATION)
-		m.cancel = cancel
+			// Enable the sensor
+			m.Enable()
+			defer m.Disable()
 
-		// Enable the sensor
-		m.Enable()
-		defer m.Disable()
+			jobID := uuid.New().String()
+			ticker := time.NewTicker(5 * time.Second)
+			for {
+				select {
+				case <-ctx.Done():
+					log.Println("Job Cancelled, stopping sensor")
+					return
+				default:
+				}
 
-		jobID := uuid.New().String()
-		ticker := time.NewTicker(5 * time.Second)
-		for {
-			select {
-			case <-ctx.Done():
-				log.Println("Job Cancelled, stopping sensor")
-				return
-			default:
+				// Read the sensor
+				ch0, ch1, err := m.GetFullLuminosity()
+				if err != nil {
+					log.Println("The sensor failed to get luminosity, ending job")
+					return
+				}
+				tools.DebugLog(fmt.Sprintf("0x%04x 0x%04x\n", ch0, ch1))
+
+				// Calculate the lux value from the sensor readings
+				lux, err := m.CalculateLux(ch0, ch1)
+				if err != nil {
+					log.Println("The sensor failed to calculate lux, ending job")
+					return
+				}
+
+				// Send the results to the LuxResultsChan
+				m.LuxResultsChan <- LuxResults{
+					Lux:          lux,
+					Visible:      m.GetNormalizedOutput(tsl2591.TSL2591_VISIBLE, ch0, ch1),
+					Infrared:     m.GetNormalizedOutput(tsl2591.TSL2591_INFRARED, ch0, ch1),
+					FullSpectrum: m.GetNormalizedOutput(tsl2591.TSL2591_FULLSPECTRUM, ch0, ch1),
+					JobID:        jobID,
+				}
+				<-ticker.C
 			}
-
-			// Read the sensor
-			ch0, ch1, err := m.GetFullLuminosity()
-			if err != nil {
-				http.Error(w, "The sensor failed to get luminosity", http.StatusConflict)
-				return
-			}
-			tools.DebugLog(fmt.Sprintf("0x%04x 0x%04x\n", ch0, ch1))
-
-			// Calculate the lux value from the sensor readings
-			lux, err := m.CalculateLux(ch0, ch1)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// Send the results to the LuxResultsChan
-			m.LuxResultsChan <- LuxResults{
-				Lux:          lux,
-				Visible:      m.GetNormalizedOutput(tsl2591.TSL2591_VISIBLE, ch0, ch1),
-				Infrared:     m.GetNormalizedOutput(tsl2591.TSL2591_INFRARED, ch0, ch1),
-				FullSpectrum: m.GetNormalizedOutput(tsl2591.TSL2591_FULLSPECTRUM, ch0, ch1),
-				JobID:        jobID,
-			}
-
-			log.Println(lux)
-			<-ticker.C
-		}
+		}()
 	}
 }
 
@@ -101,7 +101,8 @@ func (m *SLMeter) Stop() http.HandlerFunc {
 }
 
 // Read from LuxResultsChan, write the results to sqlite
-func (m *SLMeter) WriteToDB() {
+func (m *SLMeter) MonitorAndRecordResults() {
+	log.Println("Monitoring for new Sunlight Messages...")
 	for {
 		select {
 		case result := <-m.LuxResultsChan:
