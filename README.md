@@ -33,6 +33,11 @@ Connect remotely to:
 
 To ensure accurate readings and avoid saturation, this service will automatically adjust sensor gain and integration time.
 
+## Dashboard
+The Sunlight Dashboard is a web page that displays the current light conditions and historical data.  
+The default time range is the last 8 hours, but can be adjusted to any range.  
+
+
 ## Understanding Lux Values
 <img width="400" alt="image" src="https://github.com/Ztkent/sunlight-meter/assets/7357311/f4ba0f6f-eb35-4d8b-86a6-11862363be98">
 

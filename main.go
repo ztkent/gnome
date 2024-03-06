@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/Ztkent/sunlight-meter/internal/db"
+	"github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
 	slm "github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
 	"github.com/Ztkent/sunlight-meter/tsl2591"
 	"github.com/go-chi/chi/v5"
@@ -25,8 +27,9 @@ func main() {
 		"/dev/i2c-1",
 	)
 	if err != nil {
-		log.Fatalf("Failed to connect to the TSL2591 sensor: %v", err)
+		log.Println(fmt.Sprintf("Failed to connect to the TSL2591 sensor: %v", err))
 	}
+
 	// connect to the sqlite database
 	slmDB, err := db.ConnectSqlite(slm.DB_PATH)
 	if err != nil {
@@ -37,13 +40,23 @@ func main() {
 	r := chi.NewRouter()
 	// Log requests and recover from panics
 	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if err := recover(); err != nil {
+					sunlightmeter.ServeResponse(w, (fmt.Sprintf("%v", err)))
+				}
+			}()
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	// Define routes
 	defineRoutes(r, &slm.SLMeter{
 		TSL2591:        device,
 		ResultsDB:      slmDB,
 		LuxResultsChan: make(chan slm.LuxResults),
+		Pid:            pid,
 	})
 
 	// Start server
@@ -62,12 +75,17 @@ func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
 	go meter.MonitorAndRecordResults()
 
 	// Sunlight Meter Controls
-	r.Get("/", meter.ServeResultsGraph())
+	r.Get("/", meter.ServeDashboard())
 	r.Get("/start", meter.Start())
 	r.Get("/stop", meter.Stop())
 	r.Get("/signal-strength", meter.SignalStrength())
 	r.Get("/current-conditions", meter.CurrentConditions())
 	r.Get("/export", meter.ServeResultsDB())
+	r.Post("/api/graph", meter.ServeResultsGraph())
+	r.Get("/api/controls", meter.ServeSunlightControls())
+	r.Get("/api/status", meter.ServeStatus())
+	r.Get("/api/results", meter.ServeResultsTab())
+	r.Get("/api/clear", meter.Clear())
 
 	// Serve static files
 	workDir, _ := os.Getwd()

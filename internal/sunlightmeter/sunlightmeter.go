@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"math"
 	"net/http"
@@ -27,6 +28,7 @@ type SLMeter struct {
 	LuxResultsChan chan LuxResults
 	ResultsDB      *sql.DB
 	cancel         context.CancelFunc
+	Pid            int
 }
 
 type LuxResults struct {
@@ -47,10 +49,14 @@ const (
 func (m *SLMeter) Start() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("It's gonna be a bright, bright sun-shining day!")
-		if m.Enabled {
-			http.Error(w, "The sensor is already running", http.StatusConflict)
+		if m.TSL2591 == nil {
+			ServeResponse(w, "The sensor is not connected")
+			return
+		} else if m.Enabled {
+			ServeResponse(w, "The sensor is already started")
 			return
 		}
+
 		go func() {
 			// Create a new context with a timeout to manage the sensor lifecycle
 			ctx, cancel := context.WithTimeout(context.Background(), MAX_JOB_DURATION)
@@ -110,14 +116,18 @@ func (m *SLMeter) Start() http.HandlerFunc {
 			}
 		}()
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Sunlight Reading Started"))
+		ServeResponse(w, "Sunlight Reading Started")
+		return
 	}
 }
 
 func (m *SLMeter) Stop() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !m.Enabled {
-			http.Error(w, "The sensor is already stopped", http.StatusConflict)
+		if m.TSL2591 == nil {
+			ServeResponse(w, "The sensor is not connected")
+			return
+		} else if !m.Enabled {
+			ServeResponse(w, "The sensor is already stopped")
 			return
 		}
 
@@ -126,8 +136,62 @@ func (m *SLMeter) Stop() http.HandlerFunc {
 		m.cancel()
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Sunlight Reading Stopped"))
+		ServeResponse(w, "Sunlight Reading Stopped")
+		return
 	}
+}
+
+type Conditions struct {
+	JobID        string  `json:"jobID"`
+	Lux          float64 `json:"lux"`
+	FullSpectrum float64 `json:"fullSpectrum"`
+	Visible      float64 `json:"visible"`
+	Infrared     float64 `json:"infrared"`
+}
+
+// Serve data about the most recent entry saved to the db
+func (m *SLMeter) CurrentConditions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if m.TSL2591 == nil {
+			ServeResponse(w, "The sensor is not connected")
+			return
+		} else if !m.Enabled {
+			ServeResponse(w, "The sensor is not enabled")
+			return
+		}
+		conditions, err := m.getCurrentConditions()
+		if err != nil {
+			log.Println(err)
+			ServeResponse(w, err.Error())
+			return
+		}
+
+		conditionsData, err := json.Marshal(conditions)
+		if err != nil {
+			log.Println(err)
+			ServeResponse(w, err.Error())
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		ServeResponse(w, string(conditionsData))
+		return
+	}
+}
+
+// Return the most recent entry saved to the db
+func (m *SLMeter) getCurrentConditions() (Conditions, error) {
+	if m.TSL2591 == nil || !m.Enabled {
+		return Conditions{}, nil
+	}
+	conditions := Conditions{}
+	row := m.ResultsDB.QueryRow("SELECT job_id, lux, full_spectrum, visible, infrared FROM sunlight ORDER BY id DESC LIMIT 1")
+	err := row.Scan(&conditions.JobID, &conditions.Lux, &conditions.FullSpectrum, &conditions.Visible, &conditions.Infrared)
+	if err != nil {
+		log.Println(err)
+		return Conditions{}, err
+	}
+	return conditions, nil
 }
 
 func (m *SLMeter) SignalStrength() http.HandlerFunc {
@@ -136,13 +200,12 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 		output, err := cmd.Output()
 		if err != nil {
 			log.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			ServeResponse(w, err.Error())
 			return
 		}
 		signalInt, err := strconv.Atoi(strings.TrimSpace(string(output)))
 		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			ServeResponse(w, "Device is not connected to a network")
 			return
 		}
 
@@ -166,7 +229,8 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 		log.Println("Strength: ", strength, "%")
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Signal Strength: " + fmt.Sprintf("%d", signalInt) + " dBm\nQuality: " + fmt.Sprintf("%d", strength) + "%"))
+		ServeResponse(w, "Signal Strength: "+fmt.Sprintf("%d", signalInt)+" dBm\nQuality: "+fmt.Sprintf("%d", strength)+"%")
+		return
 	}
 }
 
@@ -178,10 +242,120 @@ func (m *SLMeter) ServeResultsDB() http.HandlerFunc {
 	}
 }
 
+// Serve the controls for the sensor, start/stop/export/current-conditions/signal-strength
+func (m *SLMeter) ServeSunlightControls() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tmpl, err := template.ParseFiles("internal/html/templates/controls.gohtml")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = tmpl.Execute(w, nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+// Update the info in the results tab
+func (m *SLMeter) ServeResultsTab() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		conditions, err := m.getCurrentConditions()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		tmpl, err := template.ParseFiles("internal/html/templates/results.gohtml")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = tmpl.Execute(w, conditions)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+// Status of the sensor
+func (m *SLMeter) ServeStatus() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tmpl, err := template.ParseFiles("internal/html/templates/status.gohtml")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Setup the status response
+		type Status struct {
+			Connected bool
+			Enabled   bool
+		}
+		status := Status{}
+		if m.TSL2591 == nil {
+			status.Connected = false
+		} else {
+			status.Connected = true
+			status.Enabled = m.Enabled
+		}
+
+		err = tmpl.Execute(w, status)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+// Populate the response div with a message
+func ServeResponse(w http.ResponseWriter, message string) {
+	tmpl, err := template.ParseFiles("internal/html/templates/response.gohtml")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.Execute(w, message)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// Serve the results graph
 func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Get the date range for the graph from the request
+		// We need to format it to match the db
+		r.ParseForm()
+		startDate := r.FormValue("start")
+		endDate := r.FormValue("end")
+		layoutInput := "2006-01-02T15:04"
+		layoutDB := "2006-01-02 15:04:05"
+		if startDate == "" || endDate == "" {
+			startDate = time.Now().UTC().Add(-8 * time.Hour).Format(layoutDB)
+			endDate = time.Now().UTC().Format(layoutDB)
+		} else {
+			var err error
+			var t time.Time
+			t, err = time.Parse(layoutInput, startDate)
+			if err != nil {
+				log.Println("Error parsing start date:", err)
+			} else {
+				startDate = t.Format(layoutDB)
+			}
+			t, err = time.Parse(layoutInput, endDate)
+			if err != nil {
+				log.Println("Error parsing end date:", err)
+			} else {
+				endDate = t.Format(layoutDB)
+			}
+		}
+
 		// Query the database for the lux and created_at values
-		rows, err := m.ResultsDB.Query("SELECT lux, created_at FROM sunlight ORDER BY created_at")
+		rows, err := m.ResultsDB.Query("SELECT lux, created_at FROM sunlight WHERE created_at BETWEEN ? AND ? ORDER BY created_at", startDate, endDate)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -213,8 +387,8 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 			// Format the timestamp
 			timeString := createdAt.Format("2006-01-02 15:04:05")
 			if luxFloat > float64(maxLux) {
-				// Round up to the nearest 1000
-				maxLux = int(math.Ceil(luxFloat/1000) * 1000)
+				// Round up to the nearest 5000
+				maxLux = int(math.Ceil(luxFloat/5000) * 5000)
 			}
 			luxValues = append(luxValues, opts.LineData{Value: luxFloat})
 			timeValues = append(timeValues, timeString)
@@ -258,7 +432,7 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 				Theme: types.ThemeChalk,
 			}),
 			charts.WithTitleOpts(opts.Title{
-				Title: "Lux over time",
+				// Title: "Lux over time",
 			}),
 			charts.WithYAxisOpts(opts.YAxis{
 				Min: "0",
@@ -273,6 +447,7 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 					SaveAsImage: &opts.ToolBoxFeatureSaveAsImage{
 						Show:  true,
 						Title: "Save as Image",
+						Name:  "sunlight-meter",
 					},
 				},
 			}),
@@ -282,7 +457,6 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 		// Create a new page and add the line chart to it
 		page := components.NewPage()
 		page.AddCharts(line)
-		page.AddCustomizedJSAssets("chart.js")
 
 		// Render the graphs
 		w.Header().Set("Content-Type", "text/html")
@@ -290,9 +464,18 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 	}
 }
 
+// Serve the homepage
 func (m *SLMeter) ServeDashboard() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		http.ServeFile(w, r, "internal/html/dashboard.html")
+	}
+}
 
+// Used to clear a div with htmx
+func (m *SLMeter) Clear() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
@@ -319,40 +502,5 @@ func (m *SLMeter) MonitorAndRecordResults() {
 				log.Println(err)
 			}
 		}
-	}
-}
-
-// Return the most recent entry saved to the db
-func (m *SLMeter) CurrentConditions() http.HandlerFunc {
-	type Conditions struct {
-		JobID        string  `json:"jobID"`
-		Lux          float64 `json:"lux"`
-		FullSpectrum float64 `json:"fullSpectrum"`
-		Visible      float64 `json:"visible"`
-		Infrared     float64 `json:"infrared"`
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !m.Enabled {
-			http.Error(w, "The sensor is not running", http.StatusConflict)
-			return
-		}
-		data := Conditions{}
-		row := m.ResultsDB.QueryRow("SELECT job_id, lux, full_spectrum, visible, infrared FROM sunlight ORDER BY id DESC LIMIT 1")
-		err := row.Scan(&data.JobID, &data.Lux, &data.FullSpectrum, &data.Visible, &data.Infrared)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		jsonData, err := json.Marshal(data)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Write(jsonData)
 	}
 }
