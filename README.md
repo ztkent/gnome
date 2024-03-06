@@ -16,6 +16,7 @@ With the collected data, we are able to:
 - Most importantly, determine if your location is: ☁️ shade, partial shade, partial sun, or full sun ☀️
 
 ## How it works
+### Configuration: 
 The TSL2591 sensor is connected to a Raspberry Pi via i2c.  
 Connecting the sensor to the Pi:
 - Vin to 3.3V
@@ -23,21 +24,28 @@ Connecting the sensor to the Pi:
 - SDA to SDA
 - SCL to SCL
 
-"Sunlight Meter" runs a web server on device to allow remote access to the sensor data and jobs.  
+To ensure accurate readings and avoid saturation, this service automatically adjusts sensor gain and integration time.  
+
+### API:
+"Sunlight Meter" runs an API to allow remote access to the sensor data and jobs.  
 Connect remotely to:
 - Start/Stop any recording job.
 - Receive real-time readings and light conditions. 
 - Download historical data as a SQLite DB.
 - Check device wifi-signal strength.
-- View the Sunlight Dashboard.
 
-To ensure accurate readings and avoid saturation, this service will automatically adjust sensor gain and integration time.
+To ensure accurate readings and avoid saturation, this service will automatically adjust sensor gain and integration time. 
 
-## Dashboard
-The Sunlight Dashboard is a web page that displays the current light conditions and historical data.  
-The default time range is the last 8 hours, but can be adjusted to any range.  
-
+### Dashboard:
+The Sunlight Dashboard is a web app that displays the current light conditions and historical data.  
+- Visualize historical light conditions
+- Control the sensor
+- Export the results
 
 ## Understanding Lux Values
 <img width="400" alt="image" src="https://github.com/Ztkent/sunlight-meter/assets/7357311/f4ba0f6f-eb35-4d8b-86a6-11862363be98">
 
+## Infrastructure
+- Frontend: HTML, TailwindCSS, HTMX, JS
+- Backend: Go
+- Hardware: [TSL2591](https://www.adafruit.com/product/1980), [Raspberry Pi Zero W](https://www.adafruit.com/product/3400)

@@ -39,10 +39,23 @@ type LuxResults struct {
 	JobID        string
 }
 
+type Conditions struct {
+	JobID                 string  `json:"jobID"`
+	Lux                   float64 `json:"lux"`
+	FullSpectrum          float64 `json:"fullSpectrum"`
+	Visible               float64 `json:"visible"`
+	Infrared              float64 `json:"infrared"`
+	DateRange             string  `json:"dateRange"`
+	RecordedHoursInRange  float64 `json:"recordedHoursInRange"`
+	FullSunlightInRange   float64 `json:"fullSunlightInRange"`
+	LightConditionInRange string  `json:"lightConditionInRange"`
+	AverageLuxInRange     float64 `json:"averageLuxInRange"`
+}
+
 const (
 	MAX_JOB_DURATION = 8 * time.Hour
 	RECORD_INTERVAL  = 30 * time.Second
-	DB_PATH          = "results/sunlightmeter.db"
+	DB_PATH          = "sunlightmeter.db"
 )
 
 // Start the sensor, and collect data in a loop
@@ -50,10 +63,10 @@ func (m *SLMeter) Start() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("It's gonna be a bright, bright sun-shining day!")
 		if m.TSL2591 == nil {
-			ServeResponse(w, "The sensor is not connected")
+			ServeResponse(w, r, "The sensor is not connected", http.StatusBadRequest)
 			return
 		} else if m.Enabled {
-			ServeResponse(w, "The sensor is already started")
+			ServeResponse(w, r, "The sensor is already started", http.StatusBadRequest)
 			return
 		}
 
@@ -116,18 +129,19 @@ func (m *SLMeter) Start() http.HandlerFunc {
 			}
 		}()
 		w.WriteHeader(http.StatusOK)
-		ServeResponse(w, "Sunlight Reading Started")
+		ServeResponse(w, r, "Sunlight Reading Started", http.StatusOK)
 		return
 	}
 }
 
+// Stop the sensor, and cancel the job context
 func (m *SLMeter) Stop() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if m.TSL2591 == nil {
-			ServeResponse(w, "The sensor is not connected")
+			ServeResponse(w, r, "The sensor is not connected", http.StatusBadRequest)
 			return
 		} else if !m.Enabled {
-			ServeResponse(w, "The sensor is already stopped")
+			ServeResponse(w, r, "The sensor is already stopped", http.StatusBadRequest)
 			return
 		}
 
@@ -136,45 +150,37 @@ func (m *SLMeter) Stop() http.HandlerFunc {
 		m.cancel()
 
 		w.WriteHeader(http.StatusOK)
-		ServeResponse(w, "Sunlight Reading Stopped")
+		ServeResponse(w, r, "Sunlight Reading Stopped", http.StatusOK)
 		return
 	}
-}
-
-type Conditions struct {
-	JobID        string  `json:"jobID"`
-	Lux          float64 `json:"lux"`
-	FullSpectrum float64 `json:"fullSpectrum"`
-	Visible      float64 `json:"visible"`
-	Infrared     float64 `json:"infrared"`
 }
 
 // Serve data about the most recent entry saved to the db
 func (m *SLMeter) CurrentConditions() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if m.TSL2591 == nil {
-			ServeResponse(w, "The sensor is not connected")
+			ServeResponse(w, r, "The sensor is not connected", http.StatusBadRequest)
 			return
 		} else if !m.Enabled {
-			ServeResponse(w, "The sensor is not enabled")
+			ServeResponse(w, r, "The sensor is not enabled", http.StatusBadRequest)
 			return
 		}
 		conditions, err := m.getCurrentConditions()
 		if err != nil {
 			log.Println(err)
-			ServeResponse(w, err.Error())
+			ServeResponse(w, r, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		conditionsData, err := json.Marshal(conditions)
 		if err != nil {
 			log.Println(err)
-			ServeResponse(w, err.Error())
+			ServeResponse(w, r, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		ServeResponse(w, string(conditionsData))
+		ServeResponse(w, r, string(conditionsData), http.StatusOK)
 		return
 	}
 }
@@ -194,18 +200,92 @@ func (m *SLMeter) getCurrentConditions() (Conditions, error) {
 	return conditions, nil
 }
 
+// Return the most recent entry saved to the db
+func (m *SLMeter) getHistoricalConditions(conditions Conditions, startDate string, endDate string) (Conditions, error) {
+	if m.ResultsDB == nil {
+		return conditions, nil
+	}
+	// Set the date range
+	conditions.DateRange = fmt.Sprintf("%s - %s UTC", startDate, endDate)
+
+	// Get the average lux for the date range
+	row := m.ResultsDB.QueryRow(`
+    SELECT 
+        COALESCE(AVG(lux), 0), 
+        COALESCE(MIN(created_at), '0001-01-01 00:00:00'), 
+        COALESCE(MAX(created_at), '0001-01-01 00:00:00') 
+    FROM sunlight 
+    WHERE created_at BETWEEN ? AND ?`, startDate, endDate)
+	var oldest, mostRecent sql.NullString
+	err := row.Scan(&conditions.AverageLuxInRange, &oldest, &mostRecent)
+	if err != nil {
+		return conditions, err
+	}
+	if conditions.AverageLuxInRange == 0 {
+		conditions.LightConditionInRange = "No Data in Range"
+		return conditions, nil
+	}
+
+	// Get the number of hours where the average lux was above 10k
+	rows, err := m.ResultsDB.Query(`
+    SELECT COUNT(*) 
+    FROM (
+        SELECT AVG(lux) as avg_lux 
+        FROM sunlight 
+        WHERE created_at BETWEEN ? AND ? 
+        GROUP BY strftime('%H:%M', created_at)
+    ) 
+    WHERE avg_lux > 10000`, startDate, endDate)
+	if err != nil {
+		return conditions, err
+	}
+
+	defer rows.Close()
+	var fullSunlightInRangeMin sql.NullFloat64
+	if rows.Next() {
+		err = rows.Scan(&fullSunlightInRangeMin)
+		if err != nil {
+			return conditions, err
+		}
+	}
+	if fullSunlightInRangeMin.Valid {
+		conditions.FullSunlightInRange = fullSunlightInRangeMin.Float64 / 60
+	}
+
+	// Determine the light condition for the date range
+	if oldest.Valid && mostRecent.Valid {
+		mostRecent, oldest, err := tools.StartAndEndDateToTime(oldest.String, mostRecent.String)
+		if err != nil {
+			return conditions, err
+		}
+		conditions.RecordedHoursInRange = oldest.Sub(mostRecent).Hours()
+		if conditions.FullSunlightInRange/conditions.RecordedHoursInRange > 0.5 {
+			conditions.LightConditionInRange = "Full Sun"
+		} else if conditions.FullSunlightInRange/conditions.RecordedHoursInRange > 0.25 {
+			conditions.LightConditionInRange = "Partial Sun"
+		} else if conditions.FullSunlightInRange/conditions.RecordedHoursInRange > 0.1 {
+			conditions.LightConditionInRange = "Partial Shade"
+		} else {
+			conditions.LightConditionInRange = "Shade"
+		}
+	}
+
+	return conditions, nil
+}
+
+// Check the signal strength of the wifi connection
 func (m *SLMeter) SignalStrength() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cmd := exec.Command("sh", "-c", "iw dev wlan0 link | grep 'signal:' | awk '{print $2}'")
 		output, err := cmd.Output()
 		if err != nil {
 			log.Println(err)
-			ServeResponse(w, err.Error())
+			ServeResponse(w, r, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		signalInt, err := strconv.Atoi(strings.TrimSpace(string(output)))
 		if err != nil {
-			ServeResponse(w, "Device is not connected to a network")
+			ServeResponse(w, r, "Device is not connected to a network", http.StatusBadRequest)
 			return
 		}
 
@@ -229,16 +309,26 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 		log.Println("Strength: ", strength, "%")
 
 		w.WriteHeader(http.StatusOK)
-		ServeResponse(w, "Signal Strength: "+fmt.Sprintf("%d", signalInt)+" dBm\nQuality: "+fmt.Sprintf("%d", strength)+"%")
+		ServeResponse(w, r, "Signal Strength: "+fmt.Sprintf("%d", signalInt)+" dBm\nQuality: "+fmt.Sprintf("%d", strength)+"%", http.StatusOK)
 		return
 	}
 }
 
+// Serve the sqlite db for download
 func (m *SLMeter) ServeResultsDB() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "sunlightmeter.db"))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		http.ServeFile(w, r, DB_PATH)
+	}
+}
+
+// Serve the homepage
+func (m *SLMeter) ServeDashboard() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		http.ServeFile(w, r, "internal/html/dashboard.html")
 	}
 }
 
@@ -258,30 +348,8 @@ func (m *SLMeter) ServeSunlightControls() http.HandlerFunc {
 	}
 }
 
-// Update the info in the results tab
-func (m *SLMeter) ServeResultsTab() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		conditions, err := m.getCurrentConditions()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		tmpl, err := template.ParseFiles("internal/html/templates/results.gohtml")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = tmpl.Execute(w, conditions)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-}
-
 // Status of the sensor
-func (m *SLMeter) ServeStatus() http.HandlerFunc {
+func (m *SLMeter) ServeSensorStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tmpl, err := template.ParseFiles("internal/html/templates/status.gohtml")
 		if err != nil {
@@ -310,49 +378,11 @@ func (m *SLMeter) ServeStatus() http.HandlerFunc {
 	}
 }
 
-// Populate the response div with a message
-func ServeResponse(w http.ResponseWriter, message string) {
-	tmpl, err := template.ParseFiles("internal/html/templates/response.gohtml")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = tmpl.Execute(w, message)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
 // Serve the results graph
 func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get the date range for the graph from the request
-		// We need to format it to match the db
-		r.ParseForm()
-		startDate := r.FormValue("start")
-		endDate := r.FormValue("end")
-		layoutInput := "2006-01-02T15:04"
-		layoutDB := "2006-01-02 15:04:05"
-		if startDate == "" || endDate == "" {
-			startDate = time.Now().UTC().Add(-8 * time.Hour).Format(layoutDB)
-			endDate = time.Now().UTC().Format(layoutDB)
-		} else {
-			var err error
-			var t time.Time
-			t, err = time.Parse(layoutInput, startDate)
-			if err != nil {
-				log.Println("Error parsing start date:", err)
-			} else {
-				startDate = t.Format(layoutDB)
-			}
-			t, err = time.Parse(layoutInput, endDate)
-			if err != nil {
-				log.Println("Error parsing end date:", err)
-			} else {
-				endDate = t.Format(layoutDB)
-			}
-		}
+		startDate, endDate := tools.ParseStartAndEndDate(r)
 
 		// Query the database for the lux and created_at values
 		rows, err := m.ResultsDB.Query("SELECT lux, created_at FROM sunlight WHERE created_at BETWEEN ? AND ? ORDER BY created_at", startDate, endDate)
@@ -461,21 +491,91 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 		// Render the graphs
 		w.Header().Set("Content-Type", "text/html")
 		page.Render(w)
+		// Trigger an update for the results tab
+		w.Write([]byte(`<div id='resultUpdateTrigger' hx-post='/sunlightmeter/results' hx-target='#resultsContent' hx-trigger='load'></div>`))
+		w.Write([]byte(`<script>document.title = "Sunlight Meter";</script>`))
 	}
 }
 
-// Serve the homepage
-func (m *SLMeter) ServeDashboard() http.HandlerFunc {
+// Update the info in the results tab
+func (m *SLMeter) ServeResultsTab() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusOK)
-		http.ServeFile(w, r, "internal/html/dashboard.html")
+		conditions, err := m.getCurrentConditions()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		startDate, endDate := tools.ParseStartAndEndDate(r)
+		conditions, err = m.getHistoricalConditions(conditions, startDate, endDate)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tmpl, err := template.ParseFiles("internal/html/templates/results.gohtml")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		type ConditionsForDisplay struct {
+			JobID                 string `json:"jobID"`
+			Lux                   string `json:"lux"`
+			FullSpectrum          string `json:"fullSpectrum"`
+			Visible               string `json:"visible"`
+			Infrared              string `json:"infrared"`
+			DateRange             string `json:"dateRange"`
+			RecordedHoursInRange  string `json:"recordedHoursInRange"`
+			FullSunlightInRange   string `json:"fullSunlightInRange"`
+			LightConditionInRange string `json:"lightConditionInRange"`
+			AverageLuxInRange     string `json:"averageLuxInRange"`
+			StartDate             string `json:"startDate"`
+			EndDate               string `json:"endDate"`
+		}
+		err = tmpl.Execute(w, ConditionsForDisplay{
+			JobID:                 conditions.JobID,
+			Lux:                   fmt.Sprintf("%.4f", conditions.Lux),
+			FullSpectrum:          fmt.Sprintf("%.4f", conditions.FullSpectrum),
+			Visible:               fmt.Sprintf("%.4f", conditions.Visible),
+			Infrared:              fmt.Sprintf("%.4f", conditions.Infrared),
+			DateRange:             conditions.DateRange,
+			RecordedHoursInRange:  fmt.Sprintf("%.4f", conditions.RecordedHoursInRange),
+			FullSunlightInRange:   fmt.Sprintf("%.4f", conditions.FullSunlightInRange),
+			LightConditionInRange: conditions.LightConditionInRange,
+			AverageLuxInRange:     fmt.Sprintf("%.4f", conditions.AverageLuxInRange),
+			StartDate:             startDate,
+			EndDate:               endDate,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 }
 
 // Used to clear a div with htmx
 func (m *SLMeter) Clear() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+	}
+}
+
+// Populate the response div with a message, or reply with a JSON message
+func ServeResponse(w http.ResponseWriter, r *http.Request, message string, status int) {
+	if strings.Contains(r.URL.Path, "/api/v1/") {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		json.NewEncoder(w).Encode(map[string]string{"message": message})
+		return
+	}
+
+	tmpl, err := template.ParseFiles("internal/html/templates/response.gohtml")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.Execute(w, message)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 

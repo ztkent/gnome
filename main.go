@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Ztkent/sunlight-meter/internal/db"
 	"github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
 	slm "github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
+	"github.com/Ztkent/sunlight-meter/internal/tools"
 	"github.com/Ztkent/sunlight-meter/tsl2591"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -27,12 +27,14 @@ func main() {
 		"/dev/i2c-1",
 	)
 	if err != nil {
+		// Still want to start the server if we can't connect to the sensor.
 		log.Println(fmt.Sprintf("Failed to connect to the TSL2591 sensor: %v", err))
 	}
 
 	// connect to the sqlite database
-	slmDB, err := db.ConnectSqlite(slm.DB_PATH)
+	slmDB, err := tools.ConnectSqlite(slm.DB_PATH)
 	if err != nil {
+		// Unlike connecting to the sensor, this should always work.
 		log.Fatalf("Failed to connect to the sqlite database: %v", err)
 	}
 
@@ -40,16 +42,7 @@ func main() {
 	r := chi.NewRouter()
 	// Log requests and recover from panics
 	r.Use(middleware.Logger)
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					sunlightmeter.ServeResponse(w, (fmt.Sprintf("%v", err)))
-				}
-			}()
-			next.ServeHTTP(w, r)
-		})
-	})
+	r.Use(handleServerPanic)
 
 	// Define routes
 	defineRoutes(r, &slm.SLMeter{
@@ -71,21 +64,33 @@ func main() {
 }
 
 func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
-	// Listen for any messages from our jobs, record them in sqlite
+	// Listen for any result messages from our jobs, record them in sqlite
 	go meter.MonitorAndRecordResults()
 
-	// Sunlight Meter Controls
+	// Sunlight Meter Dashboard Controls
 	r.Get("/", meter.ServeDashboard())
-	r.Get("/start", meter.Start())
-	r.Get("/stop", meter.Stop())
-	r.Get("/signal-strength", meter.SignalStrength())
-	r.Get("/current-conditions", meter.CurrentConditions())
-	r.Get("/export", meter.ServeResultsDB())
-	r.Post("/api/graph", meter.ServeResultsGraph())
-	r.Get("/api/controls", meter.ServeSunlightControls())
-	r.Get("/api/status", meter.ServeStatus())
-	r.Get("/api/results", meter.ServeResultsTab())
-	r.Get("/api/clear", meter.Clear())
+	r.Route("/sunlightmeter", func(r chi.Router) {
+		r.Use(tools.CheckInNetwork)
+		r.Get("/start", meter.Start())
+		r.Get("/stop", meter.Stop())
+		r.Get("/signal-strength", meter.SignalStrength())
+		r.Get("/current-conditions", meter.CurrentConditions())
+		r.Get("/export", meter.ServeResultsDB())
+		r.Post("/graph", meter.ServeResultsGraph())
+		r.Get("/controls", meter.ServeSunlightControls())
+		r.Get("/status", meter.ServeSensorStatus())
+		r.Post("/results", meter.ServeResultsTab())
+		r.Get("/clear", meter.Clear())
+	})
+
+	// Sunlight Meter API, these serve a JSON response
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/start", meter.Start())
+		r.Get("/stop", meter.Stop())
+		r.Get("/signal-strength", meter.SignalStrength())
+		r.Get("/current-conditions", meter.CurrentConditions())
+		r.Get("/export", meter.ServeResultsDB())
+	})
 
 	// Serve static files
 	workDir, _ := os.Getwd()
@@ -96,5 +101,16 @@ func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
 func FileServer(r chi.Router, path string, root http.FileSystem) {
 	r.Get(path+"*", func(w http.ResponseWriter, r *http.Request) {
 		http.StripPrefix(path, http.FileServer(root)).ServeHTTP(w, r)
+	})
+}
+
+func handleServerPanic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				sunlightmeter.ServeResponse(w, r, (fmt.Sprintf("%v", err)), http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
 	})
 }
