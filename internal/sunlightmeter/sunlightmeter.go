@@ -469,7 +469,11 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 				Max: fmt.Sprintf("%d", maxLux),
 			}),
 			charts.WithTooltipOpts(opts.Tooltip{
-				Show: true,
+				// Enable hover with a custom tooltip display
+				Show:      true,
+				Trigger:   "axis",
+				TriggerOn: "mousemove",
+				Formatter: "{a4}: {c4}<br> Time: {b0}",
 			}),
 			charts.WithToolboxOpts(opts.Toolbox{
 				Show: true,
