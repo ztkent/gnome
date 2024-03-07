@@ -464,9 +464,13 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 			charts.WithTitleOpts(opts.Title{
 				// Title: "Lux over time",
 			}),
+			charts.WithXAxisOpts(opts.XAxis{
+				Name: "Time",
+			}),
 			charts.WithYAxisOpts(opts.YAxis{
-				Min: "0",
-				Max: fmt.Sprintf("%d", maxLux),
+				Name: "Lux",
+				Min:  "0",
+				Max:  fmt.Sprintf("%d", maxLux),
 			}),
 			charts.WithTooltipOpts(opts.Tooltip{
 				// Enable hover with a custom tooltip display
