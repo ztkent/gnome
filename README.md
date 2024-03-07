@@ -7,12 +7,12 @@ The [TSL2591](https://www.adafruit.com/product/1980) is a high dynamic range dig
 It can detect infrared, full-spectrum and human-visible light, then transmit that data over a serial connection.   
 
 
-This project monitors and records data from each of the three sources.  
+"Sunlight Meter" monitors and records data from each of these three sources.  
 With the collected data, we are able to:  
 - Calculate the lux value for the current light conditions.
 - Report real-time data for monitoring or automation.
 - Save historical data to give insight on changes over time.
-- Provide a dashboard to display the data in a user-friendly way.
+- Provide a dashboard to control the sensor and visualize data.
 - Most importantly, determine if your location is: ☁️ shade, partial shade, partial sun, or full sun ☀️
 
 ## How it works
@@ -24,20 +24,19 @@ Connecting the sensor to the Pi:
 - SDA to SDA
 - SCL to SCL
 
-To ensure accurate readings and avoid saturation, this service automatically adjusts sensor gain and integration time.  
+"Sunlight Meter" automatically adjusts sensor gain and integration time.  
+This helps ensure accurate readings and avoid saturation in high light conditions.  
 
 ### API:
-"Sunlight Meter" runs an API to allow remote access to the sensor data and jobs.  
+"Sunlight Meter" runs an API that allows remote access to the sensor data and jobs.  
 Connect remotely to:
 - Start/Stop any recording job.
 - Receive real-time readings and light conditions. 
 - Download historical data as a SQLite DB.
 - Check device wifi-signal strength.
 
-To ensure accurate readings and avoid saturation, this service will automatically adjust sensor gain and integration time. 
-
 ### Dashboard:
-The Sunlight Dashboard is a web app that displays the current light conditions and historical data.  
+The "Sunlight Dashboard" is a web app that displays the current light conditions and historical data.  
 - Visualize historical light conditions
 - Control the sensor
 - Export the results
