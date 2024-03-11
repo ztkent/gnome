@@ -15,6 +15,10 @@ With the collected data, we are able to:
 - Provide a dashboard to control the sensor and visualize data.
 - Most importantly, determine if your location is: ☁️ shade, partial shade, partial sun, or full sun ☀️
 
+<img width="1200" alt="image" src="https://github.com/Ztkent/sunlight-meter/assets/7357311/d3c37483-02c9-477a-b3bd-b2ad3ff151a2">
+
+
+
 ## How it works
 ### Configuration: 
 The TSL2591 sensor is connected to a Raspberry Pi via i2c.  
