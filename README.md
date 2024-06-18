@@ -6,9 +6,7 @@ Using the Adafruit TSL2591 Digital Light Sensor and a Raspberry Pi to monitor da
 The [TSL2591](https://www.adafruit.com/product/1980) is a high dynamic range digital light sensor.  
 It can detect infrared, full-spectrum and human-visible light, then transmit that data over a serial connection.   
 
-
-"Sunlight Meter" monitors and records data from each of these three sources.  
-With the collected data, we are able to:  
+By collecting this data, we are able to:  
 - Calculate the lux value for the current light conditions.
 - Report real-time data for monitoring or automation.
 - Save historical data to give insight on changes over time.
