@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
 	slm "github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
@@ -13,12 +15,82 @@ import (
 	"github.com/Ztkent/sunlight-meter/tsl2591"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/muka/go-bluetooth/bluez/profile/adapter"
 )
+
+func enableBluetooth() error {
+	// Only support Linux, this should be running on a Raspberry Pi
+	if runtime.GOOS != "linux" {
+		return fmt.Errorf("Unsupported OS: %v", runtime.GOOS)
+	} else {
+		_, err := os.Stat("/proc/device-tree/model")
+		if err != nil {
+			return fmt.Errorf("Not a Raspberry Pi, can't enable Bluetooth Discovery: %v", err)
+		}
+	}
+
+	// Get the default adapter
+	defaultAdapter, err := adapter.GetDefaultAdapter()
+	if err != nil {
+		return fmt.Errorf("Failed to get default adapter: %v", err)
+	}
+
+	err = defaultAdapter.SetName("SunlightMeter")
+	if err != nil {
+		return fmt.Errorf("Failed to set name: %v", err)
+	}
+
+	// Make the device discoverable
+	err = defaultAdapter.SetDiscoverable(true)
+	if err != nil {
+		return fmt.Errorf("Failed to make device discoverable: %v", err)
+	}
+
+	// Start the discovery
+	err = defaultAdapter.StartDiscovery()
+	if err != nil {
+		return fmt.Errorf("Failed to start discovery: %v", err)
+	}
+
+	// Get discovered devices
+	devices, err := defaultAdapter.GetDevices()
+	if err != nil {
+		return fmt.Errorf("Failed to get devices: %v", err)
+	}
+
+	for _, device := range devices {
+		log.Printf("Discovered device: %s", device.Properties.Address)
+	}
+	return nil
+}
+
+func manageConnection() error {
+	// Ensure we have a active internet connection
+	err := exec.Command("ping", "-c", "1", "ztkent.com").Run()
+	if err != nil {
+		log.Println("No internet connection, enabling Bluetooth...")
+
+		//setup a Bluetooth server and wait for a client to connect.
+		err := enableBluetooth()
+		if err != nil {
+			return fmt.Errorf("Failed to enable Bluetooth: %v", err)
+		}
+	}
+	// On success, we can disable bluetooth and continue.
+	return nil
+}
 
 func main() {
 	// Log the process ID, in case we need it.
 	pid := os.Getpid()
-	log.Println("SunlightMeter PID: ", pid)
+	log.Println("Sunlight Meter PID: ", pid)
+
+	// Ensure we have a active internet connection
+	err := manageConnection()
+	if err != nil {
+		log.Fatalf("Sunlight Meter failed to connect to the internet: %v", err)
+	}
 
 	// connect to the lux sensor
 	device, err := tsl2591.NewTSL2591(
@@ -58,7 +130,7 @@ func main() {
 		app_port = os.Getenv("APP_PORT")
 	}
 
-	log.Println("SunlightMeter is running on port " + app_port)
+	log.Println("Sunlight Meter is running on port " + app_port)
 	log.Fatal(http.ListenAndServe(":"+app_port, r))
 	return
 }
