@@ -1,0 +1,1 @@
+An application designed to run the Sunlight Meter.
