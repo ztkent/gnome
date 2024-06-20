@@ -24,8 +24,14 @@ func manageConnection() error {
 	if err != nil {
 		log.Println("No internet connection, starting configuration...")
 
-		//setup a Bluetooth server and wait for a client to connect.
-		err = pitooth.EnableBluetooth()
+		// Allow a user to connect to our bluetooth server, then provide us the connection details.
+		// That flow can be provided by the app.
+		btm, err := pitooth.NewBluetoothManager()
+		if err != nil {
+			return fmt.Errorf("Failed to create Bluetooth Manager: %v", err)
+		}
+
+		err = btm.EnableBluetooth()
 		if err != nil {
 			return fmt.Errorf("Failed to enable Bluetooth: %v", err)
 		}
@@ -35,7 +41,6 @@ func manageConnection() error {
 			return fmt.Errorf("Failed to connect to the internet after configuration: %v", err)
 		}
 	}
-
 
 	// On success, we can disable bluetooth and continue.
 	return nil
