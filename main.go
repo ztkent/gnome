@@ -20,6 +20,8 @@ import (
 )
 
 func enableBluetooth() error {
+	log.Println("Configuration: Starting Bluetooth...")
+
 	// Only support Linux, this should be running on a Raspberry Pi
 	if runtime.GOOS != "linux" {
 		return fmt.Errorf("Unsupported OS: %v", runtime.GOOS)
@@ -42,26 +44,30 @@ func enableBluetooth() error {
 	}
 
 	// Make the device discoverable
+	log.Println("Configuration: Setting Discoverable...")
 	err = defaultAdapter.SetDiscoverable(true)
 	if err != nil {
 		return fmt.Errorf("Failed to make device discoverable: %v", err)
 	}
 
 	// Start the discovery
+	log.Println("Configuration: Starting Discovery...")
 	err = defaultAdapter.StartDiscovery()
 	if err != nil {
-		return fmt.Errorf("Failed to start discovery: %v", err)
+		return fmt.Errorf("Failed to start bluetooth discovery: %v", err)
 	}
 
 	// Get discovered devices
+	log.Println("Configuration: After Discovery - ")
 	devices, err := defaultAdapter.GetDevices()
 	if err != nil {
-		return fmt.Errorf("Failed to get devices: %v", err)
+		return fmt.Errorf("Failed to get bluetooth devices: %v", err)
 	}
 
 	for _, device := range devices {
-		log.Printf("Discovered device: %s", device.Properties.Address)
+		log.Printf("2: Discovered bluetooth device: %s", device.Properties.Address)
 	}
+	
 	return nil
 }
 
@@ -69,14 +75,21 @@ func manageConnection() error {
 	// Ensure we have a active internet connection
 	err := exec.Command("ping", "-c", "1", "ztkent.com").Run()
 	if err != nil {
-		log.Println("No internet connection, enabling Bluetooth...")
+		log.Println("No internet connection, starting configuration...")
 
 		//setup a Bluetooth server and wait for a client to connect.
-		err := enableBluetooth()
+		err = enableBluetooth()
 		if err != nil {
 			return fmt.Errorf("Failed to enable Bluetooth: %v", err)
 		}
+
+		err = exec.Command("ping", "-c", "1", "ztkent.com").Run()
+		if err != nil {
+			return fmt.Errorf("Failed to connect to the internet after configuration: %v", err)
+		}
 	}
+
+
 	// On success, we can disable bluetooth and continue.
 	return nil
 }
