@@ -1,6 +1,7 @@
 ## APP 
 ## Compile for ARMv6
 docker run -v "/Users/zacharykent/code/ztkent/sunlight-meter":/usr/src/myapp -w /usr/src/myapp arm32v6/golang:1.21-alpine sh -c 'apk update && apk add gcc && CGO_ENABLED=1 GOOS=linux GOARCH=arm GOARM=6 go build -v -o slm'
+## Test
 
 ##CLIENT
 # First, always update
