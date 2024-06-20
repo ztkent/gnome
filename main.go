@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 	"net/http"
 	"os"
 	"os/exec"
@@ -20,8 +21,9 @@ import (
 )
 
 func enableBluetooth() error {
-	log.Println("Configuration: Starting Bluetooth...")
+	// TODO: Maybe https://github.com/tinygo-org/bluetooth is better...
 
+	log.Println("Configuration: Starting Bluetooth...")
 	// Only support Linux, this should be running on a Raspberry Pi
 	if runtime.GOOS != "linux" {
 		return fmt.Errorf("Unsupported OS: %v", runtime.GOOS)
@@ -38,10 +40,20 @@ func enableBluetooth() error {
 		return fmt.Errorf("Failed to get default adapter: %v", err)
 	}
 
+	address, err := defaultAdapter.GetAddress()
+	if err != nil {
+		return fmt.Errorf("Failed to get device address: %v", err)
+	}
+	log.Printf("Device address: %s", address)
+
 	err = defaultAdapter.SetAlias("SunlightMeter")
 	if err != nil {
 		return fmt.Errorf("Failed to set name: %v", err)
 	}
+
+	// Register an agent to handle pairing requests
+	log.Println("Configuration: Registering Agent...")
+	// err = defaultAdapter.RegisterAgent()
 
 	// Make the device discoverable
 	log.Println("Configuration: Setting Discoverable...")
@@ -57,15 +69,21 @@ func enableBluetooth() error {
 		return fmt.Errorf("Failed to start bluetooth discovery: %v", err)
 	}
 
-	// Get discovered devices
-	log.Println("Configuration: After Discovery - ")
-	devices, err := defaultAdapter.GetDevices()
-	if err != nil {
-		return fmt.Errorf("Failed to get bluetooth devices: %v", err)
-	}
+	for {
+		// Get discovered devices
+		log.Println("Configuration: After Discovery - ")
+		devices, err := defaultAdapter.GetDevices()
+		if err != nil {
+			return fmt.Errorf("Failed to get bluetooth devices: %v", err)
+		}
 
-	for _, device := range devices {
-		log.Printf("2: Discovered bluetooth device: %s", device.Properties.Address)
+		// Log them
+		log.Println("Configuration: After GetDevices - ")
+		for _, device := range devices {
+			log.Printf("Discovered bluetooth device: %s : %v", device.Properties.Alias, device.Properties.Address)
+			log.Printf("Properties: %v", device.Properties)
+		}
+		time.Sleep(15 * time.Second)
 	}
 	
 	return nil
