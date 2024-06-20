@@ -3,12 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"time"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 
 	"github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
 	slm "github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
@@ -17,77 +15,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"github.com/muka/go-bluetooth/bluez/profile/adapter"
+	"github.com/Ztkent/sunlight-meter/pitooth"
 )
-
-func enableBluetooth() error {
-	// TODO: Maybe https://github.com/tinygo-org/bluetooth is better...
-
-	log.Println("Configuration: Starting Bluetooth...")
-	// Only support Linux, this should be running on a Raspberry Pi
-	if runtime.GOOS != "linux" {
-		return fmt.Errorf("Unsupported OS: %v", runtime.GOOS)
-	} else {
-		_, err := os.Stat("/proc/device-tree/model")
-		if err != nil {
-			return fmt.Errorf("Not a Raspberry Pi, can't enable Bluetooth Discovery: %v", err)
-		}
-	}
-
-	// Get the default adapter
-	defaultAdapter, err := adapter.GetDefaultAdapter()
-	if err != nil {
-		return fmt.Errorf("Failed to get default adapter: %v", err)
-	}
-
-	address, err := defaultAdapter.GetAddress()
-	if err != nil {
-		return fmt.Errorf("Failed to get device address: %v", err)
-	}
-	log.Printf("Device address: %s", address)
-
-	err = defaultAdapter.SetAlias("SunlightMeter")
-	if err != nil {
-		return fmt.Errorf("Failed to set name: %v", err)
-	}
-
-	// Register an agent to handle pairing requests
-	log.Println("Configuration: Registering Agent...")
-	// err = defaultAdapter.RegisterAgent()
-
-	// Make the device discoverable
-	log.Println("Configuration: Setting Discoverable...")
-	err = defaultAdapter.SetDiscoverable(true)
-	if err != nil {
-		return fmt.Errorf("Failed to make device discoverable: %v", err)
-	}
-
-	// Start the discovery
-	log.Println("Configuration: Starting Discovery...")
-	err = defaultAdapter.StartDiscovery()
-	if err != nil {
-		return fmt.Errorf("Failed to start bluetooth discovery: %v", err)
-	}
-
-	for {
-		// Get discovered devices
-		log.Println("Configuration: After Discovery - ")
-		devices, err := defaultAdapter.GetDevices()
-		if err != nil {
-			return fmt.Errorf("Failed to get bluetooth devices: %v", err)
-		}
-
-		// Log them
-		log.Println("Configuration: After GetDevices - ")
-		for _, device := range devices {
-			log.Printf("Discovered bluetooth device: %s : %v", device.Properties.Alias, device.Properties.Address)
-			log.Printf("Properties: %v", device.Properties)
-		}
-		time.Sleep(15 * time.Second)
-	}
-	
-	return nil
-}
 
 func manageConnection() error {
 	// Ensure we have a active internet connection
@@ -96,7 +25,7 @@ func manageConnection() error {
 		log.Println("No internet connection, starting configuration...")
 
 		//setup a Bluetooth server and wait for a client to connect.
-		err = enableBluetooth()
+		err = pitooth.EnableBluetooth()
 		if err != nil {
 			return fmt.Errorf("Failed to enable Bluetooth: %v", err)
 		}
