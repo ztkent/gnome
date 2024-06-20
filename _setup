@@ -1,7 +1,6 @@
 ## APP 
 ## Compile for ARMv6
-docker pull golang:1.21-bookworm
-docker run -v "/Users/zacharykent/code/ztkent/sunlight-meter":/usr/src/myapp -w /usr/src/myapp golang:1.21-bookworm bash -c 'apt-get update && apt-get install -y gcc-arm-linux-gnueabihf && CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc GOOS=linux GOARCH=arm GOARM=6 go build -v -o sunlight-meter'
+docker run -v "/Users/zacharykent/code/ztkent/sunlight-meter":/usr/src/myapp -w /usr/src/myapp arm32v6/golang:1.21-alpine sh -c 'apk update && apk add gcc && CGO_ENABLED=1 GOOS=linux GOARCH=arm GOARM=6 go build -v -o slm'
 
 ##CLIENT
 # First, always update
