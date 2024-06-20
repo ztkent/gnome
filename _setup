@@ -1,0 +1,28 @@
+## APP 
+## Compile for ARMv6
+docker pull golang:1.21-bookworm
+docker run -v "/Users/zacharykent/code/ztkent/sunlight-meter":/usr/src/myapp -w /usr/src/myapp golang:1.21-bookworm bash -c 'apt-get update && apt-get install -y gcc-arm-linux-gnueabihf && CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc GOOS=linux GOARCH=arm GOARM=6 go build -v -o sunlight-meter'
+
+##CLIENT
+# First, always update
+sudo apt update
+
+## Auth GitHub
+sudo apt install gh
+gh auth login
+
+## Setup the app
+cd /home/sunlight
+mkdir sunlight-meter
+cd sunlight-meter
+
+## Setup Golang
+wget https://go.dev/dl/go1.21.11.linux-armv6l.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.11.linux-armv6l.tar.gz && rm go1.21.11.linux-armv6l.tar.gz
+echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
+source ~/.bashrc
+
+## Copy it to the pi
+chmod +x sunlight-meter
+
+## Schedule it to always run at boot

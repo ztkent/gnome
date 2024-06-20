@@ -36,7 +36,7 @@ func enableBluetooth() error {
 		return fmt.Errorf("Failed to get default adapter: %v", err)
 	}
 
-	err = defaultAdapter.SetName("SunlightMeter")
+	err = defaultAdapter.SetAlias("SunlightMeter")
 	if err != nil {
 		return fmt.Errorf("Failed to set name: %v", err)
 	}
