@@ -68,7 +68,7 @@ func NewBluetoothManager() (*BluetoothManager, error) {
 }
 
 func (btm *BluetoothManager) Pairing(deviceName string) error {
-	l.Panicln("PiTooth: Starting Pairing...")
+	l.Println("PiTooth: Starting Pairing...")
 	l.Println("PiTooth: Setting Alias...", deviceName)
 	err := btm.SetAlias(deviceName)
 	if err != nil {
