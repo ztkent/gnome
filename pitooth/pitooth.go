@@ -36,7 +36,7 @@ func init() {
 }
 
 type BluetoothManager interface {
-	Pairing(deviceName string) error
+	AcceptConnections(deviceName string) (map[string]Device,error)
 	GetNearbyDevices() (map[string]Device, error)
 	Close()
 }
@@ -87,32 +87,32 @@ func NewBluetoothManager() (BluetoothManager, error) {
 	}, nil
 }
 
-func (btm *bluetoothManager) Pairing(deviceName string) error {
+func (btm *bluetoothManager) AcceptConnections(deviceName string) (map[string]Device,error) {
 	l.Debugln("PiTooth: Starting Pairing...")
 	l.Debugln("PiTooth: Setting Alias...", deviceName)
 	err := btm.adapter.SetAlias(deviceName)
 	if err != nil {
-		return fmt.Errorf("Failed to set bluetooth alias: %v", err)
+		return nil, fmt.Errorf("Failed to set bluetooth alias: %v", err)
 	}
 
 	// Make the device discoverable
 	l.Debugln("PiTooth: Setting Discoverable...")
 	err = btm.adapter.SetDiscoverable(true)
 	if err != nil {
-		return fmt.Errorf("Failed to make device discoverable: %v", err)
+		return nil, fmt.Errorf("Failed to make device discoverable: %v", err)
 	}
 
 	l.Debugln("PiTooth: Setting Pairable...")
 	err = btm.adapter.SetPairable(true)
 	if err != nil {
-		return fmt.Errorf("Failed to make device pairable: %v", err)
+		return nil, fmt.Errorf("Failed to make device pairable: %v", err)
 	}
 
 	// Start the discovery
 	l.Debugln("PiTooth: Starting Discovery...")
 	err = btm.adapter.StartDiscovery()
 	if err != nil {
-		return fmt.Errorf("Failed to start bluetooth discovery: %v", err)
+		return nil, fmt.Errorf("Failed to start bluetooth discovery: %v", err)
 	}
 
 	// Wait for the device to be discovered
@@ -125,14 +125,14 @@ pairing:
 		select {
 		case <-timeout:
 			if len(connectedDevices) == 0 {
-				return fmt.Errorf("Timeout while waiting for bt device to be connected.")
+				return nil, fmt.Errorf("Timeout while waiting for bt device to be connected.")
 			}
 			break pairing
 		default:
 			{
 				devices, err := btm.GetNearbyDevices()
 				if err != nil {
-					return fmt.Errorf("Failed to get nearby devices: %v", err)
+					return nil, fmt.Errorf("Failed to get nearby devices: %v", err)
 				}
 				for _, device := range devices {
 					if device.connected {
@@ -148,9 +148,23 @@ pairing:
 		}
 	}
 
+	// Make the device undiscoverable
+	l.Debugln("PiTooth: Setting Undiscoverable...")
+	err = btm.adapter.SetDiscoverable(false)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to make device undiscoverable: %v", err)
+	}
+
+	// Stop the discovery
+	l.Debugln("PiTooth: Stopping Discovery...")
+	err = btm.adapter.StopDiscovery()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to stop bluetooth discovery: %v", err)
+	}
+	
 	// Work with any devices we're connected to.
 	l.Infoln("PiTooth: Connected devices: ", connectedDevices)
-	return nil
+	return connectedDevices, nil
 }
 
 func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
