@@ -36,8 +36,9 @@ func init() {
 }
 
 type BluetoothManager interface {
-	AcceptConnections(deviceName string) (map[string]Device,error)
+	AcceptConnections() (map[string]Device,error)
 	GetNearbyDevices() (map[string]Device, error)
+	GetConnectedDevices() (map[string]Device, error)
 	Close()
 }
 
@@ -55,7 +56,12 @@ type Device struct {
 
 // TODO: Support option design pattern:
 // ie WithLogger(l *logrus.Logger), WithAgent(agent agent.Agent), etc.
-func NewBluetoothManager() (BluetoothManager, error) {
+func NewBluetoothManager(deviceAlias string) (BluetoothManager, error) {
+	// We should always set a device alias, or it gets tricky.
+	if deviceAlias == "" {
+		return nil, fmt.Errorf("Bluetooth device alias cannot be empty")
+	}
+
 	// Only support Linux, this should be running on a Raspberry Pi
 	if runtime.GOOS != "linux" {
 		return nil, fmt.Errorf("Unsupported OS: %v", runtime.GOOS)
@@ -71,8 +77,12 @@ func NewBluetoothManager() (BluetoothManager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get default adapter: %v", err)
 	}
+	err = defaultAdapter.SetAlias(deviceAlias)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to set bluetooth alias: %v", err)
+	}
 
-	// Expose a bt agent to handle pairing requests
+	// Connect a custom bt agent to handle pairing requests
 	pitoothAgent := &PiToothAgent{
 		SimpleAgent: agent.NewSimpleAgent(),
 	}
@@ -87,17 +97,12 @@ func NewBluetoothManager() (BluetoothManager, error) {
 	}, nil
 }
 
-func (btm *bluetoothManager) AcceptConnections(deviceName string) (map[string]Device,error) {
+func (btm *bluetoothManager) AcceptConnections() (map[string]Device,error) {
 	l.Debugln("PiTooth: Starting Pairing...")
-	l.Debugln("PiTooth: Setting Alias...", deviceName)
-	err := btm.adapter.SetAlias(deviceName)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to set bluetooth alias: %v", err)
-	}
 
 	// Make the device discoverable
 	l.Debugln("PiTooth: Setting Discoverable...")
-	err = btm.adapter.SetDiscoverable(true)
+	err := btm.adapter.SetDiscoverable(true)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make device discoverable: %v", err)
 	}
@@ -117,35 +122,9 @@ func (btm *bluetoothManager) AcceptConnections(deviceName string) (map[string]De
 
 	// Wait for the device to be discovered
 	l.Debugln("PiTooth: Waiting for device to be connected...")
-	connectedDevices := make(map[string]Device)
-	timeout := time.After(1 * time.Minute)
-
-pairing:
-	for {
-		select {
-		case <-timeout:
-			if len(connectedDevices) == 0 {
-				return nil, fmt.Errorf("Timeout while waiting for bt device to be connected.")
-			}
-			break pairing
-		default:
-			{
-				devices, err := btm.GetNearbyDevices()
-				if err != nil {
-					return nil, fmt.Errorf("Failed to get nearby devices: %v", err)
-				}
-				for _, device := range devices {
-					if device.connected {
-						connectedDevices[device.address] = Device{
-							address:   device.address,
-							name:      device.name,
-							lastSeen:  device.lastSeen,
-							connected: device.connected,
-						}
-					}
-				}
-			}
-		}
+	connectedDevices, err := btm.GetConnectedDevices()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get nearby devices: %v", err)
 	}
 
 	// Make the device undiscoverable
@@ -161,9 +140,8 @@ pairing:
 	if err != nil {
 		return nil, fmt.Errorf("Failed to stop bluetooth discovery: %v", err)
 	}
-	
-	// Work with any devices we're connected to.
-	l.Infoln("PiTooth: Connected devices: ", connectedDevices)
+
+	l.Debugln("PiTooth: Connected devices: ", connectedDevices)
 	return connectedDevices, nil
 }
 
@@ -175,12 +153,26 @@ func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
 	}
 
 	l.Debugln("PiTooth: # of nearby devices: ", len(nearbyDevices))
-	for address, device := range nearbyDevices {
-		if time.Since(device.lastSeen) > 15*time.Second {
-			delete(nearbyDevices, address)
-		}
+	for _, device := range nearbyDevices {
 		l.Debugln("PiTooth: Nearby device: ", device.name, " : ", device.address, " : ", device.lastSeen, " : ", device.connected)
 	}
+	return nearbyDevices, nil
+}
+
+func (btm *bluetoothManager) GetConnectedDevices() (map[string]Device, error) {
+	l.Debugln("PiTooth: Starting GetConnectedDevices...")
+	nearbyDevices, err := btm.collectNearbyDevices()
+	if err != nil {
+		return nil, err
+	}
+
+	connectedDevices := make(map[string]Device)
+	for _, device := range nearbyDevices {
+		if device.connected {
+			connectedDevices[device.address] = device
+		}	
+	}
+	l.Debugln("PiTooth: # of connected devices: ", len(connectedDevices))
 	return nearbyDevices, nil
 }
 
