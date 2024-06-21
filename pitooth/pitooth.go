@@ -34,13 +34,20 @@ func init() {
 
 type BluetoothManager interface {
 	Pairing(deviceName string) error
-	GetNearbyDevices() error
+	GetNearbyDevices() (map[string]Device, error)
 	Close()
 }
 
 type bluetoothManager struct {
 	adapter *adapter.Adapter1
 	agent   *PiToothAgent
+}
+
+type Device struct {
+	lastSeen  time.Time
+	address   string
+	name      string
+	connected bool
 }
 
 func NewBluetoothManager() (BluetoothManager, error) {
@@ -106,27 +113,56 @@ func (btm *bluetoothManager) Pairing(deviceName string) error {
 	// Wait for the device to be discovered
 	l.Debugln("PiTooth: Waiting for device to be discovered...")
 	for {
-		time.Sleep(15 * time.Second)
+		btm.GetNearbyDevices()
 	}
 }
 
-func (btm *bluetoothManager) GetNearbyDevices() error {
-	// Map to remember devices we've seen in the last 15 seconds.
-	// Sometimes we dont see them all in a single scan
-	for {
-		// Get discovered devices
-		l.Debugln("PiTooth: After Discovery - ")
-		devices, err := btm.adapter.GetDevices()
-		if err != nil {
-			return fmt.Errorf("Failed to get bluetooth devices: %v", err)
-		}
+func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
+	l.Debugln("PiTooth: Starting GetNearbyDevices...")
+	nearbyDevices, err := btm.collectNearbyDevices()
+	if err != nil {
+		return nil, err
+	}
 
-		// Log them
-		l.Debugln("PiTooth: After GetDevices - ")
-		for _, device := range devices {
-			l.Printf("PiTooth: Discovered bluetooth device: %s : %v", device.Properties.Alias, device.Properties.Address)
+	l.Debugln("PiTooth: # of nearby devices: ", len(nearbyDevices))
+	for address, device := range nearbyDevices {
+		if time.Since(device.lastSeen) > 15*time.Second {
+			delete(nearbyDevices, address)
 		}
-		time.Sleep(15 * time.Second)
+		if device.connected {
+			l.Printf("PiTooth: Connected to device: %s : %v", device.name, device.address)
+		}
+	}
+	return nearbyDevices, nil
+}
+
+// Get the devices every 1 second, for 15 seconds.
+func (btm *bluetoothManager) collectNearbyDevices() (map[string]Device, error) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	done := time.After(15 * time.Second)
+
+	nearbyDevices := make(map[string]Device)
+	for {
+		select {
+		case <-done:
+			return nearbyDevices, nil
+		case <-ticker.C:
+			devices, err := btm.adapter.GetDevices()
+			if err != nil {
+				return nil, fmt.Errorf("Failed to get bluetooth devices: %v", err)
+			}
+			for _, device := range devices {
+				l.Printf("PiTooth: Discovered bluetooth device: %s : %v", device.Properties.Alias, device.Properties.Address)
+				nearbyDevices[device.Properties.Address] = Device{
+					lastSeen:  time.Now(),
+					address:   device.Properties.Address,
+					name:      device.Properties.Alias,
+					connected: device.Properties.Connected,
+				}
+			}
+			return nearbyDevices, nil
+		}
 	}
 }
 
