@@ -30,7 +30,7 @@ func init() {
 	default:
 		l.SetLevel(logrus.InfoLevel)
 	}
-	
+
 	// Suppress excess warning logs from the bluetooth library
 	logrus.SetLevel(logrus.ErrorLevel)
 }
@@ -53,6 +53,8 @@ type Device struct {
 	connected bool
 }
 
+// TODO: Support option design pattern:
+// ie WithLogger(l *logrus.Logger), WithAgent(agent agent.Agent), etc.
 func NewBluetoothManager() (BluetoothManager, error) {
 	// Only support Linux, this should be running on a Raspberry Pi
 	if runtime.GOOS != "linux" {
@@ -115,9 +117,40 @@ func (btm *bluetoothManager) Pairing(deviceName string) error {
 
 	// Wait for the device to be discovered
 	l.Debugln("PiTooth: Waiting for device to be discovered...")
+	connectedDevices := make(map[string]Device)
+	timeout := time.After(1 * time.Minute)
+
+pairing:
 	for {
-		btm.GetNearbyDevices()
+		select {
+		case <-timeout:
+			if len(connectedDevices) == 0 {
+				return fmt.Errorf("Timeout while waiting for bt device to be connected.")
+			}
+			break pairing
+		default:
+			{
+				devices, err := btm.GetNearbyDevices()
+				if err != nil {
+					return fmt.Errorf("Failed to get nearby devices: %v", err)
+				}
+				for _, device := range devices {
+					if device.connected {
+						connectedDevices[device.address] = Device{
+							address:   device.address,
+							name:      device.name,
+							lastSeen:  device.lastSeen,
+							connected: device.connected,
+						}
+					}
+				}
+			}
+		}
 	}
+
+	// Work with any devices we're connected to.
+	l.Infoln("PiTooth: Connected devices: ", connectedDevices)
+	return nil
 }
 
 func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
@@ -127,12 +160,12 @@ func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
 		return nil, err
 	}
 
-	l.Infoln("PiTooth: # of nearby devices: ", len(nearbyDevices))
+	l.Debugln("PiTooth: # of nearby devices: ", len(nearbyDevices))
 	for address, device := range nearbyDevices {
 		if time.Since(device.lastSeen) > 15*time.Second {
 			delete(nearbyDevices, address)
 		}
-		l.Infoln("PiTooth: Nearby device: ", device.name, " : ", device.address, " : ", device.lastSeen, " : ", device.connected)
+		l.Debugln("PiTooth: Nearby device: ", device.name, " : ", device.address, " : ", device.lastSeen, " : ", device.connected)
 	}
 	return nearbyDevices, nil
 }
