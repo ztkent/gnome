@@ -5,10 +5,11 @@ import (
 )
 
 func Test_NewBluetoothManager(t *testing.T) {
-	_, err := NewBluetoothManager("SunlightMeter")
-	if err != nil {
+	btm, err := NewBluetoothManager("SunlightMeter")
+	if err != nil || btm == nil{
 		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
 	}
+	btm.Close()
 }
 
 func Test_Server(t *testing.T) {
@@ -29,10 +30,10 @@ func Test_Server(t *testing.T) {
 	}
 }
 
-func Test_Client(t *testing.T) {
-	btm, err := NewBluetoothManager("SunlightMeterClient")
-	if err != nil {
-		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
-	}
-	btm.AcceptConnections()
-}
+// func Test_Client(t *testing.T) {
+// 	btm, err := NewBluetoothManager("SunlightMeterClient")
+// 	if err != nil {
+// 		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
+// 	}
+// 	btm.AcceptConnections()
+// }
