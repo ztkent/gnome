@@ -11,6 +11,7 @@ type PiToothAgent struct {
 	*agent.SimpleAgent
 }
 
+// This is called when a client that is already paired to the device tries to connect to it.
 func (a *PiToothAgent) AuthorizeService(device dbus.ObjectPath, uuid string) *dbus.Error {
 	fmt.Println("AuthorizeService called")
 	return a.SimpleAgent.AuthorizeService(device, uuid)

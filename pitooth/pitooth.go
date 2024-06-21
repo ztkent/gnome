@@ -124,13 +124,13 @@ func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
 		return nil, err
 	}
 
-	l.Debugln("PiTooth: # of nearby devices: ", len(nearbyDevices))
+	l.Infoln("PiTooth: # of nearby devices: ", len(nearbyDevices))
 	for address, device := range nearbyDevices {
 		if time.Since(device.lastSeen) > 15*time.Second {
 			delete(nearbyDevices, address)
 		}
 		if device.connected {
-			l.Printf("PiTooth: Connected to device: %s : %v", device.name, device.address)
+			l.Infoln("PiTooth: Connected to device: ", device.name, " : ", device.address)
 		}
 	}
 	return nearbyDevices, nil
@@ -153,7 +153,7 @@ func (btm *bluetoothManager) collectNearbyDevices() (map[string]Device, error) {
 				return nil, fmt.Errorf("Failed to get bluetooth devices: %v", err)
 			}
 			for _, device := range devices {
-				l.Printf("PiTooth: Discovered bluetooth device: %s : %v", device.Properties.Alias, device.Properties.Address)
+				l.Debugln("PiTooth: Discovered bluetooth device: ", device.Properties.Alias, " : ", device.Properties.Address)
 				nearbyDevices[device.Properties.Address] = Device{
 					lastSeen:  time.Now(),
 					address:   device.Properties.Address,
