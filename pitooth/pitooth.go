@@ -129,9 +129,7 @@ func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
 		if time.Since(device.lastSeen) > 15*time.Second {
 			delete(nearbyDevices, address)
 		}
-		if device.connected {
-			l.Infoln("PiTooth: Connected to device: ", device.name, " : ", device.address)
-		}
+		l.Infoln("PiTooth: Nearby device: ", device.name, " : ", device.address, " : ", device.lastSeen, " : ", device.connected)
 	}
 	return nearbyDevices, nil
 }
