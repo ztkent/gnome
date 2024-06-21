@@ -30,6 +30,9 @@ func init() {
 	default:
 		l.SetLevel(logrus.InfoLevel)
 	}
+	
+	// Suppress excess warning logs from the bluetooth library
+	logrus.SetLevel(logrus.ErrorLevel)
 }
 
 type BluetoothManager interface {
