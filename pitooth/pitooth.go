@@ -36,10 +36,10 @@ func init() {
 }
 
 type BluetoothManager interface {
-	AcceptConnections() (map[string]Device,error)
+	AcceptConnections() (map[string]Device, error)
 	GetNearbyDevices() (map[string]Device, error)
 	GetConnectedDevices() (map[string]Device, error)
-	Close()
+	Close(bool)
 }
 
 type bluetoothManager struct {
@@ -81,6 +81,10 @@ func NewBluetoothManager(deviceAlias string) (BluetoothManager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set bluetooth alias: %v", err)
 	}
+	err = defaultAdapter.SetPowered(true)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to power on bluetooth adapter: %v", err)
+	}
 
 	// Connect a custom bt agent to handle pairing requests
 	pitoothAgent := &PiToothAgent{
@@ -97,7 +101,7 @@ func NewBluetoothManager(deviceAlias string) (BluetoothManager, error) {
 	}, nil
 }
 
-func (btm *bluetoothManager) AcceptConnections() (map[string]Device,error) {
+func (btm *bluetoothManager) AcceptConnections() (map[string]Device, error) {
 	l.Debugln("PiTooth: Starting Pairing...")
 
 	// Make the device discoverable
@@ -170,7 +174,7 @@ func (btm *bluetoothManager) GetConnectedDevices() (map[string]Device, error) {
 	for _, device := range nearbyDevices {
 		if device.connected {
 			connectedDevices[device.address] = device
-		}	
+		}
 	}
 	l.Debugln("PiTooth: # of connected devices: ", len(connectedDevices))
 	return nearbyDevices, nil
@@ -205,9 +209,21 @@ func (btm *bluetoothManager) collectNearbyDevices() (map[string]Device, error) {
 	}
 }
 
-func (btm *bluetoothManager) Close() {
+func (btm *bluetoothManager) Close(turnOff bool) {
 	btm.adapter.StopDiscovery()
 	btm.adapter.SetDiscoverable(false)
 	btm.adapter.SetPairable(false)
 	btm.agent.Cancel()
+	if turnOff {
+		btm.adapter.SetPowered(false)
+	}
 }
+
+// func (a *Adapter1) RemoveDevice(device dbus.ObjectPath) error {
+// 	return a.client.Call("RemoveDevice", 0, device).Store()
+// }
+
+// SetPowered set Powered value
+// func (a *Adapter1) SetPowered(v bool) error {
+// 	return a.SetProperty("Powered", v)
+// }

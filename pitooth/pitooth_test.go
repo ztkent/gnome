@@ -6,10 +6,10 @@ import (
 
 func Test_NewBluetoothManager(t *testing.T) {
 	btm, err := NewBluetoothManager("SunlightMeter")
-	if err != nil || btm == nil{
+	if err != nil || btm == nil {
 		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
 	}
-	btm.Close()
+	btm.Close(true)
 }
 
 func Test_Server(t *testing.T) {
@@ -17,10 +17,8 @@ func Test_Server(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
 	}
-	
-	// Create the manager. 
-	// Allow connections to the server for a while, return who we are paired with.
-	// It better be the client
+	defer btm.Close(true)
+
 	connectedDevices, err := btm.AcceptConnections()
 	if err != nil {
 		t.Fatalf("Failed to accept connections: %v", err)
@@ -29,11 +27,3 @@ func Test_Server(t *testing.T) {
 		t.Fatalf("Expected 1 connected device, got %d", len(connectedDevices))
 	}
 }
-
-// func Test_Client(t *testing.T) {
-// 	btm, err := NewBluetoothManager("SunlightMeterClient")
-// 	if err != nil {
-// 		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
-// 	}
-// 	btm.AcceptConnections()
-// }
