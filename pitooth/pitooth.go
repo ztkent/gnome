@@ -177,7 +177,7 @@ func (btm *bluetoothManager) GetConnectedDevices() (map[string]Device, error) {
 		}
 	}
 	l.Debugln("PiTooth: # of connected devices: ", len(connectedDevices))
-	return nearbyDevices, nil
+	return connectedDevices, nil
 }
 
 // Get the devices every 1 second, for 15 seconds.
