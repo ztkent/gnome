@@ -161,7 +161,6 @@ func (btm *bluetoothManager) collectNearbyDevices() (map[string]Device, error) {
 					connected: device.Properties.Connected,
 				}
 			}
-			return nearbyDevices, nil
 		}
 	}
 }

@@ -30,6 +30,7 @@ func manageConnection() error {
 		if err != nil {
 			return fmt.Errorf("Failed to create Bluetooth Manager: %v", err)
 		}
+		defer btm.Close()
 
 		err = btm.Pairing("SunlightMeter")
 		if err != nil {
