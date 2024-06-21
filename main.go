@@ -31,7 +31,7 @@ func manageConnection() error {
 			return fmt.Errorf("Failed to create Bluetooth Manager: %v", err)
 		}
 
-		err = btm.EnableBluetooth()
+		err = btm.Pairing("SunlightMeter")
 		if err != nil {
 			return fmt.Errorf("Failed to enable Bluetooth: %v", err)
 		}
