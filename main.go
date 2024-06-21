@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
@@ -14,49 +13,12 @@ import (
 	"github.com/Ztkent/sunlight-meter/tsl2591"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-
-	"github.com/Ztkent/sunlight-meter/pitooth"
 )
-
-func manageConnection() error {
-	// Ensure we have a active internet connection
-	err := exec.Command("ping", "-c", "1", "ztkent.com").Run()
-	if err != nil {
-		log.Println("No internet connection, starting configuration...")
-
-		// Allow a user to connect to our bluetooth server, then provide us the connection details.
-		// That flow can be provided by the app.
-		btm, err := pitooth.NewBluetoothManager()
-		if err != nil {
-			return fmt.Errorf("Failed to create Bluetooth Manager: %v", err)
-		}
-		defer btm.Close()
-
-		err = btm.Pairing("SunlightMeter")
-		if err != nil {
-			return fmt.Errorf("Failed to enable Bluetooth: %v", err)
-		}
-
-		err = exec.Command("ping", "-c", "1", "ztkent.com").Run()
-		if err != nil {
-			return fmt.Errorf("Failed to connect to the internet after configuration: %v", err)
-		}
-	}
-
-	// On success, we can disable bluetooth and continue.
-	return nil
-}
 
 func main() {
 	// Log the process ID, in case we need it.
 	pid := os.Getpid()
 	log.Println("Sunlight Meter PID: ", pid)
-
-	// Ensure we have a active internet connection
-	err := manageConnection()
-	if err != nil {
-		log.Fatalf("Sunlight Meter failed to connect to the internet: %v", err)
-	}
 
 	// connect to the lux sensor
 	device, err := tsl2591.NewTSL2591(

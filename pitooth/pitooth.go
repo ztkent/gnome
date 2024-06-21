@@ -116,7 +116,7 @@ func (btm *bluetoothManager) Pairing(deviceName string) error {
 	}
 
 	// Wait for the device to be discovered
-	l.Debugln("PiTooth: Waiting for device to be discovered...")
+	l.Debugln("PiTooth: Waiting for device to be connected...")
 	connectedDevices := make(map[string]Device)
 	timeout := time.After(1 * time.Minute)
 
