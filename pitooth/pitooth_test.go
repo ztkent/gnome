@@ -17,7 +17,7 @@ func Test_Bluetooth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
 	}
-	l.Println("PiTooth: Starting Bluetooth Test...")
+	l.Debugln("PiTooth: Starting Bluetooth Test...")
 	address, err := btm.GetAddress()
 	if err != nil {
 		t.Fatalf("Failed to get device address: %v", err)
@@ -30,20 +30,20 @@ func Test_Bluetooth(t *testing.T) {
 	}
 
 	// Make the device discoverable
-	l.Println("PiTooth: Setting Discoverable...")
+	l.Debugln("PiTooth: Setting Discoverable...")
 	err = btm.SetDiscoverable(true)
 	if err != nil {
 		t.Fatalf("Failed to make device discoverable: %v", err)
 	}
 
-	l.Println("PiTooth: Setting Pairable...")
+	l.Debugln("PiTooth: Setting Pairable...")
 	err = btm.SetPairable(true)
 	if err != nil {
 		t.Fatalf("Failed to make device pairable: %v", err)
 	}
 
 	// Start the discovery
-	l.Println("PiTooth: Starting Discovery...")
+	l.Debugln("PiTooth: Starting Discovery...")
 	err = btm.StartDiscovery()
 	if err != nil {
 		t.Fatalf("Failed to start bluetooth discovery: %v", err)
@@ -53,14 +53,14 @@ func Test_Bluetooth(t *testing.T) {
 	// Sometimes we dont see them all in a single scan
 	for {
 		// Get discovered devices
-		l.Println("PiTooth: After Discovery - ")
+		l.Debugln("PiTooth: After Discovery - ")
 		devices, err := btm.GetDevices()
 		if err != nil {
 			t.Fatalf("Failed to get bluetooth devices: %v", err)
 		}
 
 		// Log them
-		l.Println("PiTooth: After GetDevices - ")
+		l.Debugln("PiTooth: After GetDevices - ")
 		for _, device := range devices {
 			l.Printf("PiTooth: Discovered bluetooth device: %s : %v", device.Properties.Alias, device.Properties.Address)
 			l.Printf("PiTooth: Properties: %v", device.Properties)

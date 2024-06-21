@@ -68,35 +68,35 @@ func NewBluetoothManager() (*BluetoothManager, error) {
 }
 
 func (btm *BluetoothManager) Pairing(deviceName string) error {
-	l.Println("PiTooth: Starting Pairing...")
-	l.Println("PiTooth: Setting Alias...", deviceName)
+	l.Debugln("PiTooth: Starting Pairing...")
+	l.Debugln("PiTooth: Setting Alias...", deviceName)
 	err := btm.SetAlias(deviceName)
 	if err != nil {
 		return fmt.Errorf("Failed to set bluetooth alias: %v", err)
 	}
 
 	// Make the device discoverable
-	l.Println("PiTooth: Setting Discoverable...")
+	l.Debugln("PiTooth: Setting Discoverable...")
 	err = btm.SetDiscoverable(true)
 	if err != nil {
 		return fmt.Errorf("Failed to make device discoverable: %v", err)
 	}
 
-	l.Println("PiTooth: Setting Pairable...")
+	l.Debugln("PiTooth: Setting Pairable...")
 	err = btm.SetPairable(true)
 	if err != nil {
 		return fmt.Errorf("Failed to make device pairable: %v", err)
 	}
 
 	// Start the discovery
-	l.Println("PiTooth: Starting Discovery...")
+	l.Debugln("PiTooth: Starting Discovery...")
 	err = btm.StartDiscovery()
 	if err != nil {
 		return fmt.Errorf("Failed to start bluetooth discovery: %v", err)
 	}
 
 	// Wait for the device to be discovered
-	l.Println("PiTooth: Waiting for device to be discovered...")
+	l.Debugln("PiTooth: Waiting for device to be discovered...")
 	for {
 		time.Sleep(15 * time.Second)
 	}
