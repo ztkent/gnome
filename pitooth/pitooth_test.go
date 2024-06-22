@@ -28,3 +28,18 @@ func Test_AcceptConnections(t *testing.T) {
 		t.Fatalf("Expected 1 connected device, got %d", len(connectedDevices))
 	}
 }
+
+func Test_StartStopOBEXServer(t *testing.T) {
+	btm, err := NewBluetoothManager("SunlightMeter")
+	if err != nil {
+		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
+	}
+	defer btm.Close(true)
+
+	if err := btm.ControlOBEXServer(true); err != nil {
+		t.Fatalf("Failed to start OBEX server: %v", err)
+	}
+	if err := btm.ControlOBEXServer(false); err != nil {
+		t.Fatalf("Failed to stop OBEX server: %v", err)
+	}
+}

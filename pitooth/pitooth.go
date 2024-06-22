@@ -21,11 +21,10 @@ type BluetoothManager interface {
 	AcceptConnections(time.Duration) (map[string]Device, error)
 	GetNearbyDevices() (map[string]Device, error)
 	GetConnectedDevices() (map[string]Device, error)
-	
+
 	// OBEX is a protocol for transferring files between devices over Bluetooth
 	// It seems like we will need something like this
-	// StartOBEXServer() error
-	// StopOBEXServer() error
+	ControlOBEXServer(bool) error
 	// SendFile() error
 	// ReceiveFile() error
 	Close(bool)
@@ -34,7 +33,7 @@ type BluetoothManager interface {
 type bluetoothManager struct {
 	adapter *adapter.Adapter1
 	agent   *PiToothAgent
-	l 	 *logrus.Logger
+	l       *logrus.Logger
 }
 
 type Device struct {
@@ -74,7 +73,7 @@ func NewBluetoothManager(deviceAlias string, opts ...BluetoothManagerOption) (Bl
 	btm := bluetoothManager{
 		adapter: defaultAdapter,
 		agent:   pitoothAgent,
-		l: defaultLogger(),
+		l:       defaultLogger(),
 	}
 
 	// Apply any options
@@ -100,7 +99,7 @@ func NewBluetoothManager(deviceAlias string, opts ...BluetoothManagerOption) (Bl
 	if err != nil {
 		return nil, fmt.Errorf("Failed to register agent: %v", err)
 	}
-	
+
 	return &btm, nil
 }
 
@@ -108,10 +107,10 @@ type BluetoothManagerOption func(*bluetoothManager) error
 
 // WithLogger configures a custom logger for the Bluetooth manager
 func WithLogger(l *logrus.Logger) BluetoothManagerOption {
-    return func(bm *bluetoothManager) error {
-        bm.l = l
-        return nil
-    }
+	return func(bm *bluetoothManager) error {
+		bm.l = l
+		return nil
+	}
 }
 
 // WithAdapter configures a custom Bluetooth adapter that implements the Adapter1 interface
