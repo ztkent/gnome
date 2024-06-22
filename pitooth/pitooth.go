@@ -144,7 +144,7 @@ func (btm *bluetoothManager) AcceptConnections(pairingWindow time.Duration) (map
 	}
 
 	// Wait for the device to be discovered
-	btm.l.Debugln("PiTooth: Accepting Connections...")
+	btm.l.Infoln("PiTooth: Accepting Connections...")
 	// Hang out here until the window expires
 	connectedDevices := make(map[string]Device)
 	start := time.Now()
@@ -203,7 +203,7 @@ func (btm *bluetoothManager) GetConnectedDevices() (map[string]Device, error) {
 		}
 	}
 	btm.l.Debugln("PiTooth: # of connected devices: ", len(connectedDevices))
-	return nearbyDevices, nil
+	return connectedDevices, nil
 }
 
 // Get the devices every second, for 5 seconds.
