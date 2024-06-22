@@ -47,16 +47,24 @@ func (btm *bluetoothManager) ControlOBEXServer(start bool) error {
     statusCmd := exec.Command("systemctl", "is-active", "obexd")
     output, err := statusCmd.Output()
     if err != nil {
-        return fmt.Errorf("failed to check obexd status: %v", err)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			switch exitErr.ExitCode() {
+			case 3:
+				btm.l.Infoln("obexd is not running.")
+			default:
+				return fmt.Errorf("failed to check obexd status: %v", err)
+			}
+		} 
     }
+	btm.l.Infoln("obexd status:", string(output))
     isActive := string(output) == "active\n"
 
     // Decide whether to start or stop based on the desired state and current status
     if start && isActive {
-        fmt.Println("obexd is already running.")
+		btm.l.Infoln("obexd is already running.")
         return nil
     } else if !start && !isActive {
-        fmt.Println("obexd is already stopped.")
+		btm.l.Infoln("obexd is already stopped.")
         return nil
     }
 
@@ -79,9 +87,9 @@ func (btm *bluetoothManager) ControlOBEXServer(start bool) error {
     }
 
     if start {
-        fmt.Println("obexd started successfully.")
+		btm.l.Infoln("obexd started successfully.")
     } else {
-        fmt.Println("obexd stopped successfully.")
+		btm.l.Infoln("obexd stopped successfully.")
     }
     return nil
 }
