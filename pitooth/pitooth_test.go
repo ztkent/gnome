@@ -2,6 +2,7 @@ package pitooth
 
 import (
 	"testing"
+	"time"
 )
 
 func Test_NewBluetoothManager(t *testing.T) {
@@ -12,14 +13,14 @@ func Test_NewBluetoothManager(t *testing.T) {
 	btm.Close(true)
 }
 
-func Test_Server(t *testing.T) {
-	btm, err := NewBluetoothManager("SunlightMeterServer")
+func Test_AcceptConnections(t *testing.T) {
+	btm, err := NewBluetoothManager("SunlightMeter")
 	if err != nil {
 		t.Fatalf("Failed to create Bluetooth Manager: %v", err)
 	}
 	defer btm.Close(true)
 
-	connectedDevices, err := btm.AcceptConnections()
+	connectedDevices, err := btm.AcceptConnections(time.Second * 30)
 	if err != nil {
 		t.Fatalf("Failed to accept connections: %v", err)
 	}

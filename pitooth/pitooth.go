@@ -12,31 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var l = logrus.New()
-
 func init() {
-	// Setup the logger, so it can be parsed by datadog
-	l.Formatter = &logrus.JSONFormatter{}
-	l.SetOutput(os.Stdout)
-	// Set the log level
-	logLevel := strings.ToLower(os.Getenv("LOG_LEVEL"))
-	switch logLevel {
-	case "debug":
-		l.SetLevel(logrus.DebugLevel)
-	case "info":
-		l.SetLevel(logrus.InfoLevel)
-	case "error":
-		l.SetLevel(logrus.ErrorLevel)
-	default:
-		l.SetLevel(logrus.InfoLevel)
-	}
-
 	// Suppress excess warning logs from the bluetooth library
 	logrus.SetLevel(logrus.ErrorLevel)
 }
 
 type BluetoothManager interface {
-	AcceptConnections() (map[string]Device, error)
+	AcceptConnections(time.Duration) (map[string]Device, error)
 	GetNearbyDevices() (map[string]Device, error)
 	GetConnectedDevices() (map[string]Device, error)
 	Close(bool)
@@ -45,6 +27,7 @@ type BluetoothManager interface {
 type bluetoothManager struct {
 	adapter *adapter.Adapter1
 	agent   *PiToothAgent
+	l 	 *logrus.Logger
 }
 
 type Device struct {
@@ -54,9 +37,7 @@ type Device struct {
 	connected bool
 }
 
-// TODO: Support option design pattern:
-// ie WithLogger(l *logrus.Logger), WithAgent(agent agent.Agent), etc.
-func NewBluetoothManager(deviceAlias string) (BluetoothManager, error) {
+func NewBluetoothManager(deviceAlias string, opts ...BluetoothManagerOption) (BluetoothManager, error) {
 	// We should always set a device alias, or it gets tricky.
 	if deviceAlias == "" {
 		return nil, fmt.Errorf("Bluetooth device alias cannot be empty")
@@ -77,94 +58,139 @@ func NewBluetoothManager(deviceAlias string) (BluetoothManager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get default adapter: %v", err)
 	}
-	err = defaultAdapter.SetAlias(deviceAlias)
+
+	// Connect pitooth agent to handle pairing requests
+	pitoothAgent := &PiToothAgent{
+		SimpleAgent: agent.NewSimpleAgent(),
+	}
+
+	btm := bluetoothManager{
+		adapter: defaultAdapter,
+		agent:   pitoothAgent,
+		l: defaultLogger(),
+	}
+
+	// Apply any options
+	for _, opt := range opts {
+		err := opt(&btm)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Set the device alias
+	err = btm.adapter.SetAlias(deviceAlias)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to set bluetooth alias: %v", err)
 	}
-	err = defaultAdapter.SetPowered(true)
+	err = btm.adapter.SetPowered(true)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to power on bluetooth adapter: %v", err)
 	}
 
-	// Connect a custom bt agent to handle pairing requests
-	pitoothAgent := &PiToothAgent{
-		SimpleAgent: agent.NewSimpleAgent(),
-	}
-	err = agent.ExposeAgent(defaultAdapter.Client().GetConnection(), pitoothAgent, agent.CapNoInputNoOutput, true)
+	// Apply the registration agent to the adapter
+	err = agent.ExposeAgent(btm.adapter.Client().GetConnection(), btm.agent, agent.CapNoInputNoOutput, true)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to register agent: %v", err)
 	}
-
-	return &bluetoothManager{
-		adapter: defaultAdapter,
-		agent:   pitoothAgent,
-	}, nil
+	
+	return &btm, nil
 }
 
-func (btm *bluetoothManager) AcceptConnections() (map[string]Device, error) {
-	l.Debugln("PiTooth: Starting Pairing...")
+type BluetoothManagerOption func(*bluetoothManager) error
+
+// WithLogger configures a custom logger for the Bluetooth manager
+func WithLogger(l *logrus.Logger) BluetoothManagerOption {
+    return func(bm *bluetoothManager) error {
+        bm.l = l
+        return nil
+    }
+}
+
+// WithAdapter configures a custom Bluetooth adapter that implements the Adapter1 interface
+func WithAdapter(a adapter.Adapter1) BluetoothManagerOption {
+	return func(bm *bluetoothManager) error {
+		bm.adapter = &a
+		return nil
+	}
+}
+
+// Opens the bluetooth adapter to accept connections for a period of time
+func (btm *bluetoothManager) AcceptConnections(pairingWindow time.Duration) (map[string]Device, error) {
+	btm.l.Debugln("PiTooth: Starting Pairing...")
+	if pairingWindow == 0 {
+		btm.l.Debugln("PiTooth: No pairing window specified, defaulting to 30 seconds")
+		pairingWindow = 30 * time.Second
+	}
 
 	// Make the device discoverable
-	l.Debugln("PiTooth: Setting Discoverable...")
+	btm.l.Debugln("PiTooth: Setting Discoverable...")
 	err := btm.adapter.SetDiscoverable(true)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make device discoverable: %v", err)
 	}
 
-	l.Debugln("PiTooth: Setting Pairable...")
+	btm.l.Debugln("PiTooth: Setting Pairable...")
 	err = btm.adapter.SetPairable(true)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make device pairable: %v", err)
 	}
 
 	// Start the discovery
-	l.Debugln("PiTooth: Starting Discovery...")
+	btm.l.Debugln("PiTooth: Starting Discovery...")
 	err = btm.adapter.StartDiscovery()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to start bluetooth discovery: %v", err)
 	}
 
 	// Wait for the device to be discovered
-	l.Debugln("PiTooth: Waiting for device to be connected...")
-	connectedDevices, err := btm.GetConnectedDevices()
+	btm.l.Debugln("PiTooth: Accepting Connections...")
+	// Hang out here until the window expires
+	connectedDevices := make(map[string]Device)
+	start := time.Now()
+	for time.Since(start) < pairingWindow {
+		connectedDevices, err = btm.GetConnectedDevices()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get nearby devices: %v", err)
 	}
 
 	// Make the device undiscoverable
-	l.Debugln("PiTooth: Setting Undiscoverable...")
+	btm.l.Debugln("PiTooth: Setting Undiscoverable...")
 	err = btm.adapter.SetDiscoverable(false)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make device undiscoverable: %v", err)
 	}
 
 	// Stop the discovery
-	l.Debugln("PiTooth: Stopping Discovery...")
+	btm.l.Debugln("PiTooth: Stopping Discovery...")
 	err = btm.adapter.StopDiscovery()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to stop bluetooth discovery: %v", err)
 	}
 
-	l.Debugln("PiTooth: Connected devices: ", connectedDevices)
+	btm.l.Debugln("PiTooth: Connected devices: ", connectedDevices)
 	return connectedDevices, nil
 }
 
+// Get a map of all the nearby devices
 func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
-	l.Debugln("PiTooth: Starting GetNearbyDevices...")
+	btm.l.Debugln("PiTooth: Starting GetNearbyDevices...")
 	nearbyDevices, err := btm.collectNearbyDevices()
 	if err != nil {
 		return nil, err
 	}
 
-	l.Debugln("PiTooth: # of nearby devices: ", len(nearbyDevices))
+	btm.l.Debugln("PiTooth: # of nearby devices: ", len(nearbyDevices))
 	for _, device := range nearbyDevices {
-		l.Debugln("PiTooth: Nearby device: ", device.name, " : ", device.address, " : ", device.lastSeen, " : ", device.connected)
+		btm.l.Debugln("PiTooth: Nearby device: ", device.name, " : ", device.address, " : ", device.lastSeen, " : ", device.connected)
 	}
 	return nearbyDevices, nil
 }
 
+// Check all nearby devices and return the connected ones
 func (btm *bluetoothManager) GetConnectedDevices() (map[string]Device, error) {
-	l.Debugln("PiTooth: Starting GetConnectedDevices...")
+	btm.l.Debugln("PiTooth: Starting GetConnectedDevices...")
 	nearbyDevices, err := btm.collectNearbyDevices()
 	if err != nil {
 		return nil, err
@@ -176,15 +202,16 @@ func (btm *bluetoothManager) GetConnectedDevices() (map[string]Device, error) {
 			connectedDevices[device.address] = device
 		}
 	}
-	l.Debugln("PiTooth: # of connected devices: ", len(connectedDevices))
-	return connectedDevices, nil
+	btm.l.Debugln("PiTooth: # of connected devices: ", len(connectedDevices))
+	return nearbyDevices, nil
 }
 
-// Get the devices every 1 second, for 15 seconds.
+// Get the devices every second, for 5 seconds.
+// Return a map of all the devices found.
 func (btm *bluetoothManager) collectNearbyDevices() (map[string]Device, error) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	done := time.After(15 * time.Second)
+	done := time.After(5 * time.Second)
 
 	nearbyDevices := make(map[string]Device)
 	for {
@@ -197,7 +224,7 @@ func (btm *bluetoothManager) collectNearbyDevices() (map[string]Device, error) {
 				return nil, fmt.Errorf("Failed to get bluetooth devices: %v", err)
 			}
 			for _, device := range devices {
-				l.Debugln("PiTooth: Discovered bluetooth device: ", device.Properties.Alias, " : ", device.Properties.Address)
+				btm.l.Debugln("PiTooth: Discovered bluetooth device: ", device.Properties.Alias, " : ", device.Properties.Address)
 				nearbyDevices[device.Properties.Address] = Device{
 					lastSeen:  time.Now(),
 					address:   device.Properties.Address,
@@ -209,6 +236,8 @@ func (btm *bluetoothManager) collectNearbyDevices() (map[string]Device, error) {
 	}
 }
 
+// Close the active bluetooth adapter & agent
+// Optionally turn off the bluetooth device
 func (btm *bluetoothManager) Close(turnOff bool) {
 	btm.adapter.StopDiscovery()
 	btm.adapter.SetDiscoverable(false)
@@ -227,3 +256,23 @@ func (btm *bluetoothManager) Close(turnOff bool) {
 // func (a *Adapter1) SetPowered(v bool) error {
 // 	return a.SetProperty("Powered", v)
 // }
+
+func defaultLogger() *logrus.Logger {
+	l := logrus.New()
+	// Setup the logger, so it can be parsed by datadog
+	l.Formatter = &logrus.JSONFormatter{}
+	l.SetOutput(os.Stdout)
+	// Set the log level
+	logLevel := strings.ToLower(os.Getenv("LOG_LEVEL"))
+	switch logLevel {
+	case "debug":
+		l.SetLevel(logrus.DebugLevel)
+	case "info":
+		l.SetLevel(logrus.InfoLevel)
+	case "error":
+		l.SetLevel(logrus.ErrorLevel)
+	default:
+		l.SetLevel(logrus.InfoLevel)
+	}
+	return l
+}
