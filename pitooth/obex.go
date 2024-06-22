@@ -3,7 +3,6 @@ package pitooth
 import (
 	"fmt"
 	"os/exec"
-	"strings"
 )
 
 // https://github.com/muka/go-bluetooth/blob/master/examples/obex_push/obex_push.go
@@ -45,42 +44,32 @@ import (
 
 func (btm *bluetoothManager) ControlOBEXServer(start bool) error {
     // Check the current status of obexd
-    statusCmd := exec.Command("systemctl", "is-active", "obexd")
-    output, err := statusCmd.Output()
-    if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			switch exitErr.ExitCode() {
-			case 3:
-				btm.l.Infoln("obexd is not running.")
-			default:
-				return fmt.Errorf("failed to check obexd status: %v", err)
-			}
-		} 
-    }
-	isActive := strings.TrimSpace(string(output)) == "active"
+    pgrepCmd := exec.Command("pgrep", "obexd")
+	pidBytes, err := pgrepCmd.Output()
+    isActive := err == nil
 
     // Decide whether to start or stop based on the desired state and current status
     if start && isActive {
-		btm.l.Infoln("obexd is already running.")
+		btm.l.Debugln("obexd is already running.")
         return nil
     } else if !start && !isActive {
-		btm.l.Infoln("obexd is already stopped.")
+		btm.l.Debugln("obexd is already stopped.")
         return nil
     }
 
 	var cmd *exec.Cmd
 	if start {
 		// Command to start the obexd service
+		btm.l.Debugln("Starting obexd service... ")
 		cmd = exec.Command("obexd", "-a", "-r", "/home/sunlight/sunlight-meter")
-		btm.l.Infoln("Starting obexd service...")
 	} else {
 		// Command to stop the obexd service
+		btm.l.Debugln("Stopping obexd service...")
 		cmd = exec.Command("killall", "obexd")
-		btm.l.Infoln("Stopping obexd service...")
 	}
 
 	// Execute the command
-	if err := cmd.Run(); err != nil {
+	if err := cmd.Start(); err != nil {
 		if start {
 			return fmt.Errorf("failed to start obexd: %v", err)
 		} else {
@@ -88,9 +77,9 @@ func (btm *bluetoothManager) ControlOBEXServer(start bool) error {
 		}
 	} else {
 		if start {
-			btm.l.Infoln("obexd started successfully.")
+			btm.l.Infof("obexd [PID: %d] started successfully\n", cmd.Process.Pid)
 		} else {
-			btm.l.Infoln("obexd stopped successfully.")
+			btm.l.Infof("obexd [PID: %s] stopped successfully\n", string(pidBytes))
 		}
 	}
     return nil
