@@ -21,6 +21,13 @@ type BluetoothManager interface {
 	AcceptConnections(time.Duration) (map[string]Device, error)
 	GetNearbyDevices() (map[string]Device, error)
 	GetConnectedDevices() (map[string]Device, error)
+	
+	// OBEX is a protocol for transferring files between devices over Bluetooth
+	// It seems like we will need something like this
+	// StartOBEXServer() error
+	// StopOBEXServer() error
+	// SendFile() error
+	// ReceiveFile() error
 	Close(bool)
 }
 
