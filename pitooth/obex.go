@@ -3,6 +3,7 @@ package pitooth
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 // https://github.com/muka/go-bluetooth/blob/master/examples/obex_push/obex_push.go
@@ -56,8 +57,7 @@ func (btm *bluetoothManager) ControlOBEXServer(start bool) error {
 			}
 		} 
     }
-	btm.l.Infoln("obexd status:", string(output))
-    isActive := string(output) == "active\n"
+	isActive := strings.TrimSpace(string(output)) == "active"
 
     // Decide whether to start or stop based on the desired state and current status
     if start && isActive {
@@ -68,28 +68,30 @@ func (btm *bluetoothManager) ControlOBEXServer(start bool) error {
         return nil
     }
 
-    var cmd *exec.Cmd
-    if start {
-        // Command to start the obexd service
-        cmd = exec.Command("sudo", "systemctl", "start", "obexd")
-    } else {
-        // Command to stop the obexd service
-        cmd = exec.Command("sudo", "systemctl", "stop", "obexd")
-    }
+	var cmd *exec.Cmd
+	if start {
+		// Command to start the obexd service
+		cmd = exec.Command("obexd", "-a", "-r", "/home/sunlight/sunlight-meter")
+		btm.l.Infoln("Starting obexd service...")
+	} else {
+		// Command to stop the obexd service
+		cmd = exec.Command("killall", "obexd")
+		btm.l.Infoln("Stopping obexd service...")
+	}
 
-    // Execute the command
-    if err := cmd.Run(); err != nil {
-        if start {
-            return fmt.Errorf("failed to start obexd: %v", err)
-        } else {
-            return fmt.Errorf("failed to stop obexd: %v", err)
-        }
-    }
-
-    if start {
-		btm.l.Infoln("obexd started successfully.")
-    } else {
-		btm.l.Infoln("obexd stopped successfully.")
-    }
+	// Execute the command
+	if err := cmd.Run(); err != nil {
+		if start {
+			return fmt.Errorf("failed to start obexd: %v", err)
+		} else {
+			return fmt.Errorf("failed to stop obexd: %v", err)
+		}
+	} else {
+		if start {
+			btm.l.Infoln("obexd started successfully.")
+		} else {
+			btm.l.Infoln("obexd stopped successfully.")
+		}
+	}
     return nil
 }

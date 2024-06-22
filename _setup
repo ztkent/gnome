@@ -22,7 +22,14 @@ sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.11.linux-armv6l.
 echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
 source ~/.bashrc
 
-## Copy it to the pi
-chmod +x sunlight-meter
+## Add OBEXD
+sudo apt install bluez-obexd
+echo 'export PATH=$PATH:/usr/libexec/bluetooth/' >> ~/.bashrc
+source ~/.bashrc
+
+## Build the app
+go build -v -o slm
 
 ## Schedule it to always run at boot
+obexd -a -n -r /home/sunlight/sunlight-meter
+./slm
