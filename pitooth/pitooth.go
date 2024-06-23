@@ -12,6 +12,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+/* 
+	PiTooth is a simple Bluetooth manager for Raspberry Pi devices.
+	- Accept incoming connections
+	- Get a list of nearby/connected devices
+	- Control the OBEX server
+	- Send/Receive files
+*/
+
+
 func init() {
 	// Suppress excess warning logs from the bluetooth library
 	logrus.SetLevel(logrus.ErrorLevel)
@@ -23,7 +32,6 @@ type BluetoothManager interface {
 	GetConnectedDevices() (map[string]Device, error)
 
 	// OBEX is a protocol for transferring files between devices over Bluetooth
-	// It seems like we will need something like this
 	ControlOBEXServer(bool) error
 	// SendFile() error
 	// ReceiveFile() error

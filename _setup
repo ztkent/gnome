@@ -27,9 +27,11 @@ sudo apt install bluez-obexd
 echo 'export PATH=$PATH:/usr/libexec/bluetooth/' >> ~/.bashrc
 source ~/.bashrc
 
+## Adding pi to this group means that your Bluetooth program doesn't need to be run as root.
+sudo usermod -G bluetooth -a pi
+
 ## Build the app
 go build -v -o slm
 
 ## Schedule it to always run at boot
-obexd -a -n -r /home/sunlight/sunlight-meter
 ./slm

@@ -40,7 +40,11 @@ import (
 // 	return fmt.Errorf("Failed to connect to device: %v", err)
 // }
 
-
+/*
+	OBEX is a protocol for transferring files between devices over Bluetooth.
+	To use OBEX, we need to start the obexd service on the Raspberry Pi.
+	Then we can use [UUID: OBEX Object Push] or [UUID: OBEX File Transfer] to communicate.
+*/
 
 func (btm *bluetoothManager) ControlOBEXServer(start bool) error {
     // Check the current status of obexd

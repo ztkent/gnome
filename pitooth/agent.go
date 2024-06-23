@@ -7,6 +7,13 @@ import (
 	"github.com/muka/go-bluetooth/bluez/profile/agent"
 )
 
+/* 
+	An Agent is how bluetooth controls the pairing process. 
+	It is responsible for displaying the passkey, pincode, etc. to the user and handling the user's response.
+	Implementing this custom agent allows us to tap into the pairing process.
+	In this case, the goal is to allow trusted pairing without additional user interaction.
+*/
+
 type PiToothAgent struct {
 	*agent.SimpleAgent
 }
