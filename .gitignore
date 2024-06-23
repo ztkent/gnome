@@ -3,3 +3,4 @@ slm
 sunlight-meter
 sunlightmeter.db
 sunlightmeter.code-workspace
+.vscode/launch.json
