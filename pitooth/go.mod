@@ -1,6 +1,6 @@
 module github.com/Ztkent/pitooth
 
-go 1.22.3
+go 1.21
 
 require (
 	github.com/godbus/dbus/v5 v5.1.0
