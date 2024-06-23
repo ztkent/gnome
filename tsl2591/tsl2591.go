@@ -13,13 +13,35 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/Ztkent/sunlight-meter/internal/tools"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/io/i2c"
 )
+
+var l *logrus.Logger
+
+func init() {
+	l = logrus.New()
+	// Setup the logger, so it can be parsed by datadog
+	l.Formatter = &logrus.JSONFormatter{}
+	l.SetOutput(os.Stdout)
+	// Set the log level
+	logLevel := strings.ToLower(os.Getenv("LOG_LEVEL"))
+	switch logLevel {
+	case "debug":
+		l.SetLevel(logrus.DebugLevel)
+	case "info":
+		l.SetLevel(logrus.InfoLevel)
+	case "error":
+		l.SetLevel(logrus.ErrorLevel)
+	default:
+		l.SetLevel(logrus.InfoLevel)
+	}
+}
 
 type TSL2591 struct {
 	Enabled bool
@@ -77,22 +99,23 @@ func (tsl *TSL2591) GetFullLuminosity() (uint16, uint16, error) {
 	bytes := make([]byte, 4)
 	err := tsl.Device.ReadReg(TSL2591_COMMAND_BIT|TSL2591_REGISTER_CHAN0_LOW, bytes)
 	if err != nil {
+
 		fmt.Printf("Error reading from register: %v\n", err)
 		return 0, 0, err
 	}
-	tools.DebugLog(fmt.Sprintf("Bytes read: %v\n", bytes))
+	l.Debugf("Bytes read: %v\n", bytes)
 
 	channel0 := binary.LittleEndian.Uint16(bytes[0:])
 	channel1 := binary.LittleEndian.Uint16(bytes[2:])
 
-	tools.DebugLog(fmt.Sprintf("Channel 0: %v, Channel 1: %v\n", channel0, channel1))
+	l.Debugf("Channel 0: %v, Channel 1: %v\n", channel0, channel1)
 	return channel0, channel1, nil
 }
 
 func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 	// Check for channel overflow
 	if ch0 == 0xFFFF || ch1 == 0xFFFF {
-		return 0, fmt.Errorf(fmt.Sprintf("Overflow: Channel 0: %v, Channel 1: %v\n", ch0, ch1))
+		return 0, fmt.Errorf("Overflow: Channel 0: %v, Channel 1: %v\n", ch0, ch1)
 	}
 
 	var int_time float64
@@ -141,7 +164,7 @@ func (tsl *TSL2591) SetOptimalGain() error {
 		tsl.SetGain(gain)
 		for _, time := range integrationOptions {
 			tsl.SetTiming(time)
-			tools.DebugLog(fmt.Sprintf("Attempting - Gain: %v, Integration Time: %v", GainToString(gain), IntegrationTimeToString(time)))
+			l.Debugf("Attempting - Gain: %v, Integration Time: %v", GainToString(gain), IntegrationTimeToString(time))
 			ch0, ch1, err := tsl.GetFullLuminosity()
 			if err != nil {
 				continue
@@ -155,7 +178,7 @@ func (tsl *TSL2591) SetOptimalGain() error {
 			} else if lux == 0 {
 				continue
 			}
-			log.Println(fmt.Sprintf("Set - Gain: %v, Integration Time: %v", GainToString(gain), IntegrationTimeToString(time)))
+			l.Debugf("Set - Gain: %v, Integration Time: %v", GainToString(gain), IntegrationTimeToString(time))
 			return nil
 		}
 	}

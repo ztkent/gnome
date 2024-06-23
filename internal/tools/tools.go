@@ -4,15 +4,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"time"
 )
-
-func DebugLog(message string) {
-	if os.Getenv("LOG_LEVEL") == "debug" {
-		log.Println(message)
-	}
-}
 
 // Prevent out-of-network requests to dashboard endpoints
 func CheckInNetwork(next http.Handler) http.Handler {
@@ -35,7 +28,6 @@ func CheckInNetwork(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
 func isLocalAddress(ip net.IP) bool {
 	privateBlocks := []string{
 		"10.0.0.0/8",
@@ -86,7 +78,6 @@ func ParseStartAndEndDate(r *http.Request) (string, string) {
 	}
 	return startDate, endDate
 }
-
 func StartAndEndDateToTime(startDate string, endDate string) (time.Time, time.Time, error) {
 	layoutDB := "2006-01-02 15:04:05"
 	start, err := time.Parse(layoutDB, startDate)

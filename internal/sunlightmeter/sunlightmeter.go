@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ztkent/sunlight-meter/internal/tools"
 	"github.com/Ztkent/sunlight-meter/tsl2591"
 	"github.com/google/uuid"
 )
@@ -96,7 +95,6 @@ func (m *SLMeter) Start() http.HandlerFunc {
 					<-ticker.C
 					continue
 				}
-				tools.DebugLog(fmt.Sprintf("0x%04x 0x%04x\n", ch0, ch1))
 
 				// Calculate the lux value from the sensor readings
 				lux, err := m.CalculateLux(ch0, ch1)
