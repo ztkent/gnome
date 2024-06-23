@@ -18,8 +18,6 @@ import (
 /*
 	This is going to be the primary entry point for the Sunlight Meter application.
 	It should be running at startup, on a Raspberry Pi, with the TSL2591 sensor connected.
-
-	Given these assumptions, we will do the following:
 */
 
 func main() {

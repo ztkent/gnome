@@ -3,6 +3,7 @@ module github.com/Ztkent/sunlight-meter
 go 1.21
 
 require (
+	github.com/Ztkent/pitooth v0.0.0-20240623171605-3fe5c23a6ff2
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/go-echarts/go-echarts/v2 v2.3.3
 	github.com/google/uuid v1.6.0
@@ -12,6 +13,9 @@ require (
 )
 
 require (
+	github.com/fatih/structs v1.1.0 // indirect
+	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/muka/go-bluetooth v0.0.0-20240115085408-dfdf79b8f61d // indirect
 	github.com/stretchr/testify v1.7.5 // indirect
 	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 )
