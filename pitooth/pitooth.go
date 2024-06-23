@@ -12,14 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-/* 
+/*
 	PiTooth is a simple Bluetooth manager for Raspberry Pi devices.
 	- Accept incoming connections
 	- Get a list of nearby/connected devices
 	- Control the OBEX server
-	- Send/Receive files
+	- Receive files from connected devices
 */
-
 
 func init() {
 	// Suppress excess warning logs from the bluetooth library
@@ -32,9 +31,7 @@ type BluetoothManager interface {
 	GetConnectedDevices() (map[string]Device, error)
 
 	// OBEX is a protocol for transferring files between devices over Bluetooth
-	ControlOBEXServer(bool) error
-	// SendFile() error
-	// ReceiveFile() error
+	ControlOBEXServer(bool, string) error
 	Close(bool)
 }
 
@@ -45,10 +42,10 @@ type bluetoothManager struct {
 }
 
 type Device struct {
-	lastSeen  time.Time
-	address   string
-	name      string
-	connected bool
+	LastSeen  time.Time
+	Address   string
+	Name      string
+	Connected bool
 }
 
 func NewBluetoothManager(deviceAlias string, opts ...BluetoothManagerOption) (BluetoothManager, error) {
@@ -76,6 +73,7 @@ func NewBluetoothManager(deviceAlias string, opts ...BluetoothManagerOption) (Bl
 	// Connect pitooth agent to handle pairing requests
 	pitoothAgent := &PiToothAgent{
 		SimpleAgent: agent.NewSimpleAgent(),
+		l:           defaultLogger(),
 	}
 
 	btm := bluetoothManager{
@@ -117,6 +115,7 @@ type BluetoothManagerOption func(*bluetoothManager) error
 func WithLogger(l *logrus.Logger) BluetoothManagerOption {
 	return func(bm *bluetoothManager) error {
 		bm.l = l
+		bm.agent.l = l
 		return nil
 	}
 }
@@ -197,7 +196,7 @@ func (btm *bluetoothManager) GetNearbyDevices() (map[string]Device, error) {
 
 	btm.l.Debugln("PiTooth: # of nearby devices: ", len(nearbyDevices))
 	for _, device := range nearbyDevices {
-		btm.l.Debugln("PiTooth: Nearby device: ", device.name, " : ", device.address, " : ", device.lastSeen, " : ", device.connected)
+		btm.l.Debugln("PiTooth: Nearby device: ", device.Name, " : ", device.Address, " : ", device.LastSeen, " : ", device.Connected)
 	}
 	return nearbyDevices, nil
 }
@@ -212,8 +211,8 @@ func (btm *bluetoothManager) GetConnectedDevices() (map[string]Device, error) {
 
 	connectedDevices := make(map[string]Device)
 	for _, device := range nearbyDevices {
-		if device.connected {
-			connectedDevices[device.address] = device
+		if device.Connected {
+			connectedDevices[device.Address] = device
 		}
 	}
 	btm.l.Debugln("PiTooth: # of connected devices: ", len(connectedDevices))
@@ -240,10 +239,10 @@ func (btm *bluetoothManager) collectNearbyDevices() (map[string]Device, error) {
 			for _, device := range devices {
 				btm.l.Debugln("PiTooth: Discovered bluetooth device: ", device.Properties.Alias, " : ", device.Properties.Address)
 				nearbyDevices[device.Properties.Address] = Device{
-					lastSeen:  time.Now(),
-					address:   device.Properties.Address,
-					name:      device.Properties.Alias,
-					connected: device.Properties.Connected,
+					LastSeen:  time.Now(),
+					Address:   device.Properties.Address,
+					Name:      device.Properties.Alias,
+					Connected: device.Properties.Connected,
 				}
 			}
 		}

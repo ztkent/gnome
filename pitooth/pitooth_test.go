@@ -36,10 +36,10 @@ func Test_StartStopOBEXServer(t *testing.T) {
 	}
 	defer btm.Close(true)
 
-	if err := btm.ControlOBEXServer(true); err != nil {
+	if err := btm.ControlOBEXServer(true, "/home/sunlight/sunlight-meter"); err != nil {
 		t.Fatalf("Failed to start OBEX server: %v", err)
 	}
-	if err := btm.ControlOBEXServer(false); err != nil {
+	if err := btm.ControlOBEXServer(false, "/home/sunlight/sunlight-meter"); err != nil {
 		t.Fatalf("Failed to stop OBEX server: %v", err)
 	}
 }
