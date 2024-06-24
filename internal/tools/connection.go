@@ -23,6 +23,20 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
+/*
+	Its essential we are able to connect the pi to WIFI without the user logging in.
+	Check if the pi is connected. If not,
+	- create a bluetooth manager
+	- accept bluetooth connections
+	- start an OBEX server
+	- watch for new credentials
+	- add the credentials to wpa_supplicant.conf
+	- restart the networking service
+	- check if the pi is connected to the internet
+
+	Hopefully this will get us online.
+*/
+
 func ManageInternetConnection() {
 	if !checkInternetConnection("") {
 		log.Println("No internet connection detected. Starting WIFI management...")
