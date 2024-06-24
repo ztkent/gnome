@@ -4,4 +4,4 @@ sunlight-meter
 sunlightmeter.db
 sunlightmeter.code-workspace
 .vscode/launch.json
-transfers/*.json
+*.json

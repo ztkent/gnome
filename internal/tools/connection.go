@@ -24,6 +24,10 @@ import (
 		6. Send the wifi credentials to the pi, via OPP (Object Push Profile)
 		7. Attempt to connect to the wifi network using provided credentials.
 */
+const (
+	TRANSFER_DIRECTORY = "/home/sunlight/sunlight-meter/transfers"
+)
+
 func ManageInternetConnection() {
 	if !CheckInternetConnection() {
 		log.Println("No internet connection detected. Starting WIFI management...")
@@ -50,38 +54,29 @@ func ManageInternetConnection() {
 
 		// Start the OBEX server, accept file transfers
 		log.Println("Starting OBEX server")
-		if err := btm.ControlOBEXServer(true, "/home/sunlight/sunlight-meter/transfers"); err != nil {
+		if err := btm.ControlOBEXServer(true, TRANSFER_DIRECTORY); err != nil {
 			log.Println("Failed to start OBEX server:", err)
 			return
 		}
 		defer btm.ControlOBEXServer(false, "")
 
 		// Watch /transfers for new files
-		var creds *Credentials
-		log.Println("Watching for new files in /home/sunlight/sunlight-meter/transfers")
-		for {
-			var err error
-			creds, err = processDirectory("/home/sunlight/sunlight-meter/transfers")
-			if err != nil {
-				log.Println("Error processing directory:", err)
-				continue
-			}
-			if creds != nil {
-				break
-			}
-			time.Sleep(5 * time.Second)
-		}
-
-		if creds.Username == "" || creds.Password == "" {
-			log.Println("No credentials found in files")
+		creds, err := watchForCreds(time.Second * 180)
+		if err != nil {
+			log.Println("Failed to receive wifi credentials:", err)
+			return
+		} else if len(creds) == 0 {
+			log.Println("No wifi credentials received")
 			return
 		}
 
-		// Connect to the Wi-Fi network
-		log.Println("Attempting to connect to Wi-Fi network")
-		if err := AddWifiNetwork(creds.Username, creds.Password); err != nil {
-			log.Println("Failed to add Wi-Fi network:", err)
-			return
+		for _, creds := range creds {
+			// Connect to the Wi-Fi network
+			log.Println("Attempting to add Wi-Fi network to wpa_supplicant.conf: ", creds.SSID, creds.Password)
+			if err := AddWifiNetwork(creds.SSID, creds.Password); err != nil {
+				log.Println("Failed to add Wi-Fi network:", err)
+				return
+			}
 		}
 		logWpaSupplicantContents()
 
@@ -108,34 +103,74 @@ func ManageInternetConnection() {
 	return
 }
 
+func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
+	log.Println("Watching for new files in ", TRANSFER_DIRECTORY)
+
+	timeoutTimer := time.NewTimer(timeout)
+	retryTicker := time.NewTicker(5 * time.Second)
+	defer retryTicker.Stop()
+	for {
+		select {
+		case <-timeoutTimer.C:
+			return nil, fmt.Errorf("Timed out waiting for credentials")
+		case <-retryTicker.C:
+			var err error
+			creds, err := processDirectory(TRANSFER_DIRECTORY)
+			if err != nil {
+				log.Println("Error processing directory:", err)
+				return nil, err
+			}
+			if creds != nil {
+				// Credentials found, stop watching
+				return creds, nil
+			}
+		}
+	}
+}
+
+func cleanUpTransfers() {
+	log.Println("Cleaning up transfers directory of .creds files")
+	files, _ := filepath.Glob(filepath.Join(TRANSFER_DIRECTORY, "*.creds"))
+	for _, file := range files {
+		if err := os.Remove(file); err != nil {
+			log.Println("Failed to delete .creds file:", file, err)
+		}
+	}
+	return
+}
+
 type Credentials struct {
-	Username string `json:"username"`
+	SSID     string `json:"ssid"`
 	Password string `json:"password"`
 }
 
-func processDirectory(dirPath string) (*Credentials, error) {
+func processDirectory(dirPath string) ([]*Credentials, error) {
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
+	// Setup for transfers by cleaning the transfers directory of any existing .creds files
+	cleanUpTransfers()
+
+	foundCreds := []*Credentials{}
 	for _, file := range files {
 		if file.IsDir() {
 			continue
 		}
-		if filepath.Ext(file.Name()) == ".json" {
+		if filepath.Ext(file.Name()) == ".creds" {
 			fullPath := filepath.Join(dirPath, file.Name())
 			creds, err := readCredentials(fullPath)
 			if err != nil {
 				log.Printf("Error reading JSON from %s: %v\n", fullPath, err)
 				continue
 			}
-			if creds.Username != "" && creds.Password != "" {
+			if creds.SSID != "" && creds.Password != "" {
 				log.Printf("Found credentials in %s: %+v\n", fullPath, creds)
-				return creds, nil
+				foundCreds = append(foundCreds, creds)
 			}
 		}
 	}
-	return nil, nil
+	return foundCreds, nil
 }
 
 func readCredentials(filePath string) (*Credentials, error) {
