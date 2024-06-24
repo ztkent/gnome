@@ -1,15 +1,15 @@
 package tools
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
-	"filepath"
-	"json"
 
 	pitooth "github.com/Ztkent/pitooth"
 )
@@ -109,48 +109,48 @@ func ManageInternetConnection() {
 }
 
 type Credentials struct {
-    Username string `json:"username"`
-    Password string `json:"password"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func processDirectory(dirPath string) (*Credentials, error) {
-    files, err := os.ReadDir(dirPath)
-    if err != nil {
-        return nil, err
-    }
-    for _, file := range files {
-        if file.IsDir() {
-            continue
-        }
-        if filepath.Ext(file.Name()) == ".json" {
-            fullPath := filepath.Join(dirPath, file.Name())
-            creds, err := readCredentials(fullPath)
-            if err != nil {
-                log.Printf("Error reading JSON from %s: %v\n", fullPath, err)
-                continue
-            }
-            if creds.Username != "" && creds.Password != "" {
-                log.Printf("Found credentials in %s: %+v\n", fullPath, creds)
-                return creds, nil
-            }
-        }
-    }
-    return nil, nil
+	files, err := os.ReadDir(dirPath)
+	if err != nil {
+		return nil, err
+	}
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		if filepath.Ext(file.Name()) == ".json" {
+			fullPath := filepath.Join(dirPath, file.Name())
+			creds, err := readCredentials(fullPath)
+			if err != nil {
+				log.Printf("Error reading JSON from %s: %v\n", fullPath, err)
+				continue
+			}
+			if creds.Username != "" && creds.Password != "" {
+				log.Printf("Found credentials in %s: %+v\n", fullPath, creds)
+				return creds, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 func readCredentials(filePath string) (*Credentials, error) {
-    data, err := os.ReadFile(filePath)
-    if err != nil {
-        return nil, err
-    }
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
 
-    var creds Credentials
-    err = json.Unmarshal(data, &creds)
-    if err != nil {
-        return nil, err
-    }
+	var creds Credentials
+	err = json.Unmarshal(data, &creds)
+	if err != nil {
+		return nil, err
+	}
 
-    return &creds, nil
+	return &creds, nil
 }
 
 func CheckInternetConnection() bool {
