@@ -29,7 +29,7 @@ const (
 )
 
 func ManageInternetConnection() {
-	if !CheckInternetConnection() {
+	if !checkInternetConnection("") {
 		log.Println("No internet connection detected. Starting WIFI management...")
 		// Create a new Bluetooth manager
 		btm, err := pitooth.NewBluetoothManager("SunlightMeter")
@@ -73,7 +73,7 @@ func ManageInternetConnection() {
 		for _, creds := range creds {
 			// Connect to the Wi-Fi network
 			log.Println("Attempting to add Wi-Fi network to wpa_supplicant.conf: ", creds.SSID, creds.Password)
-			if err := AddWifiNetwork(creds.SSID, creds.Password); err != nil {
+			if err := addWifiNetwork(creds.SSID, creds.Password); err != nil {
 				log.Println("Failed to add Wi-Fi network:", err)
 				return
 			}
@@ -89,11 +89,11 @@ func ManageInternetConnection() {
 		}
 
 		// Check if the Pi is connected to the internet
-		if !CheckInternetConnection() {
+		if !checkInternetConnection("http://www.google.com") {
 			log.Println("Failed to connect to Wi-Fi network")
 			return
 		}
-		currentSSID, err := GetCurrentSSID()
+		currentSSID, err := getCurrentSSID()
 		if err != nil {
 			log.Println("Failed to get current SSID:", err)
 		} else {
@@ -188,18 +188,21 @@ func readCredentials(filePath string) (*Credentials, error) {
 	return &creds, nil
 }
 
-func CheckInternetConnection() bool {
+func checkInternetConnection(testSite string) bool {
 	client := http.Client{
 		Timeout: 10 * time.Second,
 	}
-	response, err := client.Get("http://www.ztkent.com")
+	if testSite == "" {
+		testSite = "http://www.ztkent.com"
+	}
+	response, err := client.Get(testSite)
 	if err != nil {
 		return false
 	}
 	defer response.Body.Close()
 	connected := response.StatusCode == 200
 	if connected {
-		ssid, err := GetCurrentSSID()
+		ssid, err := getCurrentSSID()
 		if err != nil {
 			log.Println("Failed to get current SSID:", err)
 		} else {
@@ -212,7 +215,7 @@ func CheckInternetConnection() bool {
 	return connected
 }
 
-func GetCurrentSSID() (string, error) {
+func getCurrentSSID() (string, error) {
 	cmd := exec.Command("iwgetid", "-r")
 	output, err := cmd.Output()
 	if err != nil {
@@ -223,7 +226,7 @@ func GetCurrentSSID() (string, error) {
 }
 
 // AddWifiNetwork adds a Wi-Fi network configuration to the wpa_supplicant.conf file.
-func AddWifiNetwork(ssid, password string) error {
+func addWifiNetwork(ssid, password string) error {
 	file, err := os.OpenFile("/etc/wpa_supplicant/wpa_supplicant.conf", os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -237,7 +240,7 @@ func AddWifiNetwork(ssid, password string) error {
 }
 
 // RemoveWifiNetwork removes a Wi-Fi network configuration from the wpa_supplicant.conf file based on the SSID.
-func RemoveWifiNetwork(ssid string) error {
+func removeWifiNetwork(ssid string) error {
 	cmdStr := fmt.Sprintf("/network={/,/}/ { /ssid=\"%s\"/,/}/d }", ssid)
 	cmd := exec.Command("sed", "-i", cmdStr, "/etc/wpa_supplicant/wpa_supplicant.conf")
 	if err := cmd.Run(); err != nil {
