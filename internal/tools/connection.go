@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+	"filepath"
+	"json"
 
 	pitooth "github.com/Ztkent/pitooth"
 )
@@ -25,14 +27,130 @@ import (
 func ManageInternetConnection() {
 	if !CheckInternetConnection() {
 		log.Println("No internet connection detected. Starting WIFI management...")
+		// Create a new Bluetooth manager
 		btm, err := pitooth.NewBluetoothManager("SunlightMeter")
 		if err != nil {
 			log.Println("Failed to create Bluetooth manager:", err)
 			return
 		}
-		btm.AcceptConnections(30 * time.Second)
+		defer btm.Close(true)
+
+		// Get the client to connect to the pi w/ bluetooth
+		log.Printf("Attempting to accept Bluetooth connections\n")
+		for attempt := 1; attempt <= 5; attempt++ {
+			connectedDevices, err := btm.AcceptConnections(30 * time.Second)
+			if err != nil {
+				log.Printf("Attempt %d: Failed to accept Bluetooth connections: %v\n", attempt, err)
+			} else if len(connectedDevices) == 0 {
+				log.Printf("Attempt %d: No devices connected via Bluetooth\n", attempt)
+			} else {
+				break
+			}
+		}
+
+		// Start the OBEX server, accept file transfers
+		log.Println("Starting OBEX server")
+		if err := btm.ControlOBEXServer(true, "/home/sunlight/sunlight-meter/transfers"); err != nil {
+			log.Println("Failed to start OBEX server:", err)
+			return
+		}
+		defer btm.ControlOBEXServer(false, "")
+
+		// Watch /transfers for new files
+		var creds *Credentials
+		log.Println("Watching for new files in /home/sunlight/sunlight-meter/transfers")
+		for {
+			var err error
+			creds, err = processDirectory("/home/sunlight/sunlight-meter/transfers")
+			if err != nil {
+				log.Println("Error processing directory:", err)
+				continue
+			}
+			if creds != nil {
+				break
+			}
+			time.Sleep(5 * time.Second)
+		}
+
+		if creds.Username == "" || creds.Password == "" {
+			log.Println("No credentials found in files")
+			return
+		}
+
+		// Connect to the Wi-Fi network
+		log.Println("Attempting to connect to Wi-Fi network")
+		if err := AddWifiNetwork(creds.Username, creds.Password); err != nil {
+			log.Println("Failed to add Wi-Fi network:", err)
+			return
+		}
+		logWpaSupplicantContents()
+
+		// Restart the networking service
+		log.Println("Restarting networking service")
+		cmd := exec.Command("systemctl", "restart", "networking")
+		if err := cmd.Run(); err != nil {
+			log.Println("Failed to restart networking service:", err)
+			return
+		}
+
+		// Check if the Pi is connected to the internet
+		if !CheckInternetConnection() {
+			log.Println("Failed to connect to Wi-Fi network")
+			return
+		}
+		currentSSID, err := GetCurrentSSID()
+		if err != nil {
+			log.Println("Failed to get current SSID:", err)
+		} else {
+			log.Printf("Successfully connected to Wi-Fi network: %s\n", currentSSID)
+		}
 	}
 	return
+}
+
+type Credentials struct {
+    Username string `json:"username"`
+    Password string `json:"password"`
+}
+
+func processDirectory(dirPath string) (*Credentials, error) {
+    files, err := os.ReadDir(dirPath)
+    if err != nil {
+        return nil, err
+    }
+    for _, file := range files {
+        if file.IsDir() {
+            continue
+        }
+        if filepath.Ext(file.Name()) == ".json" {
+            fullPath := filepath.Join(dirPath, file.Name())
+            creds, err := readCredentials(fullPath)
+            if err != nil {
+                log.Printf("Error reading JSON from %s: %v\n", fullPath, err)
+                continue
+            }
+            if creds.Username != "" && creds.Password != "" {
+                log.Printf("Found credentials in %s: %+v\n", fullPath, creds)
+                return creds, nil
+            }
+        }
+    }
+    return nil, nil
+}
+
+func readCredentials(filePath string) (*Credentials, error) {
+    data, err := os.ReadFile(filePath)
+    if err != nil {
+        return nil, err
+    }
+
+    var creds Credentials
+    err = json.Unmarshal(data, &creds)
+    if err != nil {
+        return nil, err
+    }
+
+    return &creds, nil
 }
 
 func CheckInternetConnection() bool {
