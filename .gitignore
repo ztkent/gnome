@@ -5,3 +5,4 @@ sunlightmeter.db
 sunlightmeter.code-workspace
 .vscode/launch.json
 *.json
+*.creds

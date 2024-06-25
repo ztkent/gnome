@@ -79,20 +79,10 @@ func ManageInternetConnection() {
 			return
 		}
 
-		// If we got credentials, add them to wpa_supplicant.conf
-		for _, creds := range creds {
-			if err := addWifiNetwork(creds.SSID, creds.Password); err != nil {
-				log.Println("Failed to add Wi-Fi network:", err)
-				return
-			}
-		}
-		logWpaSupplicantContents()
-
-		// Attempt to restart networking service
-		log.Println("Restarting networking service")
-		cmd := exec.Command("systemctl", "restart", "networking")
-		if err := cmd.Run(); err != nil {
-			log.Println("Failed to restart networking service:", err)
+		// If we got credentials, add them to wpa_supplicant.conf, restart the networking service
+		// TODO: nmcli might be a better option
+		shouldReturn := attemptWifiConnection(creds)
+		if shouldReturn {
 			return
 		}
 
@@ -110,55 +100,6 @@ func ManageInternetConnection() {
 			log.Printf("Successfully connected to Wi-Fi network: %s\n", currentSSID)
 		}
 	}
-}
-
-func checkInternetConnection(testSite string) bool {
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-	if testSite == "" {
-		testSite = "http://www.ztkent.com"
-	}
-	log.Println("Checking internet connection: ", testSite)
-	response, err := client.Get(testSite)
-	if err != nil {
-		return false
-	}
-	defer response.Body.Close()
-	connected := response.StatusCode == 200
-	if connected {
-		_, err := getCurrentSSID()
-		if err != nil {
-			log.Println("Failed to get current SSID:", err)
-		}
-	} else {
-		log.Println("Not connected to the internet")
-	}
-	return connected
-}
-
-func getCurrentSSID() (string, error) {
-	cmd := exec.Command("iwgetid", "-r")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-	ssid := strings.TrimSpace(string(output))
-	return ssid, nil
-}
-
-func addWifiNetwork(ssid, password string) error {
-	log.Println("Attempting to add Wi-Fi network to wpa_supplicant.conf: ", ssid, password)
-	file, err := os.OpenFile("/etc/wpa_supplicant/wpa_supplicant.conf", os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	networkConfig := fmt.Sprintf("\nnetwork={\n    ssid=\"%s\"\n    psk=\"%s\"\n    key_mgmt=WPA-PSK\n}\n", ssid, password)
-	if _, err = file.WriteString(networkConfig); err != nil {
-		return err
-	}
-	return nil
 }
 
 func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
@@ -225,6 +166,73 @@ func readCredentials(filePath string) (*Credentials, error) {
 	}
 
 	return &creds, nil
+}
+
+// This uses the wpa_supplicant.conf file to add the Wi-Fi network credentials, then restarts the networking service
+func attemptWifiConnection(creds []*Credentials) bool {
+	for _, creds := range creds {
+		if err := addWifiNetwork(creds.SSID, creds.Password); err != nil {
+			log.Println("Failed to add Wi-Fi network:", err)
+			return true
+		}
+	}
+	logWpaSupplicantContents()
+	log.Println("Restarting networking service")
+	cmd := exec.Command("systemctl", "restart", "networking")
+	if err := cmd.Run(); err != nil {
+		log.Println("Failed to restart networking service:", err)
+		return true
+	}
+	return false
+}
+
+func addWifiNetwork(ssid, password string) error {
+	log.Println("Attempting to add Wi-Fi network to wpa_supplicant.conf: ", ssid, password)
+	file, err := os.OpenFile("/etc/wpa_supplicant/wpa_supplicant.conf", os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	networkConfig := fmt.Sprintf("\nnetwork={\n    ssid=\"%s\"\n    psk=\"%s\"\n    key_mgmt=WPA-PSK\n}\n", ssid, password)
+	if _, err = file.WriteString(networkConfig); err != nil {
+		return err
+	}
+	return nil
+}
+
+func checkInternetConnection(testSite string) bool {
+	client := http.Client{
+		Timeout: 10 * time.Second,
+	}
+	if testSite == "" {
+		testSite = "http://www.ztkent.com"
+	}
+	log.Println("Checking internet connection: ", testSite)
+	response, err := client.Get(testSite)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	connected := response.StatusCode == 200
+	if connected {
+		_, err := getCurrentSSID()
+		if err != nil {
+			log.Println("Failed to get current SSID:", err)
+		}
+	} else {
+		log.Println("Not connected to the internet")
+	}
+	return connected
+}
+
+func getCurrentSSID() (string, error) {
+	cmd := exec.Command("iwgetid", "-r")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	ssid := strings.TrimSpace(string(output))
+	return ssid, nil
 }
 
 func cleanUpTransfers() {
