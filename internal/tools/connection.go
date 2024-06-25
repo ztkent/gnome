@@ -56,6 +56,7 @@ func ManageInternetConnection() {
 			} else if len(connectedDevices) == 0 {
 				log.Printf("Attempt %d: No devices connected via Bluetooth\n", attempt)
 			} else {
+				log.Printf("Attempt %d: Successfully connected to %d devices via Bluetooth\n", attempt, len(connectedDevices))
 				break
 			}
 		}
