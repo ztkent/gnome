@@ -163,6 +163,8 @@ func addWifiNetwork(ssid, password string) error {
 }
 
 func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
+	log.Println("Cleaning up transfers directory")
+	cleanUpTransfers()
 	log.Println("Watching for new files in ", TRANSFER_DIRECTORY)
 	timeoutTimer := time.NewTimer(timeout)
 	retryTicker := time.NewTicker(5 * time.Second)
@@ -185,14 +187,14 @@ func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
 }
 
 func processDirectory(dirPath string) ([]*Credentials, error) {
+	log.Println("Processing directory:", dirPath)
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
-	cleanUpTransfers()
-
 	foundCreds := []*Credentials{}
 	for _, file := range files {
+		log.Println("Processing file:", file.Name())
 		if file.IsDir() {
 			continue
 		}
