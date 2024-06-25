@@ -127,11 +127,9 @@ func checkInternetConnection(testSite string) bool {
 	defer response.Body.Close()
 	connected := response.StatusCode == 200
 	if connected {
-		ssid, err := getCurrentSSID()
+		_, err := getCurrentSSID()
 		if err != nil {
 			log.Println("Failed to get current SSID:", err)
-		} else {
-			log.Println("Connected to Wi-Fi network:", ssid)
 		}
 	} else {
 		log.Println("Not connected to the internet")
@@ -180,7 +178,7 @@ func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
 				log.Println("Error processing directory:", err)
 				return nil, err
 			}
-			if creds != nil {
+			if len(creds) > 0 {
 				return creds, nil
 			}
 		}
@@ -195,11 +193,11 @@ func processDirectory(dirPath string) ([]*Credentials, error) {
 	}
 	foundCreds := []*Credentials{}
 	for _, file := range files {
-		log.Println("Processing file:", file.Name())
 		if file.IsDir() {
 			continue
 		}
 		if filepath.Ext(file.Name()) == ".creds" {
+			log.Println("Processing file:", file.Name())
 			fullPath := filepath.Join(dirPath, file.Name())
 			creds, err := readCredentials(fullPath)
 			if err != nil {
