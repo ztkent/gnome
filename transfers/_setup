@@ -30,9 +30,6 @@ echo "export GOBIN=\$GOPATH/bin" >> ~/.bashrc
 echo "export PATH=\$PATH:\$GOBIN" >> ~/.bashrc
 source ~/.bashrc
 
-
-
-
 ## Add OBEXD
 sudo apt install bluez-obexd
 echo 'export PATH=$PATH:/usr/libexec/bluetooth' >> ~/.bashrc
@@ -44,6 +41,9 @@ sudo usermod -G bluetooth -a sunlight
 - Interfacing Options > I2C > Yes
 - sudo usermod -aG i2c $USER
 - reboot
+
+## Allow the user to control the network manager
+sudo usermod -aG netdev $USER
 
 # Install the app
 cd /home/sunlight/sunlight-meter

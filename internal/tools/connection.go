@@ -88,11 +88,6 @@ func ManageInternetConnection() error {
 			return fmt.Errorf("Failed to connect to Wi-Fi network: %v", err)
 		}
 
-		// Restarting the networking service might connect to the Wi-Fi network
-		if !checkInternetConnection("http://www.google.com") {
-			return fmt.Errorf("Failed to connect to Wi-Fi network, internet check failed.")
-		}
-
 		// Log the SSID we're connected to
 		currentSSID, err := getCurrentSSID()
 		if err != nil {
@@ -171,32 +166,32 @@ func readCredentials(filePath string) (*Credentials, error) {
 
 // This uses the wpa_supplicant.conf file to add the Wi-Fi network credentials, then restarts the networking service
 func attemptWifiConnection(creds []*Credentials) error {
-	for _, creds := range creds {
-		if err := addWifiNetwork(creds.SSID, creds.Password); err != nil {
-			return fmt.Errorf("Failed to add Wi-Fi network: %v", err)
+	for _, cred := range creds {
+		log.Printf("Attempting to connect to Wi-Fi network: %s\n", cred.SSID)
+		// Recan for available networks
+		rescanCmd := exec.Command("nmcli", "device", "wifi", "rescan")
+		if err := rescanCmd.Run(); err != nil {
+			log.Printf("Failed to rescan Wi-Fi networks: %v\n", err)
+		}
+
+		// Delete existing connection (if any)
+		delCmd := exec.Command("nmcli", "connection", "delete", "id", cred.SSID)
+		if err := delCmd.Run(); err != nil {
+			log.Printf("No existing connection for %s or failed to delete: %v\n", cred.SSID, err)
+		}
+
+		// Add new Wi-Fi connection
+		addCmd := exec.Command("nmcli", "dev", "wifi", "connect", cred.SSID, "password", cred.Password)
+		if err := addCmd.Run(); err != nil {
+			return fmt.Errorf("failed to connect to Wi-Fi network %s: %v", cred.SSID, err)
+		}
+
+		if checkInternetConnection("http://www.google.com") {
+			log.Println("Successfully connected to Wi-Fi network: ", cred.SSID)
+			return nil
 		}
 	}
-	logWpaSupplicantContents()
-	log.Println("Restarting networking service")
-	cmd := exec.Command("systemctl", "restart", "networking")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Failed to restart networking service: %v", err)
-	}
-	return nil
-}
-
-func addWifiNetwork(ssid, password string) error {
-	log.Println("Attempting to add Wi-Fi network to wpa_supplicant.conf: ", ssid, password)
-	file, err := os.OpenFile("/etc/wpa_supplicant/wpa_supplicant.conf", os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	networkConfig := fmt.Sprintf("\nnetwork={\n    ssid=\"%s\"\n    psk=\"%s\"\n    key_mgmt=WPA-PSK\n}\n", ssid, password)
-	if _, err = file.WriteString(networkConfig); err != nil {
-		return err
-	}
-	return nil
+	return fmt.Errorf("Failed to connect to any Wi-Fi network")
 }
 
 func checkInternetConnection(testSite string) bool {
