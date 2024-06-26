@@ -1,9 +1,5 @@
-## APP 
-## Compile for ARMv6
-docker run -v "/Users/zacharykent/code/ztkent/sunlight-meter":/usr/src/myapp -w /usr/src/myapp arm32v6/golang:1.21-alpine sh -c 'apk update && apk add gcc && CGO_ENABLED=1 GOOS=linux GOARCH=arm GOARM=6 go build -v -o slm'
-## Test
+## Run this on the PI to setup.
 
-##CLIENT
 # First, always update
 sudo apt update
 
@@ -11,16 +7,20 @@ sudo apt update
 sudo apt install gh
 gh auth login
 
-## Setup the app
-cd /home/sunlight
-mkdir sunlight-meter
-cd sunlight-meter
+# Clone the repo
+gh repo clone sunlight-meter
 
 ## Setup Golang
-wget https://go.dev/dl/go1.21.11.linux-armv6l.tar.gz
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.11.linux-armv6l.tar.gz && rm go1.21.11.linux-armv6l.tar.gz
+wget https://go.dev/dl/go1.21.11.linux-arm64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.11.linux-arm64.tar.gz && rm go1.21.11.linux-arm64.tar.gz
 echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
 source ~/.bashrc
+
+# Set GOPATH, GOCACHE, and GOBIN
+echo "export GOPATH=\$HOME/go" >> ~/.bashrc
+echo "export GOCACHE=\$HOME/.cache/go-build" >> ~/.bashrc
+echo "export GOBIN=\$GOPATH/bin" >> ~/.bashrc
+echo "export PATH=\$PATH:\$GOBIN" >> ~/.bashrc
 
 ## Add OBEXD
 sudo apt install bluez-obexd
@@ -28,10 +28,12 @@ echo 'export PATH=$PATH:/usr/libexec/bluetooth/' >> ~/.bashrc
 source ~/.bashrc
 
 ## Adding pi to this group means that your Bluetooth program doesn't need to be run as root.
-sudo usermod -G bluetooth -a pi
+sudo usermod -G bluetooth -a sunlight
 
-## Build the app
-go build -v -o slm
+# Install the app
+cd /home/sunlight/sunlight-meter
+go mod download
+go install -v
 
 ## Schedule it to always run at boot
-./slm
+./sunlight-meter
