@@ -82,8 +82,7 @@ func ManageInternetConnection() error {
 			return fmt.Errorf("No wifi credentials received")
 		}
 
-		// If we got credentials, add them to wpa_supplicant.conf, restart the networking service
-		// TODO: nmcli might be a better option
+		// Connect to the provided creds with nmcli
 		err = attemptWifiConnection(creds)
 		if err != nil {
 			return fmt.Errorf("Failed to connect to Wi-Fi network: %v", err)
