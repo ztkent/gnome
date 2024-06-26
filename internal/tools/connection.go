@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -168,26 +169,20 @@ func readCredentials(filePath string) (*Credentials, error) {
 func attemptWifiConnection(creds []*Credentials) error {
 	for _, cred := range creds {
 		log.Printf("Attempting to connect to Wi-Fi network: %s\n", cred.SSID)
+
 		// Recan for available networks
-		rescanCmd := exec.Command("nmcli", "device", "wifi", "rescan")
-		if err := rescanCmd.Run(); err != nil {
+		_, err := runCommand("nmcli", "device", "wifi", "rescan")
+		if err != nil {
 			log.Printf("Failed to rescan Wi-Fi networks: %v\n", err)
 		}
 
-		// Delete existing connection (if any)
-		delCmd := exec.Command("nmcli", "connection", "delete", "id", cred.SSID)
-		if err := delCmd.Run(); err != nil {
-			log.Printf("No existing connection for %s or failed to delete: %v\n", cred.SSID, err)
-		}
-
 		// Add new Wi-Fi connection
-		addCmd := exec.Command("nmcli", "dev", "wifi", "connect", cred.SSID, "password", cred.Password)
-		if err := addCmd.Run(); err != nil {
+		_, err = runCommand("nmcli", "dev", "wifi", "connect", cred.SSID, "password", cred.Password)
+		if err != nil {
 			return fmt.Errorf("failed to connect to Wi-Fi network %s: %v", cred.SSID, err)
 		}
 
 		if checkInternetConnection("http://www.google.com") {
-			log.Println("Successfully connected to Wi-Fi network: ", cred.SSID)
 			return nil
 		}
 	}
@@ -220,8 +215,7 @@ func checkInternetConnection(testSite string) bool {
 }
 
 func getCurrentSSID() (string, error) {
-	cmd := exec.Command("iwgetid", "-r")
-	output, err := cmd.Output()
+	output, err := runCommand("iwgetid", "-r")
 	if err != nil {
 		return "", err
 	}
@@ -239,12 +233,15 @@ func cleanUpTransfers() {
 	}
 }
 
-func logWpaSupplicantContents() {
-	content, err := os.ReadFile("/etc/wpa_supplicant/wpa_supplicant.conf")
-	if err != nil {
-		log.Println("Error reading wpa_supplicant.conf:", err)
-		return
+func runCommand(name string, args ...string) (string, error) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	log.Printf("Running command: %s %s\n", name, strings.Join(args, " "))
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("%v: %s", err, stderr.String())
 	}
-	log.Println("Contents of wpa_supplicant.conf:")
-	log.Println(string(content))
+	return stdout.String(), nil
 }
