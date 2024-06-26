@@ -25,6 +25,12 @@ func main() {
 	pid := os.Getpid()
 	log.Println("Sunlight Meter PID: ", pid)
 
+	// Manage wireless connection. Once we're past here, we should have internet.
+	err := tools.ManageInternetConnection()
+	if err != nil {
+		log.Fatalf("Failed to manage internet connection: %v", err)
+	}
+
 	// connect to the lux sensor
 	device, err := tsl2591.NewTSL2591(
 		tsl2591.TSL2591_GAIN_LOW,

@@ -1,7 +1,22 @@
+## Build the app for the pi
+docker run -v "/Users/zacharykent/code/ztkent/sunlight-meter":/usr/src/myapp -w /usr/src/myapp arm64v8/alpine:latest sh -c '
+  apk update &&
+  apk add gcc musl-dev curl &&
+  tar -C /usr/local -xzf go1.21.11.linux-arm64.tar.gz &&
+  export PATH=$PATH:/usr/local/go/bin &&
+  CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -a -installsuffix cgo -ldflags '\''-extldflags "-static"'\'' -o slm .'
+
+
 ## Run this on the PI to setup.
 
 # First, always update
 sudo apt update
+
+## Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
+- `sudo raspi-config`
+- Interfacing Options > I2C > Yes
+- reboot
+- sudo usermod -aG i2c $USER
 
 ## Auth GitHub
 sudo apt install gh

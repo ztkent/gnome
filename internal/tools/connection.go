@@ -37,20 +37,21 @@ type Credentials struct {
 	Hopefully this will get us online.
 */
 
-func ManageInternetConnection() {
+func ManageInternetConnection() error {
 	if !checkInternetConnection("") {
 		log.Println("No internet connection detected. Starting WIFI management...")
 		btm, err := pitooth.NewBluetoothManager("SunlightMeter")
 		if err != nil {
-			log.Println("Failed to create Bluetooth manager:", err)
-			return
+			return fmt.Errorf("Failed to create Bluetooth manager: %v", err)
 		}
 		defer btm.Close(true)
 
 		// Accept Bluetooth connections
 		log.Printf("Attempting to accept Bluetooth connections\n")
+		var connectedDevices map[string]pitooth.Device
 		for attempt := 1; attempt <= 5; attempt++ {
-			connectedDevices, err := btm.AcceptConnections(30 * time.Second)
+			var err error
+			connectedDevices, err = btm.AcceptConnections(30 * time.Second)
 			if err != nil {
 				log.Printf("Attempt %d: Failed to accept Bluetooth connections: %v\n", attempt, err)
 			} else if len(connectedDevices) == 0 {
@@ -60,36 +61,35 @@ func ManageInternetConnection() {
 				break
 			}
 		}
+		if len(connectedDevices) == 0 {
+			return fmt.Errorf("No devices connected via Bluetooth")
+		}
 
 		// Accept OBEX file transfers
 		log.Println("Starting OBEX server")
 		if err := btm.ControlOBEXServer(true, TRANSFER_DIRECTORY); err != nil {
-			log.Println("Failed to start OBEX server:", err)
-			return
+			return fmt.Errorf("Failed to start OBEX server: %v", err)
 		}
 		defer btm.ControlOBEXServer(false, "")
 
 		// Watch for new credentials
 		creds, err := watchForCreds(time.Second * 180)
 		if err != nil {
-			log.Println("Failed to receive wifi credentials:", err)
-			return
+			return fmt.Errorf("Failed to receive wifi credentials: %v", err)
 		} else if len(creds) == 0 {
-			log.Println("No wifi credentials received")
-			return
+			return fmt.Errorf("No wifi credentials received")
 		}
 
 		// If we got credentials, add them to wpa_supplicant.conf, restart the networking service
 		// TODO: nmcli might be a better option
-		shouldReturn := attemptWifiConnection(creds)
-		if shouldReturn {
-			return
+		err = attemptWifiConnection(creds)
+		if err != nil {
+			return fmt.Errorf("Failed to connect to Wi-Fi network: %v", err)
 		}
 
 		// Restarting the networking service might connect to the Wi-Fi network
 		if !checkInternetConnection("http://www.google.com") {
-			log.Println("Failed to connect to Wi-Fi network")
-			return
+			return fmt.Errorf("Failed to connect to Wi-Fi network, internet check failed.")
 		}
 
 		// Log the SSID we're connected to
@@ -100,6 +100,7 @@ func ManageInternetConnection() {
 			log.Printf("Successfully connected to Wi-Fi network: %s\n", currentSSID)
 		}
 	}
+	return nil
 }
 
 func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
@@ -169,21 +170,19 @@ func readCredentials(filePath string) (*Credentials, error) {
 }
 
 // This uses the wpa_supplicant.conf file to add the Wi-Fi network credentials, then restarts the networking service
-func attemptWifiConnection(creds []*Credentials) bool {
+func attemptWifiConnection(creds []*Credentials) error {
 	for _, creds := range creds {
 		if err := addWifiNetwork(creds.SSID, creds.Password); err != nil {
-			log.Println("Failed to add Wi-Fi network:", err)
-			return true
+			return fmt.Errorf("Failed to add Wi-Fi network: %v", err)
 		}
 	}
 	logWpaSupplicantContents()
 	log.Println("Restarting networking service")
 	cmd := exec.Command("systemctl", "restart", "networking")
 	if err := cmd.Run(); err != nil {
-		log.Println("Failed to restart networking service:", err)
-		return true
+		return fmt.Errorf("Failed to restart networking service: %v", err)
 	}
-	return false
+	return nil
 }
 
 func addWifiNetwork(ssid, password string) error {
