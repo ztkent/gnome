@@ -8,15 +8,7 @@ docker run -v "/Users/zacharykent/code/ztkent/sunlight-meter":/usr/src/myapp -w 
 
 
 ## Run this on the PI to setup.
-
-# First, always update
 sudo apt update
-
-## Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
-- `sudo raspi-config`
-- Interfacing Options > I2C > Yes
-- reboot
-- sudo usermod -aG i2c $USER
 
 ## Auth GitHub
 sudo apt install gh
@@ -36,14 +28,22 @@ echo "export GOPATH=\$HOME/go" >> ~/.bashrc
 echo "export GOCACHE=\$HOME/.cache/go-build" >> ~/.bashrc
 echo "export GOBIN=\$GOPATH/bin" >> ~/.bashrc
 echo "export PATH=\$PATH:\$GOBIN" >> ~/.bashrc
+source ~/.bashrc
+
+
+
 
 ## Add OBEXD
 sudo apt install bluez-obexd
-echo 'export PATH=$PATH:/usr/libexec/bluetooth/' >> ~/.bashrc
+echo 'export PATH=$PATH:/usr/libexec/bluetooth' >> ~/.bashrc
 source ~/.bashrc
-
-## Adding pi to this group means that your Bluetooth program doesn't need to be run as root.
 sudo usermod -G bluetooth -a sunlight
+
+## Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
+- `sudo raspi-config`
+- Interfacing Options > I2C > Yes
+- sudo usermod -aG i2c $USER
+- reboot
 
 # Install the app
 cd /home/sunlight/sunlight-meter

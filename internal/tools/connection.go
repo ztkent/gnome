@@ -44,7 +44,15 @@ func ManageInternetConnection() error {
 		if err != nil {
 			return fmt.Errorf("Failed to create Bluetooth manager: %v", err)
 		}
-		defer btm.Close(true)
+		defer btm.Close(false)
+
+		// Accept OBEX file transfers
+		// This needs to be open first, so pairing devices will idenify the capability.
+		log.Println("Starting OBEX server")
+		if err := btm.ControlOBEXServer(true, TRANSFER_DIRECTORY); err != nil {
+			return fmt.Errorf("Failed to start OBEX server: %v", err)
+		}
+		defer btm.ControlOBEXServer(false, "")
 
 		// Accept Bluetooth connections
 		log.Printf("Attempting to accept Bluetooth connections\n")
@@ -64,13 +72,6 @@ func ManageInternetConnection() error {
 		if len(connectedDevices) == 0 {
 			return fmt.Errorf("No devices connected via Bluetooth")
 		}
-
-		// Accept OBEX file transfers
-		log.Println("Starting OBEX server")
-		if err := btm.ControlOBEXServer(true, TRANSFER_DIRECTORY); err != nil {
-			return fmt.Errorf("Failed to start OBEX server: %v", err)
-		}
-		defer btm.ControlOBEXServer(false, "")
 
 		// Watch for new credentials
 		creds, err := watchForCreds(time.Second * 180)
@@ -104,7 +105,6 @@ func ManageInternetConnection() error {
 }
 
 func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
-	log.Println("Cleaning up transfers directory")
 	cleanUpTransfers()
 	log.Println("Watching for new files in ", TRANSFER_DIRECTORY)
 	timeoutTimer := time.NewTimer(timeout)
