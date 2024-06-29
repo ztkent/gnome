@@ -38,8 +38,7 @@ func main() {
 		"/dev/i2c-1",
 	)
 	if err != nil {
-		// Still want to start the server if we can't connect to the sensor.
-		log.Println(fmt.Sprintf("Failed to connect to the TSL2591 sensor: %v", err))
+		log.Fatalf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 
 	// connect to the sqlite database
