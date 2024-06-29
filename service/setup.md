@@ -1,52 +1,65 @@
-## Build the app for the pi
+# Setup Instructions
+## Build the app
+```shell
 docker run -v ".":/usr/src/myapp -w /usr/src/myapp arm64v8/alpine:latest sh -c '
   apk update &&
   apk add gcc musl-dev curl &&
   tar -C /usr/local -xzf go1.21.11.linux-arm64.tar.gz &&
   export PATH=$PATH:/usr/local/go/bin &&
   CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -a -installsuffix cgo -ldflags '\''-extldflags "-static"'\'' -o slm .'
+```
 
-## Run this on the PI to setup.
+## Configure the Pi
+### Update the system
+```shell
 sudo apt update
+```
 
-## Auth GitHub
+### Clone the repo, if you'd like.
+```shell
 sudo apt install gh
 gh auth login
-
-# Clone the repo
 gh repo clone sunlight-meter
+```
 
-## Setup Golang
+### Setup Golang
+```shell
 wget https://go.dev/dl/go1.21.11.linux-arm64.tar.gz
 sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.11.linux-arm64.tar.gz && rm go1.21.11.linux-arm64.tar.gz
 echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
 source ~/.bashrc
+```
 
-# Set GOPATH, GOCACHE, and GOBIN
+### Set GOPATH, GOCACHE, and GOBIN
+```shell
 echo "export GOPATH=\$HOME/go" >> ~/.bashrc
 echo "export GOCACHE=\$HOME/.cache/go-build" >> ~/.bashrc
 echo "export GOBIN=\$GOPATH/bin" >> ~/.bashrc
 echo "export PATH=\$PATH:\$GOBIN" >> ~/.bashrc
 source ~/.bashrc
+```
 
-## Add OBEXD
+### Add OBEXD
+```shell
 sudo apt install bluez-obexd
 echo 'export PATH=$PATH:/usr/libexec/bluetooth' >> ~/.bashrc
 source ~/.bashrc
-sudo usermod -G bluetooth -a sunlight
+```
 
-## Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
+### Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
+```shell
 - `sudo raspi-config`
 - Interfacing Options > I2C > Yes
-- sudo usermod -aG i2c $USER
 - reboot
+```
 
-## Allow the user to control the network manager
-sudo usermod -aG netdev $USER
-
-# Install the app
-go mod download
-go install -v
-
-## Schedule it to always run at boot
-./sunlight-meter
+### Install the app and set it to run at boot
+```shell
+sudo mv slm /home/sunlight/
+mkdir /home/sunlight/transfers
+source /home/sunlight/.bashrc
+sudo chmod +x /home/sunlight/slm
+sudo crontab -e
+  @reboot /home/sunlight/slm
+reboot
+```
