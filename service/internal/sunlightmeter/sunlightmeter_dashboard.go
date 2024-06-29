@@ -3,7 +3,6 @@ package sunlightmeter
 import (
 	"database/sql"
 	"fmt"
-	"html/template"
 	"log"
 	"math"
 	"net/http"
@@ -31,14 +30,27 @@ func (m *SLMeter) ServeDashboard() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		http.ServeFile(w, r, "internal/html/dashboard.html")
+		fileContent, err := parseHTMLFile("html/dashboard.html")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+        w.Write(fileContent)
 	}
+}
+
+func parseHTMLFile(path string) ([]byte, error) {
+	content, err := templateFiles.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read embedded html file: %v", err)
+	}
+	return content, nil
 }
 
 // Serve the controls for the sensor, start/stop/export/current-conditions/signal-strength
 func (m *SLMeter) ServeSunlightControls() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tmpl, err := template.ParseFiles("internal/html/templates/controls.gohtml")
+		tmpl, err := parseTemplateFile("html/controls.gohtml")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -54,7 +66,7 @@ func (m *SLMeter) ServeSunlightControls() http.HandlerFunc {
 // Status of the sensor
 func (m *SLMeter) ServeSensorStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tmpl, err := template.ParseFiles("internal/html/templates/status.gohtml")
+		tmpl, err := parseTemplateFile("html/status.gohtml")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -222,7 +234,7 @@ func (m *SLMeter) ServeResultsTab() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		tmpl, err := template.ParseFiles("internal/html/templates/results.gohtml")
+		tmpl, err := parseTemplateFile("html/results.gohtml")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -262,7 +274,6 @@ func (m *SLMeter) ServeResultsTab() http.HandlerFunc {
 		}
 	}
 }
-
 
 // Return the most recent entry saved to the db
 func (m *SLMeter) getHistoricalConditions(conditions Conditions, startDate string, endDate string) (Conditions, error) {

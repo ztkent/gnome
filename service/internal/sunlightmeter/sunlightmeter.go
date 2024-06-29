@@ -3,6 +3,7 @@ package sunlightmeter
 import (
 	"context"
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -17,6 +18,9 @@ import (
 	"github.com/Ztkent/sunlight-meter/tsl2591"
 	"github.com/google/uuid"
 )
+
+//go:embed html/*
+var templateFiles embed.FS
 
 type SLMeter struct {
 	*tsl2591.TSL2591
@@ -244,7 +248,7 @@ func ServeResponse(w http.ResponseWriter, r *http.Request, message string, statu
 		return
 	}
 
-	tmpl, err := template.ParseFiles("internal/html/templates/response.gohtml")
+	tmpl, err := parseTemplateFile("html/response.gohtml")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -254,6 +258,19 @@ func ServeResponse(w http.ResponseWriter, r *http.Request, message string, statu
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func parseTemplateFile(path string) (*template.Template, error) {
+	content, err := templateFiles.ReadFile(path)
+	if err != nil {
+		log.Fatalf("failed to read embedded template: %v", err)
+	}
+
+	tmpl, err := template.New("results").Parse(string(content))
+	if err != nil {
+		log.Fatalf("failed to parse template: %v", err)
+	}
+	return tmpl, nil
 }
 
 // Read from LuxResultsChan, write the results to sqlite

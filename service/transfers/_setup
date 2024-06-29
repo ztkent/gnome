@@ -26,9 +26,9 @@ source ~/.bashrc
 - reboot
 
 ## Install the app and
-sudo mv slm /home/sunlight/sunlight-meter
+sudo mv slm /home/sunlight/
 source /home/sunlight/.bashrc
-sudo chmod +x /home/sunlight/sunlight-meter/slm
+sudo chmod +x /home/sunlight/slm
 sudo crontab -e
-  @reboot /home/sunlight/sunlight-meter/slm
+  @reboot /home/sunlight/slm
 reboot
