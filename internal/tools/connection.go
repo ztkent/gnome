@@ -39,7 +39,7 @@ type Credentials struct {
 */
 
 func ManageInternetConnection() error {
-	if !checkInternetConnection("") {
+	if !checkInternetConnection("http://www.google.com") {
 		log.Println("No internet connection detected. Starting WIFI management...")
 		btm, err := pitooth.NewBluetoothManager("SunlightMeter")
 		if err != nil {
@@ -91,7 +91,7 @@ func ManageInternetConnection() error {
 		// Log the SSID we're connected to
 		currentSSID, err := getCurrentSSID()
 		if err != nil {
-			log.Println("Failed to get current SSID:", err)
+			return fmt.Errorf("Failed to get current SSID: %v", err)
 		} else {
 			log.Printf("Successfully connected to Wi-Fi network: %s\n", currentSSID)
 		}
