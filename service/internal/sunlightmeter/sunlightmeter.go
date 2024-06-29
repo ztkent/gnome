@@ -281,7 +281,7 @@ func (m *SLMeter) MonitorAndRecordResults() {
 		case result := <-m.LuxResultsChan:
 			log.Println(fmt.Sprintf("- JobID: %s, Lux: %.5f", result.JobID, result.Lux))
 			if math.IsInf(result.Lux, 1) {
-				log.Println("Lux is infinite, skipping record")
+				log.Println("Lux is invalid, skipping record")
 				continue
 			}
 			_, err := m.ResultsDB.Exec(
