@@ -3,6 +3,7 @@ package tools
 import (
 	"bytes"
 	"encoding/json"
+	"net"
 	"fmt"
 	"log"
 	"net/http"
@@ -219,7 +220,23 @@ func getCurrentSSID() (string, error) {
 		return "", err
 	}
 	ssid := strings.TrimSpace(string(output))
+	// Log SSID and our IP address
+	if ssid != "" {
+		log.Println("Connected to ", ssid, " : ", GetOutboundIP())
+	}
+
 	return ssid, nil
+}
+
+// https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
+func GetOutboundIP() net.IP {
+    conn, err := net.Dial("udp", "8.8.8.8:80")
+    if err != nil {
+        return net.IPv4(127, 0, 0, 1)
+    }
+    defer conn.Close()
+    localAddr := conn.LocalAddr().(*net.UDPAddr)
+    return localAddr.IP
 }
 
 func cleanUpTransfers() {
@@ -238,7 +255,6 @@ func runCommand(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	log.Printf("Running command: %s %s\n", name, strings.Join(args, " "))
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("%v: %s", err, stderr.String())
 	}
