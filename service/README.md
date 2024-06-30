@@ -1,13 +1,12 @@
 ## Sunlight Meter - Service
-
-The application that runs on each of the Sunlight Meter devices.
+Embeded service that runs on each of the Sunlight Meter devices.
 
 ## How it works
 - Establishes a connection to the internet
   - If one doesn't exist:
-    - Enable Bluetooth + File Transfer
-    - Accept credentials from user device
-    - Reattempt connection
+    - Enables Bluetooth + File Transfer
+    - Accepts credentials from user device
+    - Attempts connection
 - Validates a connection to the TSL2591 sensor
 - Manages a SQLite database to store sensor readings
 - Periodically take readings from the TSL2591 sensor
