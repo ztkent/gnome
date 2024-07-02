@@ -63,6 +63,8 @@ func main() {
 		Pid:            pid,
 	})
 
+	// TODO: SSL, because android is going to complain about it.
+
 	// Start server
 	app_port := "80"
 	if os.Getenv("APP_PORT") != "" {

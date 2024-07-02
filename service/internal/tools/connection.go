@@ -90,7 +90,7 @@ func ManageInternetConnection() error {
 		}
 
 		// Log the SSID we're connected to
-		currentSSID, err := getCurrentSSID()
+		currentSSID, err := GetCurrentSSID()
 		if err != nil {
 			return fmt.Errorf("Failed to get current SSID: %v", err)
 		} else {
@@ -204,7 +204,7 @@ func checkInternetConnection(testSite string) bool {
 	defer response.Body.Close()
 	connected := response.StatusCode == 200
 	if connected {
-		_, err := getCurrentSSID()
+		_, err := GetCurrentSSID()
 		if err != nil {
 			log.Println("Failed to get current SSID:", err)
 		}
@@ -214,7 +214,7 @@ func checkInternetConnection(testSite string) bool {
 	return connected
 }
 
-func getCurrentSSID() (string, error) {
+func GetCurrentSSID() (string, error) {
 	output, err := runCommand("iwgetid", "-r")
 	if err != nil {
 		return "", err
@@ -228,7 +228,6 @@ func getCurrentSSID() (string, error) {
 	return ssid, nil
 }
 
-// https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
 func GetOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
