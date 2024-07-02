@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"encoding/json"
 
 	"github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
 	slm "github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
@@ -80,7 +81,6 @@ func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
 	// Sunlight Meter Dashboard Controls
 	r.Get("/", meter.ServeDashboard())
 	r.Route("/sunlightmeter", func(r chi.Router) {
-		r.Use(tools.CheckInNetwork)
 		r.Get("/start", meter.Start())
 		r.Get("/stop", meter.Stop())
 		r.Get("/signal-strength", meter.SignalStrength())
@@ -100,6 +100,30 @@ func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
 		r.Get("/signal-strength", meter.SignalStrength())
 		r.Get("/current-conditions", meter.CurrentConditions())
 		r.Get("/export", meter.ServeResultsDB())
+	})
+
+	// Route for service identification
+	r.Get("/id", func(w http.ResponseWriter, r *http.Request) {
+		macs, err := tools.GetAllActiveMACAddresses()
+		if err != nil {
+			// Handle error, maybe log it or use a default/fallback value
+			http.Error(w, "Failed to get MAC addresses", http.StatusInternalServerError)
+			return
+		}
+	
+		response := struct {
+			ServiceName string   `json:"service_name"`
+			OutboundIP string   `json:"outbound_ip"`
+			MACAddresses []string `json:"mac_addresses"`
+		}{
+			ServiceName:  "Sunlight Meter",
+			OutboundIP:   tools.GetOutboundIP().String(),
+			MACAddresses: macs,
+		}
+	
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
 	})
 
 	// Serve static files

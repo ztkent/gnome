@@ -239,6 +239,26 @@ func GetOutboundIP() net.IP {
 	return localAddr.IP
 }
 
+func GetAllActiveMACAddresses() ([]string, error) {
+    var macAddresses []string
+    ifaces, err := net.Interfaces()
+    if err != nil {
+        return nil, err
+    }
+
+    for _, iface := range ifaces {
+        // Check if the interface is up and ignore loopback
+        if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+            continue
+        }
+        if iface.HardwareAddr != nil {
+            macAddresses = append(macAddresses, iface.HardwareAddr.String())
+        }
+    }
+
+    return macAddresses, nil
+}
+
 func cleanUpTransfers() {
 	log.Println("Cleaning up transfers directory of .creds files")
 	files, _ := filepath.Glob(filepath.Join(TRANSFER_DIRECTORY, "*.creds"))
