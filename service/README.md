@@ -3,13 +3,14 @@ Embeded service that runs on each of the Sunlight Meter devices.
 
 ## How it works
 - Establishes a connection to the internet
-  - If one doesn't exist:
-    - Enables Bluetooth + File Transfer
-    - Accepts credentials from user device
-    - Attempts connection
+  - Enables Bluetooth + File Transfer
+  - Accepts credentials from user device
+  - Attempts connection
 - Validates a connection to the TSL2591 sensor
+- Periodically takes readings from the TSL2591 sensor
 - Manages a SQLite database to store sensor readings
-- Periodically take readings from the TSL2591 sensor
+- Exposes an API + Dashboard to interact with the device
+  - Generates a self-signed certificate for SSL communication with clients
 
 ### Configuration: 
 The TSL2591 sensor is connected to a Raspberry Pi via i2c.  
