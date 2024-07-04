@@ -1,12 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"encoding/json"
 
 	"github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
 	slm "github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
@@ -63,19 +63,30 @@ func main() {
 		Pid:            pid,
 	})
 
-	// Generate a self-signed certificate if one doesn't exist
-	tools.EnsureCertificate("cert.pem", "key.pem")
+	if os.Getenv("SSL") == "true" {
+		// Generate a self-signed certificate if one doesn't exist
+		tools.EnsureCertificate("cert.pem", "key.pem")
 
-	// Start server
-	app_port := "443" 
-	certPath := "cert.pem" 
-	keyPath := "key.pem" 
+		// Start server
+		app_port := "443"
+		certPath := "cert.pem"
+		keyPath := "key.pem"
 
-	log.Printf("Starting HTTPS server on port %s", app_port)
-	err = http.ListenAndServeTLS(":"+app_port, certPath, keyPath, r)
-	if err != nil {
-		log.Fatalf("Failed to start HTTPS server: %v", err)
+		log.Printf("Starting HTTPS server on port %s", app_port)
+		err = http.ListenAndServeTLS(":"+app_port, certPath, keyPath, r)
+		if err != nil {
+			log.Fatalf("Failed to start HTTPS server: %v", err)
+		}
+	} else {
+		// Start server
+		app_port := "80"
+		log.Printf("Starting HTTP server on port %s", app_port)
+		err = http.ListenAndServe(":"+app_port, r)
+		if err != nil {
+			log.Fatalf("Failed to start HTTP server: %v", err)
+		}
 	}
+
 	return
 }
 
@@ -115,17 +126,17 @@ func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
 			http.Error(w, "Failed to get MAC addresses", http.StatusInternalServerError)
 			return
 		}
-	
+
 		response := struct {
-			ServiceName string   `json:"service_name"`
-			OutboundIP string   `json:"outbound_ip"`
+			ServiceName  string   `json:"service_name"`
+			OutboundIP   string   `json:"outbound_ip"`
 			MACAddresses []string `json:"mac_addresses"`
 		}{
 			ServiceName:  "Sunlight Meter",
 			OutboundIP:   tools.GetOutboundIP().String(),
 			MACAddresses: macs,
 		}
-	
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(response)
