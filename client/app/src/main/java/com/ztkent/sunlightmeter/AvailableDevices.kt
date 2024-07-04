@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.datetime.Clock
 import java.net.HttpURLConnection
@@ -24,12 +25,15 @@ class AvailableDevices {
     // Might be able to safely modify concurrently
     private val deviceList = CopyOnWriteArrayList<String>()
     private var lastChecked = Clock.System.now()
+    private val scanningLock = Mutex()
 
     fun GetAvailableDevices(context: Context): List<String> {
-        if (deviceList.size < 1 && (Clock.System.now() - lastChecked < 10.minutes)) {
+        if (deviceList.size > 0 && (Clock.System.now() - lastChecked < 10.minutes)) {
             return deviceList
         }
-        fetchAvailableDevices(context)
+        if (!scanningLock.isLocked) {
+            fetchAvailableDevices(context)
+        }
         return deviceList
     }
 

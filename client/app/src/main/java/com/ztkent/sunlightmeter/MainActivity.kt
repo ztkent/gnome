@@ -42,5 +42,39 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun populateAvailableDevices(deviceHandler: AvailableDevices) {
+        var availableDevices = deviceHandler.GetAvailableDevices(this)
+        while (availableDevices.isEmpty()) {
+            availableDevices = deviceHandler.GetAvailableDevices(this)
+        }
     }
 }
+
+/*
+Consider 'Live Data'
+// ViewModel
+class MyViewModel : ViewModel() {
+    private val _data = MutableLiveData<String>()
+    val data: LiveData<String> = _data
+
+    fun updateData(newData: String) {
+        _data.value = newData
+    }
+}
+
+// Activity
+class MyActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.my_activity)
+
+        // Obtain ViewModel
+        val viewModel = ViewModelProviders.of(this).get(MyViewModel::class.java)
+
+        // Observe LiveData
+        viewModel.data.observe(this, Observer { data ->
+            // Update UI
+            textView.text = data
+        })
+    }
+}
+*/
