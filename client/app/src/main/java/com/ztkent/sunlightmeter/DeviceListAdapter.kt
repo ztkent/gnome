@@ -24,7 +24,6 @@ class DeviceListAdapter() :
         holder.button.text = deviceList[position]
         // You can add button click listeners here if needed:
         holder.button.setOnClickListener {
-            FetchAvailableDevices(holder.itemView.context)
             Toast.makeText(holder.itemView.context, "Button ${position + 1} clicked", Toast.LENGTH_SHORT).show()
         }
     }
