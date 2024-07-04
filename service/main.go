@@ -63,16 +63,19 @@ func main() {
 		Pid:            pid,
 	})
 
-	// TODO: SSL, because android is going to complain about it.
+	// Generate a self-signed certificate if one doesn't exist
+	tools.EnsureCertificate("cert.pem", "key.pem")
 
 	// Start server
-	app_port := "80"
-	if os.Getenv("APP_PORT") != "" {
-		app_port = os.Getenv("APP_PORT")
-	}
+	app_port := "443" 
+	certPath := "cert.pem" 
+	keyPath := "key.pem" 
 
-	log.Println("Sunlight Meter is running on port " + app_port)
-	log.Fatal(http.ListenAndServe(":"+app_port, r))
+	log.Printf("Starting HTTPS server on port %s", app_port)
+	err = http.ListenAndServeTLS(":"+app_port, certPath, keyPath, r)
+	if err != nil {
+		log.Fatalf("Failed to start HTTPS server: %v", err)
+	}
 	return
 }
 

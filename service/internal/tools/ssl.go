@@ -2,15 +2,20 @@ package tools
 
 import (
     "crypto/tls"
+    "crypto/rand"
+    "crypto/rsa"
     "crypto/x509"
-    "log"
+    "crypto/x509/pkix"
+    "encoding/pem"
+    "math/big"
     "os"
     "time"
 )
 
-// TODO: all of this is placeholder code
+// Generate a self-signed certificate if one doesn't already exist.
+// HTTPS is required for communicating with the client app.
 
-func ensureCertificate(certPath, keyPath string) error {
+func EnsureCertificate(certPath, keyPath string) error {
     // Check if the certificate and key files exist
     _, certErr := os.Stat(certPath)
     _, keyErr := os.Stat(keyPath)
@@ -21,8 +26,12 @@ func ensureCertificate(certPath, keyPath string) error {
         if err != nil {
             return err
         }
+        keyData, err := os.ReadFile(keyPath)
+        if err != nil {
+            return err
+        }
 
-        cert, err := tls.X509KeyPair(certData, certData)
+        cert, err := tls.X509KeyPair(certData, keyData)
         if err != nil {
             return err
         }
@@ -45,8 +54,65 @@ func ensureCertificate(certPath, keyPath string) error {
 }
 
 func generateSelfSignedCertificate(certPath, keyPath string) error {
-    // Placeholder for the actual certificate generation logic
-    // This should generate a new self-signed certificate and save it to certPath and keyPath
-    log.Println("Generating a new self-signed certificate")
+    // Generate a private key
+    privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+    if err != nil {
+        return err
+    }
+
+    // Create a certificate template
+    serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+    if err != nil {
+        return err
+    }
+
+    template := x509.Certificate{
+        SerialNumber: serialNumber,
+        Subject: pkix.Name{
+            Organization: []string{"Ztkent"},
+        },
+        NotBefore:             time.Now(),
+        NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+        KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+        ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+        BasicConstraintsValid: true,
+    }
+
+    // Create a self-signed certificate
+    certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+    if err != nil {
+        return err
+    }
+
+    // Encode and save the private key
+    keyFile, err := os.Create(keyPath)
+    if err != nil {
+        return err
+    }
+    defer keyFile.Close()
+
+    privateKeyPEM := &pem.Block{
+        Type:  "RSA PRIVATE KEY",
+        Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+    }
+    if err := pem.Encode(keyFile, privateKeyPEM); err != nil {
+        return err
+    }
+
+    // Encode and save the certificate
+    certFile, err := os.Create(certPath)
+    if err != nil {
+        return err
+    }
+    defer certFile.Close()
+
+    certPEM := &pem.Block{
+        Type:  "CERTIFICATE",
+        Bytes: certBytes,
+    }
+    if err := pem.Encode(certFile, certPEM); err != nil {
+        return err
+    }
+
     return nil
 }
