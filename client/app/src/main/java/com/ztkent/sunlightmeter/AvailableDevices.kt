@@ -12,6 +12,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+
 import kotlinx.datetime.Clock
 import java.net.HttpURLConnection
 import java.net.URL
@@ -29,60 +31,68 @@ class AvailableDevices {
 
     fun GetAvailableDevices(context: Context): List<String> {
         if (deviceList.size > 0 && (Clock.System.now() - lastChecked < 10.minutes)) {
+            Log.d("GetAvailableDevices", "Cached device list: $deviceList")
             return deviceList
         }
         if (!scanningLock.isLocked) {
-            fetchAvailableDevices(context)
+            coroutineScope.async {
+                fetchAvailableDevices(context)
+            }
         }
+        Log.d("GetAvailableDevices", "Device list: $deviceList")
         return deviceList
     }
 
-    private fun fetchAvailableDevices(context: Context) {
+    private suspend fun fetchAvailableDevices(context: Context) {
         // All available devices will be on our network, with a hostname: sunlight.local,
         // or likely the same octet as us. Check the hostname, then every option on the same local network as us.
         // look for a 200 response code at /id
-        lastChecked = Clock.System.now()
+        Log.d("fetchAvailableDevices", "Scanning for devices...")
 
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkCapabilities =
-            connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
-        val ip = getOwnIpAddress(context, connectivityManager, networkCapabilities)
+        scanningLock.withLock {
+            lastChecked = Clock.System.now()
 
-        if (ip == null) {
-            Log.d("fetchAvailableDevices", "Device IP is NULL, not connected to WIFI")
-            return
-        }
-        Log.d("fetchAvailableDevices", "Device IP is $ip")
+            val connectivityManager =
+                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val networkCapabilities =
+                connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+            val ip = getOwnIpAddress(context, connectivityManager, networkCapabilities)
 
-        Log.d("fetchAvailableDevices", "Checking for devices on this network...")
-        val potentialIps = generatePotentialDeviceIps(ip)
-        coroutineScope.async {
-            val deferredHost = async {
-                checkForDeviceResponse("", "sunlight.local")
+            if (ip == null) {
+                Log.d("fetchAvailableDevices", "Device IP is NULL, not connected to WIFI")
+                return
             }
-            deferredHost.await().let { foundDevice ->
-                if (foundDevice) {
-                    deviceList.add("sunlight.local")
+            Log.d("fetchAvailableDevices", "Device IP is $ip")
+
+            Log.d("fetchAvailableDevices", "Checking for devices on this network...")
+            val potentialIps = generatePotentialDeviceIps(ip)
+            coroutineScope.async {
+                val deferredHost = async {
+                    checkForDeviceResponse("", "sunlight.local")
                 }
-            }
-
-            val deferredResults2 = potentialIps.map { potentialIp ->
-                async {
-                    semaphore.acquire() // Acquire a permit before starting
-                    try {
-                        checkForDeviceResponse(potentialIp, "")
-                    } finally {
-                        semaphore.release() // Release the permit after finishing
+                deferredHost.await().let { foundDevice ->
+                    if (foundDevice) {
+                        deviceList.add("sunlight.local")
                     }
                 }
-            }
-            deferredResults2.awaitAll().forEachIndexed { index, foundDevice ->
-                if (foundDevice) {
-                    deviceList.add(potentialIps[index])
+
+                val deferredResults2 = potentialIps.map { potentialIp ->
+                    async {
+                        semaphore.acquire() // Acquire a permit before starting
+                        try {
+                            checkForDeviceResponse(potentialIp, "")
+                        } finally {
+                            semaphore.release() // Release the permit after finishing
+                        }
+                    }
                 }
+                deferredResults2.awaitAll().forEachIndexed { index, foundDevice ->
+                    if (foundDevice) {
+                        deviceList.add(potentialIps[index])
+                    }
+                }
+                Log.d("fetchAvailableDevices", "Devices found on this network: $deviceList")
             }
-            Log.d("fetchAvailableDevices", "Devices found on this network: $deviceList")
         }
     }
 

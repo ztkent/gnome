@@ -7,9 +7,9 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 
-class DeviceListAdapter() :
-    RecyclerView.Adapter<DeviceListAdapter.ButtonViewHolder>() {
-    private val deviceList = mutableListOf<String>("Device 1", "Device 2", "Device 3")
+class AvailableDevicesListAdapter(availableDevices : List<String>) :
+    RecyclerView.Adapter<AvailableDevicesListAdapter.ButtonViewHolder>() {
+    private val deviceList = availableDevices
     class ButtonViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val button: Button = itemView.findViewById(R.id.buttonItem)
     }
