@@ -55,14 +55,28 @@ class ConnectDevicesFragment : Fragment() {
 
             // Notify the adapter about the changes
             val adapter = recyclerView.adapter as? AvailableDevicesListAdapter
-            adapter?.updateDevices(availableDevices)
+            adapter?.updateAvailableDevices(availableDevices)
             adapter?.notifyDataSetChanged()
         }
 
         // Set the page content
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter =
-            AvailableDevicesListAdapter(populateAvailableDevices(viewModel.deviceHandler))
+            AvailableDevicesListAdapter(
+                viewModel,
+                currentlyAvailableDevices()
+            )
+    }
+
+    private fun currentlyAvailableDevices(): List<String> {
+        val currentlyAvailableDevices: MutableList<String> = mutableListOf()
+        val availableDevices = viewModel.deviceHandler.GetAvailableDevices(requireContext())
+        for (device in availableDevices) {
+            if (!viewModel.connectedDevices.contains(device)) {
+                currentlyAvailableDevices.add(device)
+            }
+        }
+        return currentlyAvailableDevices
     }
 
     // Look for available devices for up to 5 seconds
@@ -81,6 +95,15 @@ class ConnectDevicesFragment : Fragment() {
         } else {
             Log.d("populateAvailableDevices", "Available devices: $availableDevices")
         }
-        return availableDevices
+
+        // Ignore any devices we're already connected to
+        var unconnectedAvailableDevices = mutableListOf<String>()
+        for (device in availableDevices) {
+            if (!viewModel.connectedDevices.contains(device)) {
+                unconnectedAvailableDevices.add(device)
+            }
+        }
+
+        return unconnectedAvailableDevices
     }
 }

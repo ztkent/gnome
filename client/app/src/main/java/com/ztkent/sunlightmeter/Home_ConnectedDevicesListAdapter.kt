@@ -20,10 +20,16 @@ class ConnectedDevicesListAdapter(private val textList: List<String>) :
         return ButtonViewHolder(itemView)
     }
 
+    // TODO: Long click to remove connected devices?
+    
     override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
         holder.button.text = textList[position]
         holder.button.setOnClickListener {
-            Toast.makeText(holder.itemView.context, "Button ${position + 1} clicked", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                holder.itemView.context,
+                "Button ${position + 1} clicked",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

@@ -52,11 +52,4 @@ class HomeFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = ConnectedDevicesListAdapter(viewModel.connectedDevices)
     }
-
-    companion object {
-        @JvmStatic
-        fun newInstance() =
-            HomeFragment().apply {
-            }
-    }
 }

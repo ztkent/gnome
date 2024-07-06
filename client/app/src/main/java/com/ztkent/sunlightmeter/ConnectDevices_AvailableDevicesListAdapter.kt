@@ -7,9 +7,10 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 
-class AvailableDevicesListAdapter(availableDevices : List<String>) :
-    RecyclerView.Adapter<AvailableDevicesListAdapter.ButtonViewHolder>() {
-    private var deviceList = availableDevices
+class AvailableDevicesListAdapter(
+    private var viewModel: MainViewModel,
+    private var availableDevices: List<String>
+) : RecyclerView.Adapter<AvailableDevicesListAdapter.ButtonViewHolder>() {
     class ButtonViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val button: Button = itemView.findViewById(R.id.buttonItem)
     }
@@ -21,17 +22,44 @@ class AvailableDevicesListAdapter(availableDevices : List<String>) :
     }
 
     override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
-        holder.button.text = deviceList[position]
-        // You can add button click listeners here if needed:
+        holder.button.text = availableDevices[position]
         holder.button.setOnClickListener {
-            Toast.makeText(holder.itemView.context, "Button ${position + 1} clicked", Toast.LENGTH_SHORT).show()
+            if (connectDevice(availableDevices[position])) {
+                Toast.makeText(
+                    holder.itemView.context,
+                    "${availableDevices[position]} connected",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                Toast.makeText(
+                    holder.itemView.context,
+                    "Failed to connect ${availableDevices[position]}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
-    override fun getItemCount(): Int = deviceList.size
+    override fun getItemCount(): Int = availableDevices.size
 
-    fun updateDevices(availableDevices: List<String>) {
-        deviceList = availableDevices
+    // Show any found devices we arent actively connected
+    fun updateAvailableDevices(currentDevices: List<String>) {
+        val currentAvailableDevices = mutableListOf<String>()
+        for (device in currentDevices) {
+            if (!viewModel.connectedDevices.contains(device)) {
+                currentAvailableDevices += device
+            }
+        }
+        availableDevices = currentAvailableDevices
         notifyDataSetChanged()
+    }
+
+    // Connect a device if we arent already connected
+    fun connectDevice(device: String): Boolean {
+        if (!viewModel.connectedDevices.contains(device)) {
+            viewModel.connectedDevices.add(device)
+            return true
+        }
+        return false
     }
 }
