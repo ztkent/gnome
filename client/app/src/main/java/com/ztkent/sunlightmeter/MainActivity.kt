@@ -2,20 +2,21 @@ package com.ztkent.sunlightmeter
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 // A container for app fragments
 class MainActivity : AppCompatActivity() {
-    // TODO: Create a single device handler for all fragments
-
+    private val viewModel: MainViewModel by viewModels() // Initialize the shared ViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Inflate the container
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+
 
         val fragmentManager = supportFragmentManager
         val fragmentTransaction = fragmentManager.beginTransaction()

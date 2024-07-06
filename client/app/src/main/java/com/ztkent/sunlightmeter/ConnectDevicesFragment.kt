@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
@@ -18,16 +19,16 @@ import kotlinx.coroutines.SupervisorJob
 
 class ConnectDevicesFragment : Fragment() {
     private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
+    private val viewModel: MainViewModel by activityViewModels()
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var linkDeviceButton: Button
     private lateinit var recyclerViewHeader: TextView
-    private var deviceHandler = AvailableDevices()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Initialize the device list. Seems to be ready when we need it?
-        deviceHandler.GetAvailableDevices(requireContext())
+        viewModel.deviceHandler.GetAvailableDevices(requireContext())
     }
 
     override fun onCreateView(
@@ -50,7 +51,7 @@ class ConnectDevicesFragment : Fragment() {
         // Set up the button links
         linkDeviceButton.setOnClickListener {
             // Update the available device list
-            val availableDevices = populateAvailableDevices(deviceHandler)
+            val availableDevices = populateAvailableDevices(viewModel.deviceHandler)
 
             // Notify the adapter about the changes
             val adapter = recyclerView.adapter as? AvailableDevicesListAdapter
@@ -60,7 +61,8 @@ class ConnectDevicesFragment : Fragment() {
 
         // Set the page content
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = AvailableDevicesListAdapter(populateAvailableDevices(deviceHandler))
+        recyclerView.adapter =
+            AvailableDevicesListAdapter(populateAvailableDevices(viewModel.deviceHandler))
     }
 
     // Look for available devices for up to 5 seconds
@@ -71,6 +73,7 @@ class ConnectDevicesFragment : Fragment() {
         var availableDevices = deviceHandler.GetAvailableDevices(requireContext())
         while (availableDevices.isEmpty() && (System.currentTimeMillis() - startTime) < timeoutMillis) {
             availableDevices = deviceHandler.GetAvailableDevices(requireContext())
+            Thread.sleep(500)
         }
 
         if (availableDevices.isEmpty()) {

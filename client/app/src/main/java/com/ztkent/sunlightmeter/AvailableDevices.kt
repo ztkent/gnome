@@ -12,8 +12,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withLock
-
 import kotlinx.datetime.Clock
 import java.net.HttpURLConnection
 import java.net.URL
@@ -36,9 +34,8 @@ class AvailableDevices {
         }
         if (!scanningLock.isLocked) {
             coroutineScope.async {
-                scanningLock.withLock {
-                    fetchAvailableDevices(context)
-                }
+                scanningLock.lock()
+                fetchAvailableDevices(context)
             }
         }
         Log.d("GetAvailableDevices", "Device list: $deviceList")
@@ -61,6 +58,7 @@ class AvailableDevices {
 
         if (ip == null) {
             Log.d("fetchAvailableDevices", "Device IP is NULL, not connected to WIFI")
+            scanningLock.unlock()
             return
         }
         Log.d("fetchAvailableDevices", "Device IP is $ip")
@@ -92,6 +90,7 @@ class AvailableDevices {
             }
             deferredResults2.awaitAll()
             Log.d("fetchAvailableDevices", "Devices found on this network: $deviceList")
+            scanningLock.unlock()
         }
     }
 
