@@ -8,16 +8,16 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 class HomeFragment : Fragment() {
+    private val viewModel: MainViewModel by activityViewModels()
+
     private lateinit var recyclerView: RecyclerView
     private lateinit var linkDeviceButton: Button
     private lateinit var recyclerViewHeader: TextView
-    
-    // Manage connected devices
-    private lateinit var connectedDevices: List<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,10 +34,9 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Initialize the view elements
-        recyclerView = view.findViewById(R.id.buttonRecyclerView)
+        recyclerView = view.findViewById(R.id.availableDevicesRecyclerView)
         linkDeviceButton = view.findViewById(R.id.refreshDevicesButton)
         recyclerViewHeader = view.findViewById(R.id.availableDevicesHeaderText)
-        connectedDevices = mutableListOf("Test String1", "Test String 2", "Test String 3")
 
         // Set up the button links
         linkDeviceButton.setOnClickListener {
@@ -51,7 +50,7 @@ class HomeFragment : Fragment() {
 
         // Set the page content
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = ConnectedDevicesListAdapter(connectedDevices)
+        recyclerView.adapter = ConnectedDevicesListAdapter(viewModel.connectedDevices)
     }
 
     companion object {

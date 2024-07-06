@@ -22,7 +22,7 @@ class ConnectDevicesFragment : Fragment() {
     private val viewModel: MainViewModel by activityViewModels()
 
     private lateinit var recyclerView: RecyclerView
-    private lateinit var linkDeviceButton: Button
+    private lateinit var refreshDevicesButton: Button
     private lateinit var recyclerViewHeader: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,12 +44,12 @@ class ConnectDevicesFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Initialize the view elements
-        recyclerView = view.findViewById(R.id.buttonRecyclerView)
-        linkDeviceButton = view.findViewById(R.id.refreshDevicesButton)
+        recyclerView = view.findViewById(R.id.availableDevicesRecyclerView)
+        refreshDevicesButton = view.findViewById(R.id.refreshDevicesButton)
         recyclerViewHeader = view.findViewById(R.id.availableDevicesHeaderText)
 
         // Set up the button links
-        linkDeviceButton.setOnClickListener {
+        refreshDevicesButton.setOnClickListener {
             // Update the available device list
             val availableDevices = populateAvailableDevices(viewModel.deviceHandler)
 
