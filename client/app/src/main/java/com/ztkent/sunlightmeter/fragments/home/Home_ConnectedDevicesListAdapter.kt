@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter
+package com.ztkent.sunlightmeter.fragments.home
 
 import android.view.LayoutInflater
 import android.view.View
@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.ztkent.sunlightmeter.R
 
 class ConnectedDevicesListAdapter(private val textList: List<String>) :
     RecyclerView.Adapter<ConnectedDevicesListAdapter.ButtonViewHolder>() {
@@ -21,7 +22,7 @@ class ConnectedDevicesListAdapter(private val textList: List<String>) :
     }
 
     // TODO: Long click to remove connected devices?
-    
+
     override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
         holder.button.text = textList[position]
         holder.button.setOnClickListener {

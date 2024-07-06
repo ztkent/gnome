@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter
+package com.ztkent.sunlightmeter.data
 
 import android.content.Context
 import android.net.ConnectivityManager

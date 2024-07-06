@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter
+package com.ztkent.sunlightmeter.fragments.home
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,9 +11,12 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.ztkent.sunlightmeter.R
+import com.ztkent.sunlightmeter.data.SunlightModel
+import com.ztkent.sunlightmeter.fragments.connectdevices.ConnectDevicesFragment
 
 class HomeFragment : Fragment() {
-    private val viewModel: MainViewModel by activityViewModels()
+    private val viewModel: SunlightModel by activityViewModels()
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var linkDeviceButton: Button

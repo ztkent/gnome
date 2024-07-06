@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter
+package com.ztkent.sunlightmeter.fragments.connectdevices
 
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -12,14 +12,12 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
+import com.ztkent.sunlightmeter.R
+import com.ztkent.sunlightmeter.data.AvailableDevices
+import com.ztkent.sunlightmeter.data.SunlightModel
 
 class ConnectDevicesFragment : Fragment() {
-    private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
-    private val viewModel: MainViewModel by activityViewModels()
+    private val viewModel: SunlightModel by activityViewModels()
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var refreshDevicesButton: Button
@@ -97,7 +95,7 @@ class ConnectDevicesFragment : Fragment() {
         }
 
         // Ignore any devices we're already connected to
-        var unconnectedAvailableDevices = mutableListOf<String>()
+        val unconnectedAvailableDevices = mutableListOf<String>()
         for (device in availableDevices) {
             if (!viewModel.connectedDevices.contains(device)) {
                 unconnectedAvailableDevices.add(device)

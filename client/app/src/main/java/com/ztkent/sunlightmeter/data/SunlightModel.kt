@@ -1,8 +1,9 @@
-package com.ztkent.sunlightmeter
+package com.ztkent.sunlightmeter.data
 
 import androidx.lifecycle.ViewModel
 
-class MainViewModel : ViewModel() {
+// Data available to all fragments via the MainActivity container
+class SunlightModel : ViewModel() {
     val deviceHandler = AvailableDevices()
     var connectedDevices: MutableList<String> = mutableListOf()
 }

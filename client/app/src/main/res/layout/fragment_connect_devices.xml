@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="#D03B923E"
     android:padding="16dp"
-    tools:context=".ConnectDevicesFragment">
+    tools:context=".fragments.connectdevices.ConnectDevicesFragment">
 
     <TextView
         android:id="@+id/titleTextView"
