@@ -36,7 +36,9 @@ class AvailableDevices {
         }
         if (!scanningLock.isLocked) {
             coroutineScope.async {
-                fetchAvailableDevices(context)
+                scanningLock.withLock {
+                    fetchAvailableDevices(context)
+                }
             }
         }
         Log.d("GetAvailableDevices", "Device list: $deviceList")
@@ -49,50 +51,54 @@ class AvailableDevices {
         // look for a 200 response code at /id
         Log.d("fetchAvailableDevices", "Scanning for devices...")
 
-        scanningLock.withLock {
-            lastChecked = Clock.System.now()
+        lastChecked = Clock.System.now()
 
-            val connectivityManager =
-                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val networkCapabilities =
-                connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
-            val ip = getOwnIpAddress(context, connectivityManager, networkCapabilities)
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkCapabilities =
+            connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+        val ip = getOwnIpAddress(context, connectivityManager, networkCapabilities)
 
-            if (ip == null) {
-                Log.d("fetchAvailableDevices", "Device IP is NULL, not connected to WIFI")
-                return
+        if (ip == null) {
+            Log.d("fetchAvailableDevices", "Device IP is NULL, not connected to WIFI")
+            return
+        }
+        Log.d("fetchAvailableDevices", "Device IP is $ip")
+
+        Log.d("fetchAvailableDevices", "Checking for devices on this network...")
+        val potentialIps = generatePotentialDeviceIps(ip)
+        coroutineScope.async {
+            val deferredHost = async {
+                checkForDeviceResponse("", "sunlight.local")
             }
-            Log.d("fetchAvailableDevices", "Device IP is $ip")
-
-            Log.d("fetchAvailableDevices", "Checking for devices on this network...")
-            val potentialIps = generatePotentialDeviceIps(ip)
-            coroutineScope.async {
-                val deferredHost = async {
-                    checkForDeviceResponse("", "sunlight.local")
+            deferredHost.await().let { foundDevice ->
+                if (foundDevice) {
+                    addDevice("sunlight.local")
                 }
-                deferredHost.await().let { foundDevice ->
-                    if (foundDevice) {
-                        deviceList.add("sunlight.local")
-                    }
-                }
+            }
 
-                val deferredResults2 = potentialIps.map { potentialIp ->
-                    async {
-                        semaphore.acquire() // Acquire a permit before starting
-                        try {
-                            checkForDeviceResponse(potentialIp, "")
-                        } finally {
-                            semaphore.release() // Release the permit after finishing
+            val deferredResults2 = potentialIps.map { potentialIp ->
+                async {
+                    semaphore.acquire() // Acquire a permit before starting
+                    try {
+                        val foundDevice = checkForDeviceResponse(potentialIp, "")
+                        if (foundDevice) {
+                            addDevice(potentialIp)
                         }
+                    } finally {
+                        semaphore.release() // Release the permit after finishing
                     }
                 }
-                deferredResults2.awaitAll().forEachIndexed { index, foundDevice ->
-                    if (foundDevice) {
-                        deviceList.add(potentialIps[index])
-                    }
-                }
-                Log.d("fetchAvailableDevices", "Devices found on this network: $deviceList")
             }
+            deferredResults2.awaitAll()
+            Log.d("fetchAvailableDevices", "Devices found on this network: $deviceList")
+        }
+    }
+
+
+    private fun addDevice(device: String) {
+        if (!deviceList.contains(device)) {
+            deviceList.add(device)
         }
     }
 

@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 
 class AvailableDevicesListAdapter(availableDevices : List<String>) :
     RecyclerView.Adapter<AvailableDevicesListAdapter.ButtonViewHolder>() {
-    private val deviceList = availableDevices
+    private var deviceList = availableDevices
     class ButtonViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val button: Button = itemView.findViewById(R.id.buttonItem)
     }
@@ -29,4 +29,9 @@ class AvailableDevicesListAdapter(availableDevices : List<String>) :
     }
 
     override fun getItemCount(): Int = deviceList.size
+
+    fun updateDevices(availableDevices: List<String>) {
+        deviceList = availableDevices
+        notifyDataSetChanged()
+    }
 }

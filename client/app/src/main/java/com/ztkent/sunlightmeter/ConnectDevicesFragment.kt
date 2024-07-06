@@ -1,0 +1,83 @@
+package com.ztkent.sunlightmeter
+
+import android.annotation.SuppressLint
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+
+class ConnectDevicesFragment : Fragment() {
+    private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
+
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var linkDeviceButton: Button
+    private lateinit var recyclerViewHeader: TextView
+    private var deviceHandler = AvailableDevices()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Initialize the device list. Seems to be ready when we need it?
+        deviceHandler.GetAvailableDevices(requireContext())
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_connect_devices, container, false)
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Initialize the view elements
+        recyclerView = view.findViewById(R.id.buttonRecyclerView)
+        linkDeviceButton = view.findViewById(R.id.refreshDevicesButton)
+        recyclerViewHeader = view.findViewById(R.id.availableDevicesHeaderText)
+
+        // Set up the button links
+        linkDeviceButton.setOnClickListener {
+            // Update the available device list
+            val availableDevices = populateAvailableDevices(deviceHandler)
+
+            // Notify the adapter about the changes
+            val adapter = recyclerView.adapter as? AvailableDevicesListAdapter
+            adapter?.updateDevices(availableDevices)
+            adapter?.notifyDataSetChanged()
+        }
+
+        // Set the page content
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView.adapter = AvailableDevicesListAdapter(populateAvailableDevices(deviceHandler))
+    }
+
+    // Look for available devices for up to 5 seconds
+    private fun populateAvailableDevices(deviceHandler: AvailableDevices): List<String> {
+        val startTime = System.currentTimeMillis()
+        val timeoutMillis = 5000
+
+        var availableDevices = deviceHandler.GetAvailableDevices(requireContext())
+        while (availableDevices.isEmpty() && (System.currentTimeMillis() - startTime) < timeoutMillis) {
+            availableDevices = deviceHandler.GetAvailableDevices(requireContext())
+        }
+
+        if (availableDevices.isEmpty()) {
+            Log.d("populateAvailableDevices", "No devices found.")
+        } else {
+            Log.d("populateAvailableDevices", "Available devices: $availableDevices")
+        }
+        return availableDevices
+    }
+}

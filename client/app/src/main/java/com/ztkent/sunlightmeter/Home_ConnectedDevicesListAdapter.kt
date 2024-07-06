@@ -16,16 +16,13 @@ class ConnectedDevicesListAdapter(private val textList: List<String>) :
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ButtonViewHolder {
         val itemView = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_button, parent, false) // Still using text_item.xml
+            .inflate(R.layout.list_button, parent, false)
         return ButtonViewHolder(itemView)
     }
 
     override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
         holder.button.text = textList[position]
-        // You can add button click listeners here if needed:
         holder.button.setOnClickListener {
-            // Handle button click for item at position
-            // For example:
             Toast.makeText(holder.itemView.context, "Button ${position + 1} clicked", Toast.LENGTH_SHORT).show()
         }
     }
