@@ -22,15 +22,11 @@ class HomeFragment : Fragment() {
     private lateinit var linkDeviceButton: Button
     private lateinit var recyclerViewHeader: TextView
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewModel.deviceHandler.GetAvailableDevices(requireContext())
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        viewModel.deviceHandler.GetAvailableDevices(requireContext())
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
 

@@ -2,18 +2,14 @@ package com.ztkent.sunlightmeter.ui
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.ztkent.sunlightmeter.R
-import com.ztkent.sunlightmeter.data.SunlightModel
 import com.ztkent.sunlightmeter.ui.fragments.home.HomeFragment
 
 // A container for app fragments
 class MainActivity : AppCompatActivity() {
-    private val viewModel: SunlightModel by viewModels() // Initialize the shared ViewModel
-
     override fun onCreate(savedInstanceState: Bundle?) {
         // Inflate the container
         super.onCreate(savedInstanceState)
@@ -33,4 +29,20 @@ class MainActivity : AppCompatActivity() {
             insets
         }
     }
+
+
+    // Handle cleanup events
+    override fun onPause() {
+        super.onPause()
+    }
+
+    override fun onStop() {
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+    }
+
+
 }

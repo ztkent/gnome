@@ -38,12 +38,11 @@ class ConnectedDevicesListAdapter(
         }
 
         holder.button.setOnLongClickListener {
-            // Handle long click here
             MaterialAlertDialogBuilder(holder.itemView.context)
                 .setTitle("Remove Connected Device")
                 .setMessage("Disconnect sunlight meter device?")
                 .setNegativeButton("Cancel", null) // Do nothing on cancel
-                .setPositiveButton("Delete") { dialog, which ->
+                .setPositiveButton("Delete") { _, _ ->
                     // Delete the device
                     viewModel.connectedDevices.remove(holder.button.text)
                     notifyItemRemoved(position)

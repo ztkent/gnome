@@ -31,7 +31,7 @@ class AvailableDevicesListAdapter(
             if (connectDevice(deviceName)) {
                 Toast.makeText(
                     holder.itemView.context,
-                    "${deviceName} connected",
+                    "$deviceName connected",
                     Toast.LENGTH_SHORT
                 ).show()
 
@@ -41,7 +41,7 @@ class AvailableDevicesListAdapter(
             } else {
                 Toast.makeText(
                     holder.itemView.context,
-                    "Failed to connect ${deviceName}",
+                    "Failed to connect $deviceName",
                     Toast.LENGTH_SHORT
                 ).show()
             }
