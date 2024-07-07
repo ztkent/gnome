@@ -54,6 +54,9 @@ class AvailableDevicesListAdapter(
     private fun connectDevice(device: String): Boolean {
         if (!viewModel.connectedDevices.contains(device)) {
             viewModel.connectedDevices.add(device)
+
+            // Add the connection info to ROOM
+            viewModel.repository?.getReadings()
             return true
         }
         return false

@@ -24,9 +24,7 @@ class ConnectedDevicesListAdapter(
             .inflate(R.layout.list_button, parent, false)
         return ButtonViewHolder(itemView)
     }
-
-    // TODO: Long click to remove connected devices?
-
+    
     override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
         holder.button.text = viewModel.connectedDevices[position]
         holder.button.setOnClickListener {

@@ -46,7 +46,7 @@ dependencies {
     implementation(libs.kotlinx.datetime)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    implementation(libs.room.compiler)
+    annotationProcessor(libs.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
