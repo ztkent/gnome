@@ -8,12 +8,13 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.ztkent.sunlightmeter.R
 import com.ztkent.sunlightmeter.data.SunlightModel
-import com.ztkent.sunlightmeter.data.repository.LightReading
+import com.ztkent.sunlightmeter.data.repository.ConnectedDevice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 class AvailableDevicesListAdapter(
     private var viewModel: SunlightModel,
@@ -63,10 +64,15 @@ class AvailableDevicesListAdapter(
         if (!viewModel.connectedDevices.contains(device)) {
             viewModel.connectedDevices.add(device)
 
-            // Add the connection info to ROOM
+            // Add the connection info to DB
             coroutineScope.launch {
-                // Test entry
-                viewModel.repository?.insertReading(LightReading(0, 999999, 10000f))
+                viewModel.repository?.insertReading(
+                    ConnectedDevice(
+                        0,
+                        Clock.System.now().toEpochMilliseconds(),
+                        device
+                    )
+                )
             }
             return true
         }
