@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter.fragments.connectdevices
+package com.ztkent.sunlightmeter.ui.fragments.connectdevices
 
 import android.view.LayoutInflater
 import android.view.View
@@ -52,7 +52,7 @@ class AvailableDevicesListAdapter(
         }
         return false
     }
-    
+
     // Show any found devices we arent actively connected
     fun updateAvailableDevices(currentDevices: List<String>) {
         val currentAvailableDevices = mutableListOf<String>()

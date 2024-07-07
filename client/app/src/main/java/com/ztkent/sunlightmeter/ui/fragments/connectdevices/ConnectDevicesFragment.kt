@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter.fragments.connectdevices
+package com.ztkent.sunlightmeter.ui.fragments.connectdevices
 
 import android.annotation.SuppressLint
 import android.os.Bundle

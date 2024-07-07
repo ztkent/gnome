@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter.fragments.home
+package com.ztkent.sunlightmeter.ui.fragments.home
 
 import android.view.LayoutInflater
 import android.view.View

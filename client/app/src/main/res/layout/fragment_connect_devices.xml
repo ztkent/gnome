@@ -5,9 +5,9 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#D03B923E"
+    android:background="#274312"
     android:padding="16dp"
-    tools:context=".fragments.connectdevices.ConnectDevicesFragment">
+    tools:context=".ui.fragments.connectdevices.ConnectDevicesFragment">
 
     <TextView
         android:id="@+id/titleTextView"
@@ -17,6 +17,7 @@
         android:layout_marginTop="12dp"
         android:gravity="center"
         android:text="Sunlight Meter"
+        android:textColor="#F8F4ED"
         android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
@@ -30,6 +31,8 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="32dp"
         android:text="Refresh Sunlight Meter Devices"
+        android:textColor="#000000"
+        app:backgroundTint="#F8F4ED"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/titleTextView" />
@@ -53,6 +56,7 @@
         android:layout_marginEnd="32dp"
         android:layout_marginBottom="16dp"
         android:text="Available Devices"
+        android:textColor="#F8F4ED"
         android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@+id/availableDevicesRecyclerView"
         app:layout_constraintEnd_toEndOf="parent"

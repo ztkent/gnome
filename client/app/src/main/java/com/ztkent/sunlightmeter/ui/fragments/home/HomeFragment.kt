@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter.fragments.home
+package com.ztkent.sunlightmeter.ui.fragments.home
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ztkent.sunlightmeter.R
 import com.ztkent.sunlightmeter.data.SunlightModel
-import com.ztkent.sunlightmeter.fragments.connectdevices.ConnectDevicesFragment
+import com.ztkent.sunlightmeter.ui.fragments.connectdevices.ConnectDevicesFragment
 
 class HomeFragment : Fragment() {
     private val viewModel: SunlightModel by activityViewModels()
@@ -24,6 +24,7 @@ class HomeFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel.deviceHandler.GetAvailableDevices(requireContext())
     }
 
     override fun onCreateView(
