@@ -8,11 +8,19 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.ztkent.sunlightmeter.R
 import com.ztkent.sunlightmeter.data.SunlightModel
+import com.ztkent.sunlightmeter.data.repository.LightReading
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class AvailableDevicesListAdapter(
     private var viewModel: SunlightModel,
     private var availableDevices: MutableList<String>
 ) : RecyclerView.Adapter<AvailableDevicesListAdapter.ButtonViewHolder>() {
+    private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
+
     class ButtonViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val button: Button = itemView.findViewById(R.id.buttonItem)
     }
@@ -56,7 +64,10 @@ class AvailableDevicesListAdapter(
             viewModel.connectedDevices.add(device)
 
             // Add the connection info to ROOM
-            viewModel.repository?.getReadings()
+            coroutineScope.launch {
+                // Test entry
+                viewModel.repository?.insertReading(LightReading(0, 999999, 10000f))
+            }
             return true
         }
         return false
