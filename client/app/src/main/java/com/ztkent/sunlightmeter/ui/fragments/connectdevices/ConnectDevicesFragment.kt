@@ -62,7 +62,7 @@ class ConnectDevicesFragment : Fragment() {
         recyclerView.adapter =
             AvailableDevicesListAdapter(
                 viewModel,
-                currentlyAvailableDevices()
+                currentlyAvailableDevices().toMutableList()
             )
     }
 

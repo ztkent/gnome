@@ -6,9 +6,13 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ztkent.sunlightmeter.R
+import com.ztkent.sunlightmeter.data.SunlightModel
 
-class ConnectedDevicesListAdapter(private val textList: List<String>) :
+class ConnectedDevicesListAdapter(
+    private var viewModel: SunlightModel
+) :
     RecyclerView.Adapter<ConnectedDevicesListAdapter.ButtonViewHolder>() {
 
     class ButtonViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -24,7 +28,7 @@ class ConnectedDevicesListAdapter(private val textList: List<String>) :
     // TODO: Long click to remove connected devices?
 
     override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
-        holder.button.text = textList[position]
+        holder.button.text = viewModel.connectedDevices[position]
         holder.button.setOnClickListener {
             Toast.makeText(
                 holder.itemView.context,
@@ -32,7 +36,22 @@ class ConnectedDevicesListAdapter(private val textList: List<String>) :
                 Toast.LENGTH_SHORT
             ).show()
         }
+
+        holder.button.setOnLongClickListener {
+            // Handle long click here
+            MaterialAlertDialogBuilder(holder.itemView.context)
+                .setTitle("Remove Connected Device")
+                .setMessage("Disconnect sunlight meter device?")
+                .setNegativeButton("Cancel", null) // Do nothing on cancel
+                .setPositiveButton("Delete") { dialog, which ->
+                    // Delete the device
+                    viewModel.connectedDevices.remove(holder.button.text)
+                    notifyItemRemoved(position)
+                }
+                .show()
+            true
+        }
     }
 
-    override fun getItemCount(): Int = textList.size
+    override fun getItemCount(): Int = viewModel.connectedDevices.size
 }

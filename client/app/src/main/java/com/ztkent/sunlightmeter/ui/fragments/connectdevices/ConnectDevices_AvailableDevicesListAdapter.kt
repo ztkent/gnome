@@ -11,7 +11,7 @@ import com.ztkent.sunlightmeter.data.SunlightModel
 
 class AvailableDevicesListAdapter(
     private var viewModel: SunlightModel,
-    private var availableDevices: List<String>
+    private var availableDevices: MutableList<String>
 ) : RecyclerView.Adapter<AvailableDevicesListAdapter.ButtonViewHolder>() {
     class ButtonViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val button: Button = itemView.findViewById(R.id.buttonItem)
@@ -25,17 +25,23 @@ class AvailableDevicesListAdapter(
 
     override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
         holder.button.text = availableDevices[position]
+
         holder.button.setOnClickListener {
-            if (connectDevice(availableDevices[position])) {
+            val deviceName: String = holder.button.text as String
+            if (connectDevice(deviceName)) {
                 Toast.makeText(
                     holder.itemView.context,
-                    "${availableDevices[position]} connected",
+                    "${deviceName} connected",
                     Toast.LENGTH_SHORT
                 ).show()
+
+                // Remove the device for the available list, and update the view when connected
+                availableDevices.remove(deviceName)
+                notifyItemRemoved(position)
             } else {
                 Toast.makeText(
                     holder.itemView.context,
-                    "Failed to connect ${availableDevices[position]}",
+                    "Failed to connect ${deviceName}",
                     Toast.LENGTH_SHORT
                 ).show()
             }
