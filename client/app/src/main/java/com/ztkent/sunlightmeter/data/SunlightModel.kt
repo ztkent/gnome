@@ -14,7 +14,7 @@ class SunlightModel() : ViewModel() {
     val connectedDevices: LiveData<List<String>> = _connectedDevices
     var repository: Repository? = null
 
-    fun fetchConnectedDevices() {
+    fun fetchStoredConnectedDevices() {
         viewModelScope.launch {
             repository?.getDevices()?.collect { devices -> // Collect from the Flow
                 val dbDevices = devices.map { it.ssid } // Extract ssid values

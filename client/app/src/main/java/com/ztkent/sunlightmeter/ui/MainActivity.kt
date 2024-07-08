@@ -31,7 +31,8 @@ class MainActivity : AppCompatActivity() {
         fragmentTransaction.add(R.id.fragment_container, homeFragment)
         fragmentTransaction.commit()
 
-        viewModel.fetchConnectedDevices()
+        // Initialize the list of connected devices from DB
+        viewModel.fetchStoredConnectedDevices()
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())

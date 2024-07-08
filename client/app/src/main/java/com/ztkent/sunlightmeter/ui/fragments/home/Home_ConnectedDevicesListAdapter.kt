@@ -10,17 +10,24 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ztkent.sunlightmeter.R
 import com.ztkent.sunlightmeter.data.SunlightModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 
 class ConnectedDevicesListAdapter(
     private var viewModel: SunlightModel,
     private val lifecycleOwner: LifecycleOwner
 ) :
     RecyclerView.Adapter<ConnectedDevicesListAdapter.ButtonViewHolder>() {
+    private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
 
 
     init {
+        // Whenever this fragment is open, observe the LiveData
+        // This data drives the RecyclerView, so it will update the screen
         viewModel.connectedDevices.observe(lifecycleOwner) { newDevices ->
-            notifyDataSetChanged() // Update RecyclerView when LiveData changes
+            notifyDataSetChanged()
         }
     }
 
@@ -51,7 +58,16 @@ class ConnectedDevicesListAdapter(
                 .setMessage("Disconnect sunlight meter device?")
                 .setNegativeButton("Cancel", null) // Do nothing on cancel
                 .setPositiveButton("Delete") { _, _ ->
-                    // Delete the device
+                    // Delete the device from DB
+//                    coroutineScope.launch {
+//                        viewModel.repository?.deleteDevice(
+//                            ConnectedDevice(
+//                                holder.button.text
+//                            )
+//                        )
+//                    }
+
+                    // Delete the device from view
                     val currentList =
                         viewModel.connectedDevices.value?.toMutableList() ?: mutableListOf()
                     currentList.remove(holder.button.text)
