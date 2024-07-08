@@ -69,8 +69,12 @@ class ConnectDevicesFragment : Fragment() {
     private fun currentlyAvailableDevices(): List<String> {
         val currentlyAvailableDevices: MutableList<String> = mutableListOf()
         val availableDevices = viewModel.deviceHandler.GetAvailableDevices(requireContext())
+        val connectedDevicesList =
+            viewModel.connectedDevices.value?.toMutableList()
+                ?: mutableListOf()
+
         for (device in availableDevices) {
-            if (!viewModel.connectedDevices.contains(device)) {
+            if (!connectedDevicesList.contains(device)) {
                 currentlyAvailableDevices.add(device)
             }
         }
@@ -81,6 +85,9 @@ class ConnectDevicesFragment : Fragment() {
     private fun populateAvailableDevices(deviceHandler: AvailableDevices): List<String> {
         val startTime = System.currentTimeMillis()
         val timeoutMillis = 5000
+        val connectedDevicesList =
+            viewModel.connectedDevices.value?.toMutableList()
+                ?: mutableListOf()
 
         var availableDevices = deviceHandler.GetAvailableDevices(requireContext())
         while (availableDevices.isEmpty() && (System.currentTimeMillis() - startTime) < timeoutMillis) {
@@ -97,7 +104,7 @@ class ConnectDevicesFragment : Fragment() {
         // Ignore any devices we're already connected to
         val unconnectedAvailableDevices = mutableListOf<String>()
         for (device in availableDevices) {
-            if (!viewModel.connectedDevices.contains(device)) {
+            if (!connectedDevicesList.contains(device)) {
                 unconnectedAvailableDevices.add(device)
             }
         }

@@ -61,12 +61,17 @@ class AvailableDevicesListAdapter(
 
     // Connect a device if we arent already connected
     private fun connectDevice(device: String): Boolean {
-        if (!viewModel.connectedDevices.contains(device)) {
-            viewModel.connectedDevices.add(device)
+        val connectedDevicesList =
+            viewModel.connectedDevices.value?.toMutableList()
+                ?: mutableListOf() // Get the current list
 
+        if (!connectedDevicesList.contains(device)) {
+            connectedDevicesList.add(device)
+            viewModel.updateConnectedDevices(connectedDevicesList)
+            
             // Add the connection info to DB
             coroutineScope.launch {
-                viewModel.repository?.insertReading(
+                viewModel.repository?.insertDevice(
                     ConnectedDevice(
                         0,
                         Clock.System.now().toEpochMilliseconds(),
@@ -82,8 +87,10 @@ class AvailableDevicesListAdapter(
     // Show any found devices we arent actively connected
     fun updateAvailableDevices(currentDevices: List<String>) {
         val currentAvailableDevices = mutableListOf<String>()
+        val connectedDevicesList =
+            viewModel.connectedDevices.value ?: emptyList() // Get the current list
         for (device in currentDevices) {
-            if (!viewModel.connectedDevices.contains(device)) {
+            if (!connectedDevicesList.contains(device)) {
                 currentAvailableDevices += device
             }
         }

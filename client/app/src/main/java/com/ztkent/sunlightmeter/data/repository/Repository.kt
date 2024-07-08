@@ -6,12 +6,13 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 // Data Model
-@Entity(tableName = "connected_devices")
+@Entity(
+    tableName = "connected_devices",
+    indices = [androidx.room.Index(value = ["ssid"], unique = true)]
+)
 data class ConnectedDevice(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val timestamp: Long,
@@ -24,12 +25,12 @@ interface SunlightMeterDAO {
     @androidx.room.Query("SELECT * FROM connected_devices")
     fun getAllConnectedDevices(): Flow<List<ConnectedDevice>>
 
-    @androidx.room.Insert
-    suspend fun insert(reading: ConnectedDevice)
+    @androidx.room.Upsert
+    suspend fun upsert(reading: ConnectedDevice)
 }
 
 // Database
-@Database(entities = [ConnectedDevice::class], version = 2)
+@Database(entities = [ConnectedDevice::class], version = 1)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun sunlightMeterDAO(): SunlightMeterDAO
 }
@@ -38,27 +39,28 @@ abstract class AppDatabase : RoomDatabase() {
 class Repository(application: Application) {
     private val database: AppDatabase by lazy {
         Room.databaseBuilder(application, AppDatabase::class.java, "sunlight-meter")
-            .addMigrations(MIGRATION_1_2)
+//            .addMigrations(MIGRATION_1_2)
             .build()
     }
     private val sunlightMeterDAO: SunlightMeterDAO by lazy { database.sunlightMeterDAO() }
 
     // Get all readings in the db
-    fun getReadings(): Flow<List<ConnectedDevice>> {
+    fun getDevices(): Flow<List<ConnectedDevice>> {
         return sunlightMeterDAO.getAllConnectedDevices()
     }
 
     // Set a new reading to the DB
-    suspend fun insertReading(reading: ConnectedDevice) {
-        sunlightMeterDAO.insert(reading)
+    suspend fun insertDevice(reading: ConnectedDevice) {
+        sunlightMeterDAO.upsert(reading)
     }
+
 
     companion object {
         // Store any migrations here
-        val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                // db.execSQL("ALTER TABLE connected_devices ADD COLUMN new_column INTEGER")
-            }
-        }
+//        val MIGRATION_1_2 = object : Migration(1, 2) {
+//            override fun migrate(db: SupportSQLiteDatabase) {
+//                // db.execSQL("ALTER TABLE connected_devices ADD COLUMN new_column INTEGER")
+//            }
+//        }
     }
 }

@@ -50,6 +50,6 @@ class HomeFragment : Fragment() {
 
         // Set the page content
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = ConnectedDevicesListAdapter(viewModel)
+        recyclerView.adapter = ConnectedDevicesListAdapter(viewModel, this)
     }
 }
