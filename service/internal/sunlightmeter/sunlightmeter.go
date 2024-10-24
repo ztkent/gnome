@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ztkent/sunlight-meter/tsl2591"
+	"github.com/ztkent/sunlight-meter/tsl2591"
 	"github.com/google/uuid"
 )
 

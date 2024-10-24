@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Ztkent/sunlight-meter/internal/tools"
+	"github.com/ztkent/sunlight-meter/internal/tools"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"

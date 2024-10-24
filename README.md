@@ -13,7 +13,7 @@ By collecting this data, we are able to:
 - Provide a dashboard to control the sensor and visualize data.
 - Most importantly, determine if your location is: ☁️ shade, partial shade, partial sun, or full sun ☀️
 
-<img width="1200" alt="image" src="https://github.com/Ztkent/sunlight-meter/assets/7357311/0e67d4a5-35bb-48b4-93cf-d556c9c5a480">
+<img width="1200" alt="image" src="https://github.com/ztkent/sunlight-meter/assets/7357311/0e67d4a5-35bb-48b4-93cf-d556c9c5a480">
 
 
 ## Understanding Lux Values

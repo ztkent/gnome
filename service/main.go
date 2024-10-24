@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
-	slm "github.com/Ztkent/sunlight-meter/internal/sunlightmeter"
-	"github.com/Ztkent/sunlight-meter/internal/tools"
-	"github.com/Ztkent/sunlight-meter/tsl2591"
+	"github.com/ztkent/sunlight-meter/internal/sunlightmeter"
+	slm "github.com/ztkent/sunlight-meter/internal/sunlightmeter"
+	"github.com/ztkent/sunlight-meter/internal/tools"
+	"github.com/ztkent/sunlight-meter/tsl2591"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	pitooth "github.com/Ztkent/pitooth"
+	pitooth "github.com/ztkent/pitooth"
 )
 
 const (
