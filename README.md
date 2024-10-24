@@ -1,6 +1,6 @@
 # Sunlight Meter
-Using the Adafruit TSL2591 Digital Light Sensor and a Raspberry Pi to monitor daily sunlight conditions.  
 
+Using the Adafruit TSL2591 Digital Light Sensor and a Raspberry Pi to monitor daily sunlight conditions.  
 
 ## About
 The [TSL2591](https://www.adafruit.com/product/1980) is a high dynamic range digital light sensor.  
@@ -57,8 +57,3 @@ From https://en.wikipedia.org/wiki/Lux:
 | 1000 | Overcast day; typical TV studio lighting |
 | 10,000–25,000 | Full daylight (not direct sun) |
 | 32,000–100,000 | Direct sunlight |
-
-## Infrastructure
-- Frontend: HTML, TailwindCSS, HTMX, JS
-- Backend: Go
-- Hardware: [TSL2591](https://www.adafruit.com/product/1980), [Raspberry Pi Zero W](https://www.adafruit.com/product/3400)
