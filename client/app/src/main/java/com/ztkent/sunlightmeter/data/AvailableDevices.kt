@@ -20,7 +20,6 @@ import kotlin.time.Duration.Companion.minutes
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
-@Suppress("DeferredResultUnused")
 
 class AvailableDevices {
     private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
@@ -29,56 +28,39 @@ class AvailableDevices {
     // Might be able to safely modify concurrently
     private val deviceList = CopyOnWriteArrayList<String>()
     private var lastChecked = Clock.System.now()
-    private val scanningLock = Mutex()
 
-    fun getAvailableDevices(context: Context): List<String> {
+    suspend fun getAvailableDevices(context: Context): List<String> {
         if (deviceList.size > 0 && (Clock.System.now() - lastChecked < 10.minutes)) {
             Log.d("getAvailableDevices", "Cached device list: $deviceList")
             return deviceList
         }
-        if (!scanningLock.isLocked) {
-            coroutineScope.async {
-                scanningLock.lock()
-                fetchAvailableDevices(context)
-            }
-        }
+        fetchAvailableDevices(context)
         Log.d("getAvailableDevices", "Device list: $deviceList")
         return deviceList
     }
 
-    private fun fetchAvailableDevices(context: Context) {
+    private suspend fun fetchAvailableDevices(context: Context) {
         // All available devices will be on our network, with a hostname: sunlight.local,
         // or likely the same octet as us. Check the hostname, then every option on the same local network as us.
         // look for a 200 response code at /id
         Log.d("fetchAvailableDevices", "Scanning for devices...")
-
-        lastChecked = Clock.System.now()
-
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkCapabilities =
             connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
         val ip = getOwnIpAddress(connectivityManager, networkCapabilities)
-
         if (ip == null) {
             Log.d("fetchAvailableDevices", "Device IP is NULL, not connected to WIFI")
-            scanningLock.unlock()
             return
         }
-        Log.d("fetchAvailableDevices", "Device IP is $ip")
 
+        Log.d("fetchAvailableDevices", "Device IP is $ip")
         Log.d("fetchAvailableDevices", "Checking for devices on this network...")
         val potentialIps = generatePotentialDeviceIps(ip, 100)
-        coroutineScope.async {
+        val a =  coroutineScope.async {
             val deferredHost = async {
                 checkForDeviceResponse("", "sunlight.local")
             }
-            deferredHost.await().let { foundDevice ->
-                if (foundDevice) {
-                    addDevice("sunlight.local")
-                }
-            }
-
             val deferredResults2 = potentialIps.map { potentialIp ->
                 async {
                     try {
@@ -95,10 +77,18 @@ class AvailableDevices {
                     }
                 }
             }
+
+            // Wait for the responses
+            deferredHost.await().let { foundDevice ->
+                if (foundDevice) {
+                    addDevice("sunlight.local")
+                }
+            }
             deferredResults2.awaitAll()
             Log.d("fetchAvailableDevices", "Devices found on this network: $deviceList")
-            scanningLock.unlock()
         }
+        a.await()
+        lastChecked = Clock.System.now()
     }
 
 
