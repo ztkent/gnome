@@ -128,19 +128,3 @@ sealed class DeviceLoadState {
     data class Success(val data: List<String>) : DeviceLoadState()
     data class Error(val exception: Exception) : DeviceLoadState()
 }
-
-
-// Tests
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    SunlightMeterTheme {
-        HomeScreen(viewModel = DeviceListModelPreview()) // Provide mock ViewModel
-    }
-}
-
-class DeviceListModelPreview : DeviceListModel(ApplicationProvider.getApplicationContext()) {
-    init {
-        _devices.value = DeviceLoadState.Success(listOf("Device 1", "Device 2", "Device 3"))
-    }
-}
