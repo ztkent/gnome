@@ -17,6 +17,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.minutes
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+@Suppress("DeferredResultUnused")
 
 class AvailableDevices {
     private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
@@ -27,9 +31,9 @@ class AvailableDevices {
     private var lastChecked = Clock.System.now()
     private val scanningLock = Mutex()
 
-    fun GetAvailableDevices(context: Context): List<String> {
+    fun getAvailableDevices(context: Context): List<String> {
         if (deviceList.size > 0 && (Clock.System.now() - lastChecked < 10.minutes)) {
-            Log.d("GetAvailableDevices", "Cached device list: $deviceList")
+            Log.d("getAvailableDevices", "Cached device list: $deviceList")
             return deviceList
         }
         if (!scanningLock.isLocked) {
@@ -38,11 +42,11 @@ class AvailableDevices {
                 fetchAvailableDevices(context)
             }
         }
-        Log.d("GetAvailableDevices", "Device list: $deviceList")
+        Log.d("getAvailableDevices", "Device list: $deviceList")
         return deviceList
     }
 
-    private suspend fun fetchAvailableDevices(context: Context) {
+    private fun fetchAvailableDevices(context: Context) {
         // All available devices will be on our network, with a hostname: sunlight.local,
         // or likely the same octet as us. Check the hostname, then every option on the same local network as us.
         // look for a 200 response code at /id
@@ -54,7 +58,7 @@ class AvailableDevices {
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkCapabilities =
             connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
-        val ip = getOwnIpAddress(context, connectivityManager, networkCapabilities)
+        val ip = getOwnIpAddress(connectivityManager, networkCapabilities)
 
         if (ip == null) {
             Log.d("fetchAvailableDevices", "Device IP is NULL, not connected to WIFI")
@@ -64,7 +68,7 @@ class AvailableDevices {
         Log.d("fetchAvailableDevices", "Device IP is $ip")
 
         Log.d("fetchAvailableDevices", "Checking for devices on this network...")
-        val potentialIps = generatePotentialDeviceIps(ip)
+        val potentialIps = generatePotentialDeviceIps(ip, 100)
         coroutineScope.async {
             val deferredHost = async {
                 checkForDeviceResponse("", "sunlight.local")
@@ -77,14 +81,17 @@ class AvailableDevices {
 
             val deferredResults2 = potentialIps.map { potentialIp ->
                 async {
-                    semaphore.acquire() // Acquire a permit before starting
                     try {
                         val foundDevice = checkForDeviceResponse(potentialIp, "")
                         if (foundDevice) {
+                            semaphore.acquire() // Acquire a permit before starting
                             addDevice(potentialIp)
+                            semaphore.release() // Release the permit after finishing
+                        } else {
+                            Log.d("fetchAvailableDevices", "No device found at $potentialIp")
                         }
-                    } finally {
-                        semaphore.release() // Release the permit after finishing
+                    } catch (e: Exception) {
+                        Log.e("fetchAvailableDevices", "Error checking device at $potentialIp: ${e.message}")
                     }
                 }
             }
@@ -102,7 +109,6 @@ class AvailableDevices {
     }
 
     private fun getOwnIpAddress(
-        context: Context,
         connectivityManager: ConnectivityManager,
         networkCapabilities: NetworkCapabilities?
     ): String? {
@@ -116,10 +122,10 @@ class AvailableDevices {
         return null
     }
 
-    private fun generatePotentialDeviceIps(ownIp: String): List<String> {
+    private fun generatePotentialDeviceIps(ownIp: String, limit: Int = 254): List<String> {
         val ipParts = ownIp.split(".").toMutableList()
         val potentialIps = mutableListOf<String>()
-        for (i in 1..254) { // Check all possible values for the last octet
+        for (i in 1..limit) { // Check all possible values for the last octet
             ipParts[3] = i.toString()
             val currentIp = ipParts.joinToString(".")
             if (currentIp != ownIp) {
@@ -139,13 +145,24 @@ class AvailableDevices {
             connection.requestMethod = "GET"
             connection.connectTimeout = 1000 // Adjust timeout as needed
             val responseCode = connection.responseCode
-            connection.disconnect()
-            return responseCode == HttpURLConnection.HTTP_OK
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val inputStream = connection.inputStream
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                val response = reader.readLine()
+                val jsonObject: JSONObject?
+                try {
+                    jsonObject = JSONObject(response)
+                } catch (e: Exception) {
+                    return false
+                }
+                val serviceName = jsonObject.optString("service_name", "") ?: ""
+                return serviceName == "Sunlight Meter"
+            }
         } catch (e: Exception) {
             // Handle exceptions (e.g., timeout, connection refused)
-            Log.e("checkForDeviceResponse", "Error checking device at $url: ${e.message}")
             return false
         }
+        return false
     }
-
 }
