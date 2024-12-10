@@ -21,15 +21,22 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+class Device(addr: String) {
+    val addr: String
+    init {
+        this.addr = addr
+    }
+}
+
 open class AvailableDevices {
     private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
     private val semaphore = Semaphore(10) // Limit coroutine concurrency to 10 threads
 
     // Might be able to safely modify concurrently
-    private val deviceList = CopyOnWriteArrayList<String>()
+    private val deviceList = CopyOnWriteArrayList<Device>()
     private var lastChecked = Clock.System.now()
 
-    open suspend fun getAvailableDevices(context: Context): List<String> {
+    open suspend fun getAvailableDevices(context: Context): List<Device> {
         if (deviceList.size > 0 && (Clock.System.now() - lastChecked < 10.minutes)) {
             Log.d("getAvailableDevices", "Cached device list: $deviceList")
             return deviceList
@@ -43,19 +50,15 @@ open class AvailableDevices {
         // All available devices will be on our network, with a hostname: sunlight.local,
         // or likely the same octet as us. Check the hostname, then every option on the same local network as us.
         // look for a 200 response code at /id
-        Log.d("fetchAvailableDevices", "Scanning for devices...")
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkCapabilities =
             connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
         val ip = getOwnIpAddress(connectivityManager, networkCapabilities)
-        if (ip == null) {
-            Log.d("fetchAvailableDevices", "Device IP is NULL, not connected to WIFI")
-            return
-        }
+            ?: throw Exception("Device is not connected to WIFI")
 
-        Log.d("fetchAvailableDevices", "Device IP is $ip")
-        Log.d("fetchAvailableDevices", "Checking for devices on this network...")
+
+        Log.d("fetchAvailableDevices", "Scanning for devices...")
         val potentialIps = generatePotentialDeviceIps(ip, 100)
         val a =  coroutineScope.async {
             val deferredHost = async {
@@ -67,7 +70,7 @@ open class AvailableDevices {
                         val foundDevice = checkForDeviceResponse(potentialIp, "")
                         if (foundDevice) {
                             semaphore.acquire() // Acquire a permit before starting
-                            addDevice(potentialIp)
+                            addDevice(Device(potentialIp))
                             semaphore.release() // Release the permit after finishing
                         } else {
                             Log.d("fetchAvailableDevices", "No device found at $potentialIp")
@@ -81,7 +84,7 @@ open class AvailableDevices {
             // Wait for the responses
             deferredHost.await().let { foundDevice ->
                 if (foundDevice) {
-                    addDevice("sunlight.local")
+                    addDevice(Device("sunlight.local"))
                 }
             }
             deferredResults2.awaitAll()
@@ -91,8 +94,7 @@ open class AvailableDevices {
         lastChecked = Clock.System.now()
     }
 
-
-    private fun addDevice(device: String) {
+    private fun addDevice(device: Device) {
         if (!deviceList.contains(device)) {
             deviceList.add(device)
         }

@@ -1,5 +1,6 @@
 package com.ztkent.sunlightmeter
 
+import com.ztkent.sunlightmeter.data.Device
 import android.content.Context
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,10 +24,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -92,24 +98,25 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFFD9D9D9))
-                .padding(8.dp)
-                .height(28.dp)
+                .height(40.dp)
         ) {
             Text(
                 text = "Sunlight Meter",
-                color = Color(0xFF676666),
+                color = Color(0xFF1A1A1A),
                 fontSize = 24.sp,
                 fontFamily = FontFamily(
                     Font(R.font.jackinput)
-                )
+                ),
+                modifier = Modifier
+                    .offset(8.dp,8.dp)
             )
             Image(
                 painter = painterResource(id = R.drawable.sun), // Replace with your image
                 contentDescription = "Small image",
                 modifier = Modifier
-                    .size(36.dp) // Adjust size as needed
+                    .size(100.dp) // Adjust size as needed
                     .align(Alignment.TopEnd) // Position at top right
-                    .offset(0.dp, (-4).dp) // Add padding if desired
+                    .offset(32.dp, (0).dp) // Add padding if desired
             )
         }
         Box(
@@ -126,6 +133,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                 when (devices) {
                     is DeviceLoadState.Loading -> {
                         CircularProgressIndicator(
+                            color = Color.Black,
                             modifier = Modifier
                                 .offset(0.dp, 120.dp)
                         ) // Show loading indicator
@@ -144,24 +152,46 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                                                 8.dp
                                             )
                                         ) // Rounded corners
-                                        .shadow(
-                                            elevation = 1.dp,
-                                            shape = RoundedCornerShape(
-                                                8.dp
-                                            ),
-                                            spotColor = Color.Black,
-                                            ambientColor = Color.Black
-                                        )
                                 ) {
                                     Text(
-                                        text = device,
+                                        text = device.addr,
                                         fontSize = 12.sp,
+                                        fontFamily = FontFamily(
+                                            Font(R.font.roboto)
+                                        ),
+                                        color = Color.Black,
+                                        modifier = Modifier
+                                            .offset(8.dp,4.dp)
+                                            .align(Alignment.TopStart)
+                                    )
+                                    Text(
+                                        text = "test",
+                                        fontSize = 10.sp,
                                         fontFamily = FontFamily(
                                             Font(R.font.robotolight)
                                         ),
+                                        color = Color.Black,
                                         modifier = Modifier
-                                            .padding(12.dp)
+                                            .offset(8.dp,18.dp)
                                             .align(Alignment.TopStart)
+                                    )
+                                    IconButton(onClick = { /* TODO */ },
+                                        modifier = Modifier
+                                            .offset((-12).dp, 12.dp)
+                                            .align(Alignment.TopEnd)
+                                            .size(20.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.Settings,
+                                            contentDescription = "Notifications",
+                                            tint = Color.Black
+                                        )
+                                    }
+                                    HorizontalDivider(
+                                        color = Color.LightGray,
+                                        thickness = 1.dp,
+                                        modifier = Modifier
+                                            .offset(0.dp,40.dp)
                                     )
                                     Text(
                                         text = "1200 lm",
@@ -169,6 +199,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                                         fontFamily = FontFamily(
                                             Font(R.font.roboto)
                                         ),
+                                        color = Color.Black,
                                         modifier = Modifier
                                             .padding(12.dp)
                                             .align(Alignment.Center)
@@ -179,7 +210,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                         }
                     }
                     is DeviceLoadState.Error -> {
-                        Text("Error loading devices: ${devices.exception.message}")
+                        Text("${devices.exception.message}")
                     }
                 }
             }
@@ -202,18 +233,21 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                     // Reload the current Composable
                     refresh = !refresh
                 }) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                    Icon(Icons.Filled.Refresh,
+                        contentDescription = "Refresh", tint = Color.Black)
                 }
                 IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
+                    Icon(Icons.Filled.Add,
+                        contentDescription = "Add Device", tint = Color.Black)
                 }
                 IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                    Icon(Icons.Filled.Settings,
+                        contentDescription = "Settings", tint = Color.Black)
                 }
             }
             LaunchedEffect(refresh) {
                 if (refresh) {
-                    viewModel.Refresh()
+                    viewModel.refresh()
                     refresh = false
                 }
             }
@@ -242,7 +276,7 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
         }
     }
 
-    fun Refresh() {
+    fun refresh() {
         viewModelScope.launch {
             try {
                 _devices.value = DeviceLoadState.Loading
@@ -260,8 +294,8 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
     }
 }
 sealed class DeviceLoadState {
-    object Loading : DeviceLoadState()
-    data class Success(val data: List<String>) : DeviceLoadState()
+    data object Loading : DeviceLoadState()
+    data class Success(val data: List<Device>) : DeviceLoadState()
     data class Error(val exception: Exception) : DeviceLoadState()
 }
 
@@ -274,8 +308,8 @@ fun HomeScreenPreview() {
 }
 
 class MockAvailableDevices : AvailableDevices() {
-    override suspend fun getAvailableDevices(context: Context): List<String> {
-        return listOf("FakeDevice1", "FakeDevice2")
+    override suspend fun getAvailableDevices(context: Context): List<Device> {
+        return listOf(Device("FakeDevice1"), Device("FakeDevice2"))
     }
 }
 class DeviceListModelPreview : DeviceListModel(SunlightActivity()) {
