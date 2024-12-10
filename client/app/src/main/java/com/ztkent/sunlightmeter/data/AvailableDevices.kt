@@ -21,7 +21,7 @@ import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
-class AvailableDevices {
+open class AvailableDevices {
     private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
     private val semaphore = Semaphore(10) // Limit coroutine concurrency to 10 threads
 
@@ -29,7 +29,7 @@ class AvailableDevices {
     private val deviceList = CopyOnWriteArrayList<String>()
     private var lastChecked = Clock.System.now()
 
-    suspend fun getAvailableDevices(context: Context): List<String> {
+    open suspend fun getAvailableDevices(context: Context): List<String> {
         if (deviceList.size > 0 && (Clock.System.now() - lastChecked < 10.minutes)) {
             Log.d("getAvailableDevices", "Cached device list: $deviceList")
             return deviceList
