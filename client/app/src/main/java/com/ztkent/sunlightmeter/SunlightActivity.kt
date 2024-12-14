@@ -25,11 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -53,12 +49,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.sp
+import com.ztkent.sunlightmeter.ui.theme.BG1
+import com.ztkent.sunlightmeter.ui.theme.BG2
+import com.ztkent.sunlightmeter.ui.theme.DIVIDER_COLOR
+import com.ztkent.sunlightmeter.ui.theme.NotificationBarColor
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -88,8 +87,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFFADACAC),
-                        Color(0xFF888787)
+                        BG1, BG2
                     )
                 )
             )
@@ -98,25 +96,13 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFFD9D9D9))
-                .height(40.dp)
+                .height(55.dp)
         ) {
-            Text(
-                text = "Sunlight Meter",
-                color = Color(0xFF1A1A1A),
-                fontSize = 24.sp,
-                fontFamily = FontFamily(
-                    Font(R.font.jackinput)
-                ),
-                modifier = Modifier
-                    .offset(8.dp,8.dp)
-            )
             Image(
-                painter = painterResource(id = R.drawable.sun), // Replace with your image
-                contentDescription = "Small image",
-                modifier = Modifier
-                    .size(100.dp) // Adjust size as needed
-                    .align(Alignment.TopEnd) // Position at top right
-                    .offset(32.dp, (0).dp) // Add padding if desired
+                painter = painterResource(id = R.drawable.header), // Replace with your image
+                contentDescription = "Header image",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
         }
         Box(
@@ -144,8 +130,9 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .offset(0.dp, 5.dp)
                                         .padding(8.dp)
-                                        .height(240.dp)
+                                        .height(265.dp)
                                         .background(
                                             Color.White,
                                             shape = RoundedCornerShape(
@@ -153,6 +140,14 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                                             )
                                         ) // Rounded corners
                                 ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.network_wifi),
+                                        contentDescription = "Device image",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .offset(8.dp,4.dp)
+                                            .align(Alignment.TopStart)
+                                    )
                                     Text(
                                         text = device.addr,
                                         fontSize = 12.sp,
@@ -161,37 +156,37 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                                         ),
                                         color = Color.Black,
                                         modifier = Modifier
-                                            .offset(8.dp,4.dp)
+                                            .offset(32.dp,4.dp)
                                             .align(Alignment.TopStart)
                                     )
                                     Text(
-                                        text = "test",
-                                        fontSize = 10.sp,
+                                        text = "Connected",
+                                        fontSize = 16.sp,
                                         fontFamily = FontFamily(
-                                            Font(R.font.robotolight)
+                                            Font(R.font.roboto)
                                         ),
                                         color = Color.Black,
                                         modifier = Modifier
-                                            .offset(8.dp,18.dp)
+                                            .offset(8.dp,24.dp)
                                             .align(Alignment.TopStart)
                                     )
                                     IconButton(onClick = { /* TODO */ },
                                         modifier = Modifier
-                                            .offset((-12).dp, 12.dp)
+                                            .offset((-16).dp, 20.dp)
                                             .align(Alignment.TopEnd)
                                             .size(20.dp)
                                     ) {
                                         Icon(
                                             Icons.Outlined.Settings,
                                             contentDescription = "Notifications",
-                                            tint = Color.Black
+                                            tint = Color.Gray
                                         )
                                     }
                                     HorizontalDivider(
-                                        color = Color.LightGray,
+                                        color = DIVIDER_COLOR,
                                         thickness = 1.dp,
                                         modifier = Modifier
-                                            .offset(0.dp,40.dp)
+                                            .offset(0.dp,60.dp)
                                     )
                                     Text(
                                         text = "1200 lm",
@@ -218,9 +213,9 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFD9D9D9))
+                .background(NotificationBarColor)
                 .padding(8.dp)
-                .height(56.dp) // Increased height for better icon visibility
+                .height(48.dp) // Increased height for better icon visibility
                 .align(Alignment.BottomCenter)
         ) {
             Row(
@@ -241,7 +236,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel) {
                         contentDescription = "Add Device", tint = Color.Black)
                 }
                 IconButton(onClick = { /* TODO */ }) {
-                    Icon(Icons.Filled.Settings,
+                    Icon(Icons.Outlined.Settings,
                         contentDescription = "Settings", tint = Color.Black)
                 }
             }

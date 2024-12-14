@@ -29,8 +29,8 @@ class LandingActivity : ComponentActivity() {
             Handler(Looper.getMainLooper()).postDelayed({
                 val intent = Intent(this, SunlightActivity::class.java)
                 startActivity(intent)
-                finish() // Finish LandingActivity to prevent going back to it
-            }, 3000) // 3000 milliseconds = 3 seconds
+                finish()
+            }, 2000)
         }
     }
 }
