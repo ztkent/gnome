@@ -68,4 +68,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.androidx.constraintlayout.compose)
+    implementation(libs.accompanist.swiperefresh)
 }

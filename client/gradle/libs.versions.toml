@@ -1,5 +1,7 @@
 [versions]
+accompanistSwiperefresh = "0.28.0"
 agp = "8.7.3"
+constraintlayoutCompose = "1.1.0"
 kotlin = "2.0.0"
 coreKtx = "1.15.0"
 junit = "4.13.2"
@@ -20,6 +22,8 @@ foundationAndroid = "1.7.5"
 coreKtxVersion = "1.6.1"
 
 [libraries]
+accompanist-swiperefresh = { module = "com.google.accompanist:accompanist-swiperefresh", version.ref = "accompanistSwiperefresh" }
+androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
