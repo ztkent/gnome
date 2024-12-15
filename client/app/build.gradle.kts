@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.material)
+    implementation(libs.androidx.material)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.navigation.fragment.ktx)
@@ -69,5 +70,4 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.datetime)
     implementation(libs.androidx.constraintlayout.compose)
-    implementation(libs.accompanist.swiperefresh)
 }

@@ -9,3 +9,5 @@ val BG1 = Color(0xFFE6E6E6)
 val BG2 = Color(0xFFC8C8C8)
 
 val DIVIDER_COLOR = Color(0xFFF0F0F0)
+
+val SELECTED_TAB_COLOR = Color(0xFF33691E)
