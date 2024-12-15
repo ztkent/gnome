@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,23 +9,18 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ztkent/sunlight-meter/internal/sunlightmeter"
-	slm "github.com/ztkent/sunlight-meter/internal/sunlightmeter"
-	"github.com/ztkent/sunlight-meter/internal/tools"
-	"github.com/ztkent/sunlight-meter/tsl2591"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/ztkent/gnome/internal/gnome"
+	"github.com/ztkent/gnome/internal/sunlightmeter"
+	"github.com/ztkent/gnome/internal/sunlightmeter/tsl2591"
+	"github.com/ztkent/gnome/internal/tools"
 )
-
-/*
-	This is going to be the primary entry point for the Sunlight Meter application.
-	It should be running at startup, on a Raspberry Pi, with the TSL2591 sensor connected.
-*/
 
 func main() {
 	// Log the process ID, in case we need it.
 	pid := os.Getpid()
-	log.Println("Sunlight Meter PID: ", pid)
+	log.Println("Gnome PID: ", pid)
 
 	// Manage wireless connection. Once we're past here, we should have internet.
 	err := tools.ManageInternetConnection()
@@ -32,7 +28,19 @@ func main() {
 		log.Fatalf("Failed to manage internet connection: %v", err)
 	}
 
-	// connect to the lux sensor
+	// connect to the sqlite database
+	gnomeDB, err := tools.ConnectSqlite(gnome.GNOME_DB_PATH)
+	if err != nil {
+		log.Fatalf("Failed to connect to the sqlite database: %v", err)
+	}
+
+	// Connect and start the Sunlight Meter
+	startSunLightMeter(gnomeDB, pid)
+	return
+}
+
+func startSunLightMeter(gnomeDB *sql.DB, pid int) {
+	// Connect the TSL2591 sensor
 	device, err := tsl2591.NewTSL2591(
 		tsl2591.TSL2591_GAIN_LOW,
 		tsl2591.TSL2591_INTEGRATIONTIME_300MS,
@@ -42,43 +50,30 @@ func main() {
 		log.Fatalf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 
-	// connect to the sqlite database
-	slmDB, err := tools.ConnectSqlite(slm.DB_PATH)
-	if err != nil {
-		// Unlike connecting to the sensor, this should always work.
-		log.Fatalf("Failed to connect to the sqlite database: %v", err)
-	}
-
-	// Initialize router
+	// Start a new chi router
 	r := chi.NewRouter()
-	// Log requests and recover from panics
 	r.Use(middleware.Logger)
 	r.Use(handleServerPanic)
-
-	// Define routes
-	defineRoutes(r, &slm.SLMeter{
+	defineRoutes(r, &sunlightmeter.SLMeter{
 		TSL2591:        device,
-		ResultsDB:      slmDB,
-		LuxResultsChan: make(chan slm.LuxResults),
+		ResultsDB:      gnomeDB,
+		LuxResultsChan: make(chan sunlightmeter.LuxResults),
 		Pid:            pid,
 	})
 
 	if os.Getenv("SSL") == "true" {
-		// Generate a self-signed certificate if one doesn't exist
+		// Start the HTTPS server
 		tools.EnsureCertificate("cert.pem", "key.pem")
-
-		// Start server
 		app_port := "443"
 		certPath := "cert.pem"
 		keyPath := "key.pem"
-
 		log.Printf("Starting HTTPS server on port %s", app_port)
 		err = http.ListenAndServeTLS(":"+app_port, certPath, keyPath, r)
 		if err != nil {
 			log.Fatalf("Failed to start HTTPS server: %v", err)
 		}
 	} else {
-		// Start server
+		// Default to an HTTP server
 		app_port := "80"
 		log.Printf("Starting HTTP server on port %s", app_port)
 		err = http.ListenAndServe(":"+app_port, r)
@@ -86,30 +81,28 @@ func main() {
 			log.Fatalf("Failed to start HTTP server: %v", err)
 		}
 	}
-
-	return
 }
 
-func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
+func defineRoutes(r *chi.Mux, meter *sunlightmeter.SLMeter) {
 	// Listen for any result messages from our jobs, record them in sqlite
 	go meter.MonitorAndRecordResults()
 
-	// Sunlight Meter Dashboard Controls
+	// Sunlight Dashboard Controls
 	r.Get("/", meter.ServeDashboard())
-	r.Route("/sunlightmeter", func(r chi.Router) {
+	r.Route("/gnome", func(r chi.Router) {
 		r.Get("/start", meter.Start())
 		r.Get("/stop", meter.Stop())
 		r.Get("/signal-strength", meter.SignalStrength())
 		r.Get("/current-conditions", meter.CurrentConditions())
 		r.Get("/export", meter.ServeResultsDB())
 		r.Post("/graph", meter.ServeResultsGraph())
-		r.Get("/controls", meter.ServeSunlightControls())
+		r.Get("/controls", meter.ServeControls())
 		r.Get("/status", meter.ServeSensorStatus())
 		r.Post("/results", meter.ServeResultsTab())
 		r.Get("/clear", meter.Clear())
 	})
 
-	// Sunlight Meter API, these serve a JSON response
+	// Sunlight API, these serve a JSON response
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/start", meter.Start())
 		r.Get("/stop", meter.Stop())
@@ -132,7 +125,7 @@ func defineRoutes(r *chi.Mux, meter *slm.SLMeter) {
 			OutboundIP   string   `json:"outbound_ip"`
 			MACAddresses []string `json:"mac_addresses"`
 		}{
-			ServiceName:  "Sunlight Meter",
+			ServiceName:  "Gnome",
 			OutboundIP:   tools.GetOutboundIP().String(),
 			MACAddresses: macs,
 		}

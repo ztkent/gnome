@@ -9,19 +9,20 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ztkent/sunlight-meter/internal/tools"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/go-echarts/v2/types"
+	"github.com/ztkent/gnome/internal/gnome"
+	"github.com/ztkent/gnome/internal/tools"
 )
 
 // Serve the sqlite db for download
 func (m *SLMeter) ServeResultsDB() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "sunlightmeter.db"))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "gnome.db"))
 		w.Header().Set("Content-Type", "application/octet-stream")
-		http.ServeFile(w, r, DB_PATH)
+		http.ServeFile(w, r, gnome.GNOME_DB_PATH)
 	}
 }
 
@@ -35,7 +36,7 @@ func (m *SLMeter) ServeDashboard() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-        w.Write(fileContent)
+		w.Write(fileContent)
 	}
 }
 
@@ -48,7 +49,7 @@ func parseHTMLFile(path string) ([]byte, error) {
 }
 
 // Serve the controls for the sensor, start/stop/export/current-conditions/signal-strength
-func (m *SLMeter) ServeSunlightControls() http.HandlerFunc {
+func (m *SLMeter) ServeControls() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tmpl, err := parseTemplateFile("html/controls.gohtml")
 		if err != nil {
@@ -200,7 +201,7 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 					SaveAsImage: &opts.ToolBoxFeatureSaveAsImage{
 						Show:  true,
 						Title: "Save as Image",
-						Name:  "sunlight-meter",
+						Name:  "gnome",
 					},
 				},
 			}),
@@ -215,8 +216,8 @@ func (m *SLMeter) ServeResultsGraph() http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html")
 		page.Render(w)
 		// Trigger an update for the results tab
-		w.Write([]byte(`<div id='resultUpdateTrigger' hx-post='/sunlightmeter/results' hx-target='#resultsContent' hx-trigger='load'></div>`))
-		w.Write([]byte(`<script>document.title = "Sunlight Meter";</script>`))
+		w.Write([]byte(`<div id='resultUpdateTrigger' hx-post='/gnome/results' hx-target='#resultsContent' hx-trigger='load'></div>`))
+		w.Write([]byte(`<script>document.title = "Gnome";</script>`))
 	}
 }
 

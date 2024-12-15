@@ -17,9 +17,7 @@ sudo apt update
 
 ### Clone the repo, if you'd like.
 ```shell
-sudo apt install gh
-gh auth login
-gh repo clone sunlight-meter
+git clone https://github.com/ztkent/gnome
 ```
 
 ### Setup Golang
@@ -55,11 +53,11 @@ source ~/.bashrc
 
 ### Install the app and set it to run at boot
 ```shell
-sudo mv slm /home/sunlight/
-mkdir /home/sunlight/transfers
-source /home/sunlight/.bashrc
-sudo chmod +x /home/sunlight/slm
+sudo mv slm /home/gnome/
+mkdir /home/gnome/transfers
+source /home/gnome/.bashrc
+sudo chmod +x /home/gnome/slm
 sudo crontab -e
-  @reboot /home/sunlight/slm
+  @reboot /home/gnome/slm
 reboot
 ```

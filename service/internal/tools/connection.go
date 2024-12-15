@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	TRANSFER_DIRECTORY = "/home/sunlight/transfers"
+	TRANSFER_DIRECTORY = "/home/gnome/transfers"
 )
 
 type Credentials struct {
@@ -42,7 +42,7 @@ type Credentials struct {
 func ManageInternetConnection() error {
 	if !checkInternetConnection("http://www.google.com") {
 		log.Println("No internet connection detected. Starting WIFI management...")
-		btm, err := pitooth.NewBluetoothManager("SunlightMeter")
+		btm, err := pitooth.NewBluetoothManager("Gnome")
 		if err != nil {
 			return fmt.Errorf("Failed to create Bluetooth manager: %v", err)
 		}
@@ -239,23 +239,23 @@ func GetOutboundIP() net.IP {
 }
 
 func GetAllActiveMACAddresses() ([]string, error) {
-    var macAddresses []string
-    ifaces, err := net.Interfaces()
-    if err != nil {
-        return nil, err
-    }
+	var macAddresses []string
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
 
-    for _, iface := range ifaces {
-        // Check if the interface is up and ignore loopback
-        if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
-            continue
-        }
-        if iface.HardwareAddr != nil {
-            macAddresses = append(macAddresses, iface.HardwareAddr.String())
-        }
-    }
+	for _, iface := range ifaces {
+		// Check if the interface is up and ignore loopback
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		if iface.HardwareAddr != nil {
+			macAddresses = append(macAddresses, iface.HardwareAddr.String())
+		}
+	}
 
-    return macAddresses, nil
+	return macAddresses, nil
 }
 
 func cleanUpTransfers() {

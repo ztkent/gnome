@@ -1,4 +1,4 @@
-module github.com/ztkent/sunlight-meter
+module github.com/ztkent/gnome
 
 go 1.23
 

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sunlight Meter</title>
+    <title>Gnome</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@1.6.1"></script>
     <script src="https://go-echarts.github.io/go-echarts-assets/assets/echarts.min.js"></script>
@@ -16,8 +16,8 @@
         <div class="bg-gray-900 p-6 rounded shadow-md text-center">
             <div class="flex justify-between items-center">
                 <div class="flex items-center">
-                    <h3 class="text-2xl font-bold text-white text-left pb-2">Sunlight Meter</h3>
-                    <div id="htmxContent" hx-get="/sunlightmeter/status" hx-trigger="load, every 15s">
+                    <h3 class="text-2xl font-bold text-white text-left pb-2">Gnome</h3>
+                    <div id="htmxContent" hx-get="/gnome/status" hx-trigger="load, every 15s">
                         <div class="text-white text-sm rounded-full px-2 bg-green-500 ml-4 mb-1">
                             Connected
                         </div>
@@ -26,20 +26,20 @@
                         </div>
                     </div>
                 </div>
-                <button type="button" hx-post="/sunlightmeter/graph" hx-target="#graphContent" hx-include="#graphForm" onclick="setDateInputs()" class="text-white text-2xl">
+                <button type="button" hx-post="/gnome/graph" hx-target="#graphContent" hx-include="#graphForm" onclick="setDateInputs()" class="text-white text-2xl">
                     ⟳
                 </button>
             </div>
-            <form id="graphForm" hx-post="/sunlightmeter/graph" hx-target="#graphContent"> 
+            <form id="graphForm" hx-post="/gnome/graph" hx-target="#graphContent"> 
                 <div style="display: grid; grid-template-columns: auto 300px; gap: 0rem;">
-                    <div id="graphContent" hx-post="/sunlightmeter/graph" hx-trigger="load" class="h-full"></div>
+                    <div id="graphContent" hx-post="/gnome/graph" hx-trigger="load" class="h-full"></div>
                     <div class="ml-2 bg-gray-200 p-4 rounded shadow">
                         <div class="flex mb-4">
                             <div class="w-1/2 bg-gray-300 text-center py-1 cursor-pointer" id="resultsTab">Results</div>
                             <div class="w-1/2 bg-gray-200 text-center py-1 cursor-pointer" id="settingsTab">Settings
                             </div>
                         </div>
-                        <div hx-post="/sunlightmeter/results" hx-target="#resultsContent" hx-trigger="load, every 60s">
+                        <div hx-post="/gnome/results" hx-target="#resultsContent" hx-trigger="load, every 60s">
                             <div id="resultsContent"></div>
                         </div>
                         <div id="settingsContent" class="hidden">
@@ -59,7 +59,7 @@
                     </div>
                 </div>
             </form>
-            <div id="controlsContent" hx-get="/sunlightmeter/controls" hx-trigger="load"></div>
+            <div id="controlsContent" hx-get="/gnome/controls" hx-trigger="load"></div>
             <div id="responseContent" class="bg-gray-900 rounded shadow-md text-center text-white"></div>
         </div>
     </div>
@@ -78,7 +78,7 @@
     }
 
     window.onload = function () {
-        document.title = "Sunlight Meter";
+        document.title = "Gnome";
         document.getElementById('resultsTab').addEventListener('click', function () {
             switchTab('resultsTab', 'settingsTab', 'resultsContent', 'settingsContent');
         });

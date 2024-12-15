@@ -10,19 +10,18 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-
 @Composable
 fun SunlightMeterTheme(
     content: @Composable () -> Unit
 ) {
-    val darkTheme = isSystemInDarkTheme()
     val colorScheme = darkColorScheme()
-   val view = LocalView.current
+    val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = NotificationBarColor.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            // Always use dark status bar icons
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
         }
     }
     MaterialTheme(

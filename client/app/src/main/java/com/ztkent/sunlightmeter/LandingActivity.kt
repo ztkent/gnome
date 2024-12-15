@@ -30,7 +30,7 @@ class LandingActivity : ComponentActivity() {
                 val intent = Intent(this, SunlightActivity::class.java)
                 startActivity(intent)
                 finish()
-            }, 2000)
+            }, 1500)
         }
     }
 }

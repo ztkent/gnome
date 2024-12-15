@@ -15,8 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ztkent/sunlight-meter/tsl2591"
 	"github.com/google/uuid"
+	"github.com/ztkent/gnome/internal/gnome"
+	"github.com/ztkent/gnome/internal/sunlightmeter/tsl2591"
 )
 
 //go:embed html/*
@@ -51,12 +52,6 @@ type Conditions struct {
 	AverageLuxInRange     float64 `json:"averageLuxInRange"`
 }
 
-const (
-	MAX_JOB_DURATION = 8 * time.Hour
-	RECORD_INTERVAL  = 30 * time.Second
-	DB_PATH          = "sunlightmeter.db"
-)
-
 // Start the sensor, and collect data in a loop
 func (m *SLMeter) Start() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +66,7 @@ func (m *SLMeter) Start() http.HandlerFunc {
 
 		go func() {
 			// Create a new context with a timeout to manage the sensor lifecycle
-			ctx, cancel := context.WithTimeout(context.Background(), MAX_JOB_DURATION)
+			ctx, cancel := context.WithTimeout(context.Background(), gnome.MAX_JOB_DURATION)
 			m.cancel = cancel
 
 			// Enable the sensor
@@ -79,7 +74,7 @@ func (m *SLMeter) Start() http.HandlerFunc {
 			defer m.Disable()
 
 			jobID := uuid.New().String()
-			ticker := time.NewTicker(RECORD_INTERVAL)
+			ticker := time.NewTicker(gnome.RECORD_INTERVAL)
 			for {
 				// Check if we've cancelled this job.
 				select {
@@ -275,7 +270,7 @@ func parseTemplateFile(path string) (*template.Template, error) {
 
 // Read from LuxResultsChan, write the results to sqlite
 func (m *SLMeter) MonitorAndRecordResults() {
-	log.Println("Monitoring for new Sunlight Messages...")
+	log.Println("Monitoring for new messages...")
 	for {
 		select {
 		case result := <-m.LuxResultsChan:
