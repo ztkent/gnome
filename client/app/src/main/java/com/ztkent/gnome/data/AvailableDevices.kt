@@ -22,10 +22,45 @@ import java.io.InputStreamReader
 
 class Device(addr: String) {
     val addr: String
+    var serviceName: String = ""
+    var outboundIp: String = ""
+    var macAddresses: List<String> = emptyList()
+    var signalStrength: SignalStrength = SignalStrength()
+    var conditions: Conditions = Conditions()
+    var status: Status = Status()
+    var errors: Errors = Errors()
+
     init {
         this.addr = addr
     }
 }
+
+data class SignalStrength(
+    var signalInt: Int = 0,
+    var strength: Int = 0
+)
+
+data class Conditions(
+    var jobID: String = "",
+    var lux: Int = 0,
+    var fullSpectrum: Int = 0,
+    var visible: Int = 0,
+    var infrared: Int = 0,
+    var dateRange: String = "",
+    var recordedHoursInRange: Int = 0,
+    var fullSunlightInRange: Int = 0,
+    var lightConditionInRange: String = "",
+    var averageLuxInRange: Int = 0
+)
+
+data class Status(
+    var connected: Boolean = false,
+    var enabled: Boolean = false
+)
+
+data class Errors(
+    var signalStrength: String = ""
+)
 
 open class AvailableDevices {
     private val coroutineScope = CoroutineScope(Job() + Dispatchers.IO + SupervisorJob())
@@ -66,10 +101,10 @@ open class AvailableDevices {
             val deferredResults2 = potentialIps.map { potentialIp ->
                 async {
                     try {
-                        val foundDevice = checkForDeviceResponse(potentialIp, "")
-                        if (foundDevice) {
+                        val devicePair = checkForDeviceResponse(potentialIp, "")
+                        if (devicePair.second) {
                             semaphore.acquire() // Acquire a permit before starting
-                            addDevice(Device(potentialIp))
+                            addDevice(device = devicePair.first!!)
                             semaphore.release() // Release the permit after finishing
                         } else {
                             Log.d("fetchAvailableDevices", "No device found at $potentialIp")
@@ -81,9 +116,9 @@ open class AvailableDevices {
             }
 
             // Wait for the responses
-            deferredHost.await().let { foundDevice ->
-                if (foundDevice) {
-                    addDevice(Device("sunlight.local"))
+            deferredHost.await().let { devicePair ->
+                if (devicePair.second) {
+                    addDevice(devicePair.first!!)
                 }
             }
             deferredResults2.awaitAll()
@@ -126,7 +161,7 @@ open class AvailableDevices {
         return potentialIps
     }
 
-    private fun checkForDeviceResponse(ip: String, host: String): Boolean {
+    private fun checkForDeviceResponse(ip: String, host: String): Pair<Device?, Boolean> {
         var url = "http://$ip/id"
         if (host.isNotEmpty()) {
             url = "http://$host/id"
@@ -145,16 +180,63 @@ open class AvailableDevices {
                 try {
                     jsonObject = JSONObject(response)
                 } catch (e: Exception) {
-                    return false
+                    return Pair<Device?, Boolean>(null, false)
                 }
-                val serviceName = jsonObject.optString("service_name", "") ?: ""
+
                 // Check if its one of our devices
-                return serviceName == "Gnome" || serviceName == "Sunlight Meter"
+                val serviceName = jsonObject.optString("service_name", "") ?: ""
+                if (serviceName == "Gnome" || serviceName == "Sunlight Meter") {
+                    // Extract other fields from jsonObject and populate the Device object
+                    val device = Device(host.ifEmpty { ip })
+                    device.serviceName = serviceName
+                    device.outboundIp = jsonObject.optString("outbound_ip", "")
+                    device.macAddresses = jsonObject.optJSONArray("mac_addresses")?.let { jsonArray ->
+                        (0 until jsonArray.length()).map { jsonArray.getString(it) }
+                    } ?: emptyList()
+
+                    // Extract signalStrength
+                    val signalStrengthJson = jsonObject.optJSONObject("signal_strength")
+                    device.signalStrength = SignalStrength(
+                        signalStrengthJson?.optInt("signalInt", 0) ?: 0,
+                        signalStrengthJson?.optInt("strength", 0) ?: 0
+                    )
+
+                    // Extract conditions
+                    val conditionsJson = jsonObject.optJSONObject("conditions")
+                    device.conditions = Conditions(
+                        conditionsJson?.optString("jobID", "") ?: "",
+                        conditionsJson?.optInt("lux", 0) ?: 0,
+                        conditionsJson?.optInt("fullSpectrum", 0) ?: 0,
+                        conditionsJson?.optInt("visible", 0) ?: 0,
+                        conditionsJson?.optInt("infrared", 0) ?: 0,
+                        conditionsJson?.optString("dateRange", "") ?: "",
+                        conditionsJson?.optInt("recordedHoursInRange", 0) ?: 0,
+                        conditionsJson?.optInt("fullSunlightInRange", 0) ?: 0,
+                        conditionsJson?.optString("lightConditionInRange", "") ?: "",
+                        conditionsJson?.optInt("averageLuxInRange", 0) ?: 0
+                    )
+
+                    // Extract status
+                    val statusJson = jsonObject.optJSONObject("status")
+                    device.status = Status(
+                        statusJson?.optBoolean("connected", false) ?: false,
+                        statusJson?.optBoolean("enabled", false) ?: false
+                    )
+
+                    // Extract errors
+                    val errorsJson = jsonObject.optJSONObject("errors")
+                    device.errors = Errors(
+                        errorsJson?.optString("signal_strength", "") ?: ""
+                    )
+                    Log.d("checkForDeviceResponse", "Found Device: $device")
+                    return Pair<Device?, Boolean>(device, true)
+                }
+                return Pair<Device?, Boolean>(null, false)
             }
         } catch (e: Exception) {
             // Handle exceptions (e.g., timeout, connection refused)
-            return false
+            return Pair<Device?, Boolean>(null, false)
         }
-        return false
+        return Pair<Device?, Boolean>(null, false)
     }
 }
