@@ -9,6 +9,8 @@ sunlightmeter.code-workspace
 cert.pem
 key.pem
 slm.log
+gnome.log
 go1.21.11.linux-arm64.tar.gz
 go1.21.11.linux-armv6l.tar.gz
 .DS_Store
+service/gnome

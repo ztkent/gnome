@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -47,7 +46,7 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 		"/dev/i2c-1",
 	)
 	if err != nil {
-		log.Fatalf("Failed to connect to the TSL2591 sensor: %v", err)
+		// log.Fatalf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 
 	// Start a new chi router
@@ -87,21 +86,6 @@ func defineRoutes(r *chi.Mux, meter *sunlightmeter.SLMeter) {
 	// Listen for any result messages from our jobs, record them in sqlite
 	go meter.MonitorAndRecordResults()
 
-	// Sunlight Dashboard Controls
-	r.Get("/", meter.ServeDashboard())
-	r.Route("/gnome", func(r chi.Router) {
-		r.Get("/start", meter.Start())
-		r.Get("/stop", meter.Stop())
-		r.Get("/signal-strength", meter.SignalStrength())
-		r.Get("/current-conditions", meter.CurrentConditions())
-		r.Get("/export", meter.ServeResultsDB())
-		r.Post("/graph", meter.ServeResultsGraph())
-		r.Get("/controls", meter.ServeControls())
-		r.Get("/status", meter.ServeSensorStatus())
-		r.Post("/results", meter.ServeResultsTab())
-		r.Get("/clear", meter.Clear())
-	})
-
 	// Sunlight API, these serve a JSON response
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/start", meter.Start())
@@ -112,28 +96,8 @@ func defineRoutes(r *chi.Mux, meter *sunlightmeter.SLMeter) {
 	})
 
 	// Route for service identification
-	r.Get("/id", func(w http.ResponseWriter, r *http.Request) {
-		macs, err := tools.GetAllActiveMACAddresses()
-		if err != nil {
-			// Handle error, maybe log it or use a default/fallback value
-			http.Error(w, "Failed to get MAC addresses", http.StatusInternalServerError)
-			return
-		}
-
-		response := struct {
-			ServiceName  string   `json:"service_name"`
-			OutboundIP   string   `json:"outbound_ip"`
-			MACAddresses []string `json:"mac_addresses"`
-		}{
-			ServiceName:  "Gnome",
-			OutboundIP:   tools.GetOutboundIP().String(),
-			MACAddresses: macs,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
-	})
+	r.Get("/", meter.ID())
+	r.Get("/id", meter.ID())
 
 	// Serve static files
 	workDir, _ := os.Getwd()

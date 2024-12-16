@@ -4,7 +4,6 @@ go 1.23
 
 require (
 	github.com/go-chi/chi/v5 v5.0.14
-	github.com/go-echarts/go-echarts/v2 v2.3.3
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/sirupsen/logrus v1.9.3

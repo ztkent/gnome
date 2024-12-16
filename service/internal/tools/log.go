@@ -12,7 +12,7 @@ type MultiWriter struct {
 }
 
 func init() {
-	logFile, err := os.OpenFile("slm.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile("gnome.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening log file: %v", err)
 	}
