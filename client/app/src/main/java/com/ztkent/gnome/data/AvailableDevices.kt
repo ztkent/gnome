@@ -148,7 +148,8 @@ open class AvailableDevices {
                     return false
                 }
                 val serviceName = jsonObject.optString("service_name", "") ?: ""
-                return serviceName == "Gnome"
+                // Check if its one of our devices
+                return serviceName == "Gnome" || serviceName == "Sunlight Meter"
             }
         } catch (e: Exception) {
             // Handle exceptions (e.g., timeout, connection refused)
