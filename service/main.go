@@ -46,7 +46,7 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 		"/dev/i2c-1",
 	)
 	if err != nil {
-		// log.Fatalf("Failed to connect to the TSL2591 sensor: %v", err)
+		log.Printf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 
 	// Start a new chi router
