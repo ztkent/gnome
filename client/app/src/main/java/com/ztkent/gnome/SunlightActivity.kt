@@ -27,8 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.PullRefreshState
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -175,8 +177,8 @@ private fun LandscapeMode(
                         is DeviceLoadState.Success -> {
                             if (devices.data.isEmpty()) {
                                 item {
-                                    DeviceItem(
-                                        device = Device("No Devices Found"),
+                                    EmptyDeviceItem(
+                                        device = Device(""),
                                         modifier = Modifier
                                             .fillParentMaxWidth(0.5f)
                                             .padding(8.dp)
@@ -327,7 +329,7 @@ private fun PortraitMode(
                         if (devices.data.isEmpty()) {
                             // Display some information
                             item {
-                                DeviceItem(device = Device("No Devices Found"),
+                                EmptyDeviceItem(device = Device(""),
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(8.dp)
@@ -498,6 +500,92 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
         )
     }
 }
+
+@Composable
+fun EmptyDeviceItem(device: Device, modifier: Modifier = Modifier) {
+    ConstraintLayout(
+        modifier = modifier
+            .height(265.dp)
+            .background(
+                Color.White,
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        val (image, address, status, infoIcon, divider, brightness) = createRefs()
+        Image(
+            painter = painterResource(id = R.drawable.network_wifi_off),
+            contentDescription = "Device image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .constrainAs(image) {
+                    top.linkTo(parent.top, margin = 4.dp)
+                    start.linkTo(parent.start, margin = 8.dp)
+                }
+        )
+        Text(
+            text = device.addr,
+            fontSize = 12.sp,
+            fontFamily = FontFamily(Font(R.font.roboto)),
+            color = Color.Black,
+            modifier = Modifier
+                .constrainAs(address) {
+                    top.linkTo(parent.top, margin = 4.dp)
+                    start.linkTo(image.end, margin = 8.dp)
+                }
+        )
+        IconButton(
+            onClick = { /* TODO */ },
+            modifier = Modifier
+                .constrainAs(infoIcon) {
+                    top.linkTo(parent.top, margin = 20.dp)
+                    end.linkTo(parent.end, margin = 16.dp)
+                }
+                .size(20.dp)
+        ) {
+            Icon(
+                Icons.Outlined.Info,
+                contentDescription = "No Devices",
+                tint = Color.Gray
+            )
+        }
+        Text(
+            text = "No Devices Found",
+            fontSize = 16.sp,
+            fontFamily = FontFamily(Font(R.font.roboto)),
+            color = Color.Black,
+            modifier = Modifier
+                .constrainAs(status) {
+                    top.linkTo(image.bottom, margin = 8.dp)
+                    start.linkTo(parent.start, margin = 8.dp)
+                }
+        )
+
+        HorizontalDivider(
+            color = DIVIDER_COLOR,
+            thickness = 1.dp,
+            modifier = Modifier
+                .constrainAs(divider) {
+                    top.linkTo(status.bottom, margin = 16.dp)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                }
+        )
+
+        Text(
+            text = "N/A",
+            fontSize = 36.sp,
+            fontFamily = FontFamily(Font(R.font.roboto)),
+            color = Color.Black,
+            modifier = Modifier
+                .constrainAs(brightness) {
+                    centerVerticallyTo(parent)
+                    centerHorizontallyTo(parent)
+                }
+                .padding(12.dp)
+        )
+    }
+}
+
 
 // Device List Model
 open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
