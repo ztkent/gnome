@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.ztkent.sunlightmeter"
+    namespace = "com.ztkent.gnome"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.ztkent.sunlightmeter"
+        applicationId = "com.ztkent.gnome"
         minSdk = 30
         targetSdk = 35
         versionCode = 1

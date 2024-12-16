@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter.ui.theme
+package com.ztkent.gnome.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

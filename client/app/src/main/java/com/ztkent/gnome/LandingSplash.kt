@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter
+package com.ztkent.gnome
 
 
 import androidx.compose.foundation.Image

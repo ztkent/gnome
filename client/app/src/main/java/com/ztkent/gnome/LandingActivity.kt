@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter
+package com.ztkent.gnome
 
 import android.os.Handler
 import android.os.Looper
@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.ztkent.sunlightmeter.ui.theme.SunlightMeterTheme
+import com.ztkent.gnome.ui.theme.SunlightMeterTheme
 
 class LandingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

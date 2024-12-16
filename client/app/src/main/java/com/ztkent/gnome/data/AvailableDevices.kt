@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter.data
+package com.ztkent.gnome.data
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -10,7 +10,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.datetime.Clock
 import java.net.HttpURLConnection

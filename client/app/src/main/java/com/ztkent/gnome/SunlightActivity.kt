@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter
+package com.ztkent.gnome
 
 import android.content.Context
 import android.content.res.Configuration
@@ -11,7 +11,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,14 +61,14 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ztkent.sunlightmeter.data.AvailableDevices
-import com.ztkent.sunlightmeter.data.Device
-import com.ztkent.sunlightmeter.ui.theme.BG1
-import com.ztkent.sunlightmeter.ui.theme.BG2
-import com.ztkent.sunlightmeter.ui.theme.DIVIDER_COLOR
-import com.ztkent.sunlightmeter.ui.theme.NotificationBarColor
-import com.ztkent.sunlightmeter.ui.theme.SELECTED_TAB_COLOR
-import com.ztkent.sunlightmeter.ui.theme.SunlightMeterTheme
+import com.ztkent.gnome.data.AvailableDevices
+import com.ztkent.gnome.data.Device
+import com.ztkent.gnome.ui.theme.BG1
+import com.ztkent.gnome.ui.theme.BG2
+import com.ztkent.gnome.ui.theme.DIVIDER_COLOR
+import com.ztkent.gnome.ui.theme.NotificationBarColor
+import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
+import com.ztkent.gnome.ui.theme.SunlightMeterTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

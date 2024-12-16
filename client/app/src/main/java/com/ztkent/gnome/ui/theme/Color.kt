@@ -1,4 +1,4 @@
-package com.ztkent.sunlightmeter.ui.theme
+package com.ztkent.gnome.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
