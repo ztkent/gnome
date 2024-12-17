@@ -33,6 +33,25 @@ class Device(addr: String) {
     init {
         this.addr = addr
     }
+
+    constructor(
+        addr: String,
+        serviceName: String,
+        outboundIp: String,
+        macAddresses: List<String>,
+        signalStrength: SignalStrength,
+        conditions: Conditions,
+        status: Status,
+        errors: Errors
+    ) : this(addr) {
+        this.serviceName = serviceName
+        this.outboundIp = outboundIp
+        this.macAddresses = macAddresses
+        this.signalStrength = signalStrength
+        this.conditions = conditions
+        this.status = status
+        this.errors = errors
+    }
 }
 
 data class SignalStrength(

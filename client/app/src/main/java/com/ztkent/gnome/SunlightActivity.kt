@@ -64,12 +64,12 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ztkent.gnome.data.AvailableDevices
+import com.ztkent.gnome.data.Conditions
 import com.ztkent.gnome.data.Device
-import com.ztkent.gnome.ui.theme.BG1
-import com.ztkent.gnome.ui.theme.BG2
-import com.ztkent.gnome.ui.theme.DIVIDER_COLOR
-import com.ztkent.gnome.ui.theme.NotificationBarColor
-import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
+import com.ztkent.gnome.data.Errors
+import com.ztkent.gnome.data.SignalStrength
+import com.ztkent.gnome.data.Status
+import com.ztkent.gnome.ui.theme.*
 import com.ztkent.gnome.ui.theme.SunlightMeterTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -417,17 +417,42 @@ private fun PortraitMode(
 
 @Composable
 fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
+    var backgroundDeviceColor = when (device.conditions.lux) {
+        in 0..2 -> LuxColorMoonlessOvercast
+        in 3..20 -> LuxColorFullMoon // Special case for 3.4 lux
+        in 20..49 -> LuxColorDarkTwilight
+        in 50..50 -> LuxColorLivingRoom
+        in 51..79 -> LuxColorOfficeHallway
+        in 80..99 -> LuxColorDarkOvercast
+        in 100..149 -> LuxColorTrainStation
+        in 150..319 -> LuxColorOfficeLighting
+        in 320..399 -> LuxColorSunriseSunset
+        in 400..999 -> LuxColorOvercastDay
+        in 1000..9999 -> LuxColorFullDaylight
+        in 10000..15000 -> LuxColorDirectSunlight
+        else -> Color.White // Default to white for unknown lux levels
+    }
+    if (!device.status.enabled) {
+        backgroundDeviceColor = Color.White
+    }
     ConstraintLayout(
         modifier = modifier
             .height(265.dp)
             .background(
-                Color.White,
+                backgroundDeviceColor,
                 shape = RoundedCornerShape(8.dp)
             )
     ) {
-        val (image, address, status, settingsIcon, divider, brightness) = createRefs()
+        val (image, address, status, settingsIcon, divider, brightness, divider2, refreshIcon, graphIcon, downloadIcon) = createRefs()
+        val wifiId = when {
+            device.signalStrength.strength > 80 -> R.drawable.network_wifi
+            device.signalStrength.strength > 60 -> R.drawable.network_wifi_3
+            device.signalStrength.strength > 40 -> R.drawable.network_wifi_2
+            device.signalStrength.strength > 20 -> R.drawable.network_wifi_1
+            else -> R.drawable.network_wifi_off
+        }
         Image(
-            painter = painterResource(id = R.drawable.network_wifi),
+            painter = painterResource(id = wifiId),
             contentDescription = "Device image",
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -438,7 +463,7 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
         )
         Text(
             text = device.addr,
-            fontSize = 12.sp,
+            fontSize = 14.sp,
             fontFamily = FontFamily(Font(R.font.roboto)),
             color = Color.Black,
             modifier = Modifier
@@ -454,7 +479,7 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
             color = Color.Black,
             modifier = Modifier
                 .constrainAs(status) {
-                    top.linkTo(image.bottom, margin = 8.dp)
+                    top.linkTo(image.bottom, margin = 4.dp)
                     start.linkTo(parent.start, margin = 8.dp)
                 }
         )
@@ -463,13 +488,12 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
             onClick = { /* TODO */ },
             modifier = Modifier
                 .constrainAs(settingsIcon) {
-                    top.linkTo(parent.top, margin = 20.dp)
-                    end.linkTo(parent.end, margin = 16.dp)
+                    top.linkTo(parent.top, margin = 8.dp)
+                    end.linkTo(parent.end, margin = 0.dp)
                 }
-                .size(20.dp)
         ) {
             Icon(
-                Icons.Outlined.Settings,
+                painterResource(id = R.drawable.power_28),
                 contentDescription = "Notifications",
                 tint = Color.Gray
             )
@@ -480,24 +504,95 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
             thickness = 1.dp,
             modifier = Modifier
                 .constrainAs(divider) {
-                    top.linkTo(status.bottom, margin = 16.dp)
+                    top.linkTo(status.bottom, margin = 8.dp)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }
         )
 
-        Text(
-            text = "1200 lm",
-            fontSize = 36.sp,
-            fontFamily = FontFamily(Font(R.font.roboto)),
-            color = Color.Black,
-            modifier = Modifier
-                .constrainAs(brightness) {
-                    centerVerticallyTo(parent)
-                    centerHorizontallyTo(parent)
-                }
-                .padding(12.dp)
-        )
+        if (device.status.enabled) {
+            Text(
+                text = "" + device.conditions.lux + " lm",
+                fontSize = 36.sp,
+                fontFamily = FontFamily(Font(R.font.roboto)),
+                color = Color.Black,
+                modifier = Modifier
+                    .constrainAs(brightness) {
+                        centerVerticallyTo(parent)
+                        centerHorizontallyTo(parent)
+                        bottom.linkTo(parent.bottom, margin = -10.dp)
+                    }
+                    .padding(12.dp)
+            )
+
+            HorizontalDivider(
+                color = DIVIDER_COLOR,
+                thickness = 1.dp,
+                modifier = Modifier
+                    .constrainAs(divider2) {
+                        bottom.linkTo(parent.bottom, margin = 60.dp)
+                    }
+            )
+            IconButton(
+                onClick = { /* TODO */ },
+                modifier = Modifier
+                    .constrainAs(refreshIcon) {
+                        bottom.linkTo(parent.bottom, margin = 10.dp)
+                        start.linkTo(parent.start, margin = 40.dp)
+                    }
+                    .size(45.dp)
+            ) {
+                Icon(
+                    painterResource(id = R.drawable.refresh_32),
+                    contentDescription = "Notifications",
+                    tint = Color.Gray
+                )
+            }
+            IconButton(
+                onClick = { /* TODO */ },
+                modifier = Modifier
+                    .constrainAs(graphIcon) {
+                        bottom.linkTo(parent.bottom, margin = 10.dp)
+                        start.linkTo(parent.start, margin = 0.dp)
+                        end.linkTo(parent.end, margin = 0.dp)
+                    }
+                    .size(45.dp)
+            ) {
+                Icon(
+                   painterResource(id = R.drawable.auto_graph_32),
+                    contentDescription = "Notifications",
+                    tint = Color.Gray
+                )
+            }
+            IconButton(
+                onClick = { /* TODO */ },
+                modifier = Modifier
+                    .constrainAs(downloadIcon) {
+                        bottom.linkTo(parent.bottom, margin = 10.dp)
+                        end.linkTo(parent.end, margin = 40.dp)
+                    }
+                    .size(45.dp)
+            ) {
+                Icon(
+                    painterResource(id = R.drawable.download_32),
+                    contentDescription = "Notifications",
+                    tint = Color.Gray
+                )
+            }
+        } else {
+            Text(
+                text = "Disabled",
+                fontSize = 36.sp,
+                fontFamily = FontFamily(Font(R.font.robotolight)),
+                color = Color.Black,
+                modifier = Modifier
+                    .constrainAs(brightness) {
+                        centerVerticallyTo(parent)
+                        centerHorizontallyTo(parent)
+                    }
+                    .padding(12.dp)
+            )
+        }
     }
 }
 
@@ -642,7 +737,18 @@ fun HomeScreenPreview() {
 class MockAvailableDevices : AvailableDevices() {
     override suspend fun getAvailableDevices(context: Context): List<Device> {
         val numDevices = (1..10).random() // Generate a random number between 1 and 10
-        return (1..numDevices).map { Device("FakeDevice$it") } // Create a list of fake devices
+        return (1..numDevices).map {
+            Device(
+                addr = "192.168.1.$it",
+                serviceName = "Gnome", // or "Sunlight Meter"
+                outboundIp = "192.168.1.$it",
+                macAddresses = listOf("00:11:22:33:44:$it"),
+                signalStrength = SignalStrength(signalInt = -50 + it * 10, strength = (15..100).random()),
+                conditions = Conditions(jobID = "job$it", lux = (0..15000).random()),
+                status = Status(connected = true, enabled = it % 3 != 0),
+                errors = Errors(signalStrength = if (it % 4 == 0) "Signal error" else "No errors")
+            )
+        }
     }
 }
 
