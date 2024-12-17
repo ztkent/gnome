@@ -27,10 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.PullRefreshState
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -69,7 +67,23 @@ import com.ztkent.gnome.data.Device
 import com.ztkent.gnome.data.Errors
 import com.ztkent.gnome.data.SignalStrength
 import com.ztkent.gnome.data.Status
-import com.ztkent.gnome.ui.theme.*
+import com.ztkent.gnome.ui.theme.BG1
+import com.ztkent.gnome.ui.theme.BG2
+import com.ztkent.gnome.ui.theme.DIVIDER_COLOR
+import com.ztkent.gnome.ui.theme.LuxColorDarkOvercast
+import com.ztkent.gnome.ui.theme.LuxColorDarkTwilight
+import com.ztkent.gnome.ui.theme.LuxColorDirectSunlight
+import com.ztkent.gnome.ui.theme.LuxColorFullDaylight
+import com.ztkent.gnome.ui.theme.LuxColorFullMoon
+import com.ztkent.gnome.ui.theme.LuxColorLivingRoom
+import com.ztkent.gnome.ui.theme.LuxColorMoonlessOvercast
+import com.ztkent.gnome.ui.theme.LuxColorOfficeHallway
+import com.ztkent.gnome.ui.theme.LuxColorOfficeLighting
+import com.ztkent.gnome.ui.theme.LuxColorOvercastDay
+import com.ztkent.gnome.ui.theme.LuxColorSunriseSunset
+import com.ztkent.gnome.ui.theme.LuxColorTrainStation
+import com.ztkent.gnome.ui.theme.NotificationBarColor
+import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
 import com.ztkent.gnome.ui.theme.SunlightMeterTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -485,7 +499,13 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
         )
 
         IconButton(
-            onClick = { /* TODO */ },
+            onClick = {
+                device.flipStatus().fold(
+                    onSuccess = {},
+                    onFailure = { exception ->
+                        Log.e("DeviceItem", "Error adjusting device power", exception)
+                    }
+                ) },
             modifier = Modifier
                 .constrainAs(settingsIcon) {
                     top.linkTo(parent.top, margin = 8.dp)
@@ -547,7 +567,14 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
                 }
         )
         IconButton(
-            onClick = { /* TODO */ },
+            onClick = {
+                device.refreshDevice().fold(
+                    onSuccess = {},
+                    onFailure = { exception ->
+                        Log.e("DeviceItem", "Error refreshing device", exception)
+                    }
+                )
+            },
             modifier = Modifier
                 .constrainAs(refreshIcon) {
                     bottom.linkTo(parent.bottom, margin = 10.dp)
@@ -557,7 +584,7 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
         ) {
             Icon(
                 painterResource(id = R.drawable.refresh_32),
-                contentDescription = "Notifications",
+                contentDescription = "Refresh Device",
                 tint = Color.Gray
             )
         }
@@ -578,7 +605,13 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
             )
         }
         IconButton(
-            onClick = { /* TODO */ },
+            onClick = {
+                device.getDataExport().fold(
+                    onSuccess = {},
+                    onFailure = { exception ->
+                        Log.e("DeviceItem", "Error getting device export", exception)
+                    }
+                ) },
             modifier = Modifier
                 .constrainAs(downloadIcon) {
                     bottom.linkTo(parent.bottom, margin = 10.dp)

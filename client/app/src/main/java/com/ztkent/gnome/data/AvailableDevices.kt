@@ -52,6 +52,40 @@ class Device(addr: String) {
         this.status = status
         this.errors = errors
     }
+
+    fun refreshDevice(): Result<Boolean> {
+        return try {
+            // TODO: From the device addr, fetch the info and repopulate the device object
+            val success = true
+            Result.success(success)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun getStatus(): Result<Status> {
+        return Result.success(this.status) // Assuming getStatus() is unlikely to throw an exception
+    }
+
+    fun flipStatus(): Result<Status> {
+        return try {
+            // TODO: call the service, refresh the device, and return the new status
+            val newStatus = this.status // Replace with actual logic
+            Result.success(newStatus)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun getDataExport(): Result<String> {
+        return try {
+            // TODO: Implement logic to fetch saved sensor data
+            val dataExport = "" // Replace with actual logic
+            Result.success(dataExport)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
 
 data class SignalStrength(
