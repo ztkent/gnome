@@ -489,7 +489,7 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .constrainAs(settingsIcon) {
                     top.linkTo(parent.top, margin = 8.dp)
-                    end.linkTo(parent.end, margin = 0.dp)
+                    end.linkTo(parent.end, margin = 4.dp)
                 }
         ) {
             Icon(
@@ -524,61 +524,6 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
                     }
                     .padding(12.dp)
             )
-
-            HorizontalDivider(
-                color = DIVIDER_COLOR,
-                thickness = 1.dp,
-                modifier = Modifier
-                    .constrainAs(divider2) {
-                        bottom.linkTo(parent.bottom, margin = 60.dp)
-                    }
-            )
-            IconButton(
-                onClick = { /* TODO */ },
-                modifier = Modifier
-                    .constrainAs(refreshIcon) {
-                        bottom.linkTo(parent.bottom, margin = 10.dp)
-                        start.linkTo(parent.start, margin = 40.dp)
-                    }
-                    .size(45.dp)
-            ) {
-                Icon(
-                    painterResource(id = R.drawable.refresh_32),
-                    contentDescription = "Notifications",
-                    tint = Color.Gray
-                )
-            }
-            IconButton(
-                onClick = { /* TODO */ },
-                modifier = Modifier
-                    .constrainAs(graphIcon) {
-                        bottom.linkTo(parent.bottom, margin = 10.dp)
-                        start.linkTo(parent.start, margin = 0.dp)
-                        end.linkTo(parent.end, margin = 0.dp)
-                    }
-                    .size(45.dp)
-            ) {
-                Icon(
-                   painterResource(id = R.drawable.auto_graph_32),
-                    contentDescription = "Notifications",
-                    tint = Color.Gray
-                )
-            }
-            IconButton(
-                onClick = { /* TODO */ },
-                modifier = Modifier
-                    .constrainAs(downloadIcon) {
-                        bottom.linkTo(parent.bottom, margin = 10.dp)
-                        end.linkTo(parent.end, margin = 40.dp)
-                    }
-                    .size(45.dp)
-            ) {
-                Icon(
-                    painterResource(id = R.drawable.download_32),
-                    contentDescription = "Notifications",
-                    tint = Color.Gray
-                )
-            }
         } else {
             Text(
                 text = "Disabled",
@@ -591,6 +536,60 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
                         centerHorizontallyTo(parent)
                     }
                     .padding(12.dp)
+            )
+        }
+        HorizontalDivider(
+            color = DIVIDER_COLOR,
+            thickness = 1.dp,
+            modifier = Modifier
+                .constrainAs(divider2) {
+                    bottom.linkTo(parent.bottom, margin = 60.dp)
+                }
+        )
+        IconButton(
+            onClick = { /* TODO */ },
+            modifier = Modifier
+                .constrainAs(refreshIcon) {
+                    bottom.linkTo(parent.bottom, margin = 10.dp)
+                    start.linkTo(parent.start, margin = 40.dp)
+                }
+                .size(45.dp)
+        ) {
+            Icon(
+                painterResource(id = R.drawable.refresh_32),
+                contentDescription = "Notifications",
+                tint = Color.Gray
+            )
+        }
+        IconButton(
+            onClick = { /* TODO */ },
+            modifier = Modifier
+                .constrainAs(graphIcon) {
+                    bottom.linkTo(parent.bottom, margin = 10.dp)
+                    start.linkTo(parent.start, margin = 0.dp)
+                    end.linkTo(parent.end, margin = 0.dp)
+                }
+                .size(45.dp)
+        ) {
+            Icon(
+                painterResource(id = R.drawable.auto_graph_32),
+                contentDescription = "Notifications",
+                tint = Color.Gray
+            )
+        }
+        IconButton(
+            onClick = { /* TODO */ },
+            modifier = Modifier
+                .constrainAs(downloadIcon) {
+                    bottom.linkTo(parent.bottom, margin = 10.dp)
+                    end.linkTo(parent.end, margin = 40.dp)
+                }
+                .size(45.dp)
+        ) {
+            Icon(
+                painterResource(id = R.drawable.download_32),
+                contentDescription = "Notifications",
+                tint = Color.Gray
             )
         }
     }
@@ -632,13 +631,12 @@ fun EmptyDeviceItem(device: Device, modifier: Modifier = Modifier) {
             onClick = { /* TODO */ },
             modifier = Modifier
                 .constrainAs(infoIcon) {
-                    top.linkTo(parent.top, margin = 20.dp)
-                    end.linkTo(parent.end, margin = 16.dp)
+                    top.linkTo(parent.top, margin = 12.dp)
+                    end.linkTo(parent.end, margin = 4.dp)
                 }
-                .size(20.dp)
         ) {
             Icon(
-                Icons.Outlined.Info,
+                painterResource(id = R.drawable.info_28),
                 contentDescription = "No Devices",
                 tint = Color.Gray
             )
