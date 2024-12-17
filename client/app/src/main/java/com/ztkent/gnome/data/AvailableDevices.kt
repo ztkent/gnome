@@ -63,10 +63,6 @@ class Device(addr: String) {
         }
     }
 
-    fun getStatus(): Result<Status> {
-        return Result.success(this.status) // Assuming getStatus() is unlikely to throw an exception
-    }
-
     fun flipStatus(): Result<Status> {
         return try {
             // TODO: call the service, refresh the device, and return the new status
