@@ -12,16 +12,16 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.datetime.Clock
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.minutes
-import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
 
 class Device(addr: String) {
-    val addr: String
+    var addr: String
     var serviceName: String = ""
     var outboundIp: String = ""
     var macAddresses: List<String> = emptyList()
@@ -55,9 +55,25 @@ class Device(addr: String) {
 
     fun refreshDevice(): Result<Boolean> {
         return try {
-            // TODO: From the device addr, fetch the info and repopulate the device object
-            val success = true
-            Result.success(success)
+            val res = checkForDeviceResponse(
+                host = "",
+                ip = this.addr
+            )
+            if (res.second) {
+                res.first?.let { updatedDevice ->
+                    this.addr = updatedDevice.addr
+                    this.serviceName = updatedDevice.serviceName
+                    this.outboundIp = updatedDevice.outboundIp
+                    this.macAddresses = updatedDevice.macAddresses
+                    this.signalStrength = updatedDevice.signalStrength
+                    this.conditions = updatedDevice.conditions
+                    this.status = updatedDevice.status
+                    this.errors = updatedDevice.errors
+                    Result.success(true)
+                } ?: Result.failure(IllegalStateException("Updated device is null"))
+            } else {
+                Result.success(false) // Indicate that the update was not successful
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -103,8 +119,8 @@ data class Conditions(
 )
 
 data class Status(
-    var connected: Boolean = false,
-    var enabled: Boolean = false
+    var connected: Boolean = false, // If the sensor is plugged in
+    var enabled: Boolean = false // If the sensor is turned on
 )
 
 data class Errors(
@@ -144,10 +160,7 @@ open class AvailableDevices {
         Log.d("fetchAvailableDevices", "Scanning for devices...")
         val potentialIps = generatePotentialDeviceIps(ip, 100)
         val a =  coroutineScope.async {
-            val deferredHost = async {
-                checkForDeviceResponse("", "sunlight.local")
-            }
-            val deferredResults2 = potentialIps.map { potentialIp ->
+            val deferredResults = potentialIps.map { potentialIp ->
                 async {
                     try {
                         val devicePair = checkForDeviceResponse(potentialIp, "")
@@ -164,13 +177,7 @@ open class AvailableDevices {
                 }
             }
 
-            // Wait for the responses
-            deferredHost.await().let { devicePair ->
-                if (devicePair.second) {
-                    addDevice(devicePair.first!!)
-                }
-            }
-            deferredResults2.awaitAll()
+            deferredResults.awaitAll()
             Log.d("fetchAvailableDevices", "Devices found on this network: $deviceList")
         }
         a.await()
@@ -209,83 +216,84 @@ open class AvailableDevices {
         }
         return potentialIps
     }
+}
 
-    private fun checkForDeviceResponse(ip: String, host: String): Pair<Device?, Boolean> {
-        var url = "http://$ip/id"
-        if (host.isNotEmpty()) {
-            url = "http://$host/id"
-        }
-        try {
-            val connection = URL(url).openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-            connection.connectTimeout = 1000 // Adjust timeout as needed
-            val responseCode = connection.responseCode
+private fun checkForDeviceResponse(ip: String, host: String): Pair<Device?, Boolean> {
+    var url = "http://$ip/id"
+    if (host.isNotEmpty()) {
+        url = "http://$host/id"
+    }
+    try {
+        val connection = URL(url).openConnection() as HttpURLConnection
+        connection.requestMethod = "GET"
+        connection.connectTimeout = 1000 // Adjust timeout as needed
+        val responseCode = connection.responseCode
 
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                val inputStream = connection.inputStream
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val response = reader.readLine()
-                val jsonObject: JSONObject?
-                try {
-                    jsonObject = JSONObject(response)
-                } catch (e: Exception) {
-                    return Pair<Device?, Boolean>(null, false)
-                }
-
-                // Check if its one of our devices
-                val serviceName = jsonObject.optString("service_name", "") ?: ""
-                if (serviceName == "Gnome" || serviceName == "Sunlight Meter") {
-                    // Extract other fields from jsonObject and populate the Device object
-                    val device = Device(host.ifEmpty { ip })
-                    device.serviceName = serviceName
-                    device.outboundIp = jsonObject.optString("outbound_ip", "")
-                    device.macAddresses = jsonObject.optJSONArray("mac_addresses")?.let { jsonArray ->
-                        (0 until jsonArray.length()).map { jsonArray.getString(it) }
-                    } ?: emptyList()
-
-                    // Extract signalStrength
-                    val signalStrengthJson = jsonObject.optJSONObject("signal_strength")
-                    device.signalStrength = SignalStrength(
-                        signalStrengthJson?.optInt("signalInt", 0) ?: 0,
-                        signalStrengthJson?.optInt("strength", 0) ?: 0
-                    )
-
-                    // Extract conditions
-                    val conditionsJson = jsonObject.optJSONObject("conditions")
-                    device.conditions = Conditions(
-                        conditionsJson?.optString("jobID", "") ?: "",
-                        conditionsJson?.optInt("lux", 0) ?: 0,
-                        conditionsJson?.optInt("fullSpectrum", 0) ?: 0,
-                        conditionsJson?.optInt("visible", 0) ?: 0,
-                        conditionsJson?.optInt("infrared", 0) ?: 0,
-                        conditionsJson?.optString("dateRange", "") ?: "",
-                        conditionsJson?.optInt("recordedHoursInRange", 0) ?: 0,
-                        conditionsJson?.optInt("fullSunlightInRange", 0) ?: 0,
-                        conditionsJson?.optString("lightConditionInRange", "") ?: "",
-                        conditionsJson?.optInt("averageLuxInRange", 0) ?: 0
-                    )
-
-                    // Extract status
-                    val statusJson = jsonObject.optJSONObject("status")
-                    device.status = Status(
-                        statusJson?.optBoolean("connected", false) ?: false,
-                        statusJson?.optBoolean("enabled", false) ?: false
-                    )
-
-                    // Extract errors
-                    val errorsJson = jsonObject.optJSONObject("errors")
-                    device.errors = Errors(
-                        errorsJson?.optString("signal_strength", "") ?: ""
-                    )
-                    Log.d("checkForDeviceResponse", "Found Device: $device")
-                    return Pair<Device?, Boolean>(device, true)
-                }
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            val inputStream = connection.inputStream
+            val reader = BufferedReader(InputStreamReader(inputStream))
+            val response = reader.readLine()
+            val jsonObject: JSONObject?
+            try {
+                jsonObject = JSONObject(response)
+            } catch (e: Exception) {
                 return Pair<Device?, Boolean>(null, false)
             }
-        } catch (e: Exception) {
-            // Handle exceptions (e.g., timeout, connection refused)
+
+            // Check if its one of our devices
+            val serviceName = jsonObject.optString("service_name", "") ?: ""
+            if (serviceName == "Gnome" || serviceName == "Sunlight Meter") {
+                // Extract other fields from jsonObject and populate the Device object
+                val device = Device(host.ifEmpty { ip })
+                device.serviceName = serviceName
+                device.outboundIp = jsonObject.optString("outbound_ip", "")
+                device.macAddresses = jsonObject.optJSONArray("mac_addresses")?.let { jsonArray ->
+                    (0 until jsonArray.length()).map { jsonArray.getString(it) }
+                } ?: emptyList()
+
+                // Extract signalStrength
+                val signalStrengthJson = jsonObject.optJSONObject("signal_strength")
+                device.signalStrength = SignalStrength(
+                    signalStrengthJson?.optInt("signalInt", 0) ?: 0,
+                    signalStrengthJson?.optInt("strength", 0) ?: 0
+                )
+
+                // Extract conditions
+                val conditionsJson = jsonObject.optJSONObject("conditions")
+                device.conditions = Conditions(
+                    conditionsJson?.optString("jobID", "") ?: "",
+                    conditionsJson?.optInt("lux", 0) ?: 0,
+                    conditionsJson?.optInt("fullSpectrum", 0) ?: 0,
+                    conditionsJson?.optInt("visible", 0) ?: 0,
+                    conditionsJson?.optInt("infrared", 0) ?: 0,
+                    conditionsJson?.optString("dateRange", "") ?: "",
+                    conditionsJson?.optInt("recordedHoursInRange", 0) ?: 0,
+                    conditionsJson?.optInt("fullSunlightInRange", 0) ?: 0,
+                    conditionsJson?.optString("lightConditionInRange", "") ?: "",
+                    conditionsJson?.optInt("averageLuxInRange", 0) ?: 0
+                )
+
+                // Extract status
+                val statusJson = jsonObject.optJSONObject("status")
+                device.status = Status(
+                    statusJson?.optBoolean("connected", false) ?: false,
+                    statusJson?.optBoolean("enabled", false) ?: false
+                )
+
+                // Extract errors
+                val errorsJson = jsonObject.optJSONObject("errors")
+                device.errors = Errors(
+                    errorsJson?.optString("signal_strength", "") ?: ""
+                )
+                Log.d("checkForDeviceResponse", "Found Device: $device")
+                return Pair<Device?, Boolean>(device, true)
+            }
             return Pair<Device?, Boolean>(null, false)
         }
+    } catch (e: Exception) {
+        // Handle exceptions (e.g., timeout, connection refused)
+        Log.e("checkForDeviceResponse", "Error checking device at $ip: ${e.message}")
         return Pair<Device?, Boolean>(null, false)
     }
+    return Pair<Device?, Boolean>(null, false)
 }

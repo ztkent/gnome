@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +46,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.ztkent.gnome.data.AvailableDevices
 import com.ztkent.gnome.data.Conditions
@@ -85,6 +88,7 @@ import com.ztkent.gnome.ui.theme.LuxColorTrainStation
 import com.ztkent.gnome.ui.theme.NotificationBarColor
 import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
 import com.ztkent.gnome.ui.theme.SunlightMeterTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -202,6 +206,7 @@ private fun LandscapeMode(
                                 items(devices.data) { device -> // Iterate over individual devices
                                     DeviceItem(
                                         device = device,
+                                        viewModel = viewModel,
                                         modifier = Modifier
                                             .fillParentMaxWidth(0.5f)
                                             .padding(8.dp)
@@ -351,14 +356,17 @@ private fun PortraitMode(
                             }
                         } else {
                             items(
-                                items = devices.data,
-                                key = { device -> device.addr } // this should be unique
+                                items = devices.data.sortedBy { it.addr },
+                                key = { device -> device.addr }
                             ) { device ->
-                                DeviceItem(device = device,
+                                DeviceItem(
+                                    device = device,
+                                    viewModel = viewModel,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(8.dp)
-                                )                            }
+                                )
+                            }
                         }
                     }
 
@@ -430,7 +438,8 @@ private fun PortraitMode(
 }
 
 @Composable
-fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
+fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier = Modifier) {
+    val coroutineScope = rememberCoroutineScope()
     var backgroundDeviceColor = when (device.conditions.lux) {
         in 0..2 -> LuxColorMoonlessOvercast
         in 3..20 -> LuxColorFullMoon // Special case for 3.4 lux
@@ -487,7 +496,7 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
                 }
         )
         Text(
-            text = "Connected",
+            text = if (device.status.connected) "Connected" else "Sensor Disconnected",
             fontSize = 16.sp,
             fontFamily = FontFamily(Font(R.font.roboto)),
             color = Color.Black,
@@ -568,12 +577,16 @@ fun DeviceItem(device: Device, modifier: Modifier = Modifier) {
         )
         IconButton(
             onClick = {
-                device.refreshDevice().fold(
-                    onSuccess = {},
-                    onFailure = { exception ->
-                        Log.e("DeviceItem", "Error refreshing device", exception)
-                    }
-                )
+                coroutineScope.launch(Dispatchers.IO) {
+                    device.refreshDevice().fold(
+                        onSuccess = {
+                            viewModel.updateDevice(device)
+                        },
+                        onFailure = { exception ->
+                            Log.e("DeviceItem", "Error refreshing device", exception)
+                        }
+                    )
+                }
             },
             modifier = Modifier
                 .constrainAs(refreshIcon) {
@@ -721,33 +734,39 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            try {
-                val availableDevices = AvailableDevices()
-                val loadedDevices = availableDevices.getAvailableDevices(sunlightActivity)
-                for (device in loadedDevices) {
-                    Log.d("SunlightActivity", "Available device: $device")
-                }
-                _devices.value = DeviceLoadState.Success(loadedDevices)
-            } catch (e: Exception) {
-                _devices.value = DeviceLoadState.Error(e)
-            }
+            loadDevices()
         }
     }
 
     fun refresh() {
         viewModelScope.launch {
-            try {
-                _devices.value = DeviceLoadState.Loading
-                val availableDevices = AvailableDevices()
-                val loadedDevices = availableDevices.getAvailableDevices(
-                    slActivity)
-                for (device in loadedDevices) {
-                    Log.d("SunlightActivity", "Available device: $device")
-                }
-                _devices.value = DeviceLoadState.Success(loadedDevices)
-            } catch (e: Exception) {
-                _devices.value = DeviceLoadState.Error(e)
+            loadDevices()
+        }
+    }
+
+    fun updateDevice(updatedDevice: Device) {
+        if (devices.value is DeviceLoadState.Success) {
+            val currentDevices = (_devices.value as DeviceLoadState.Success).data
+            val updatedDevices = currentDevices.map {
+                if (it.addr == updatedDevice.addr) updatedDevice else it
             }
+            _devices.value = DeviceLoadState.Loading // Optional: Show loading state briefly
+            Thread.sleep(500) // Max request time
+            _devices.value = DeviceLoadState.Success(updatedDevices)
+        }
+    }
+
+    private suspend fun loadDevices() {
+        try {
+            _devices.value = DeviceLoadState.Loading
+            val availableDevices = AvailableDevices()
+            val loadedDevices = availableDevices.getAvailableDevices(slActivity)
+            for (device in loadedDevices) {
+                Log.d("SunlightActivity", "Available device: $device")
+            }
+            _devices.value = DeviceLoadState.Success(loadedDevices)
+        } catch (e: Exception) {
+            _devices.value = DeviceLoadState.Error(e)
         }
     }
 }
