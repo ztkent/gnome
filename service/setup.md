@@ -1,38 +1,15 @@
 # Setup Instructions
-## Build the app
-
-```shell
-Cross Compile:
-  docker run -v ".":/usr/src/myapp -w /usr/src/myapp arm64v8/alpine:latest sh -c '
-    apk update &&
-    apk add gcc musl-dev curl &&
-    curl -OL https://golang.org/dl/go1.23.0.linux-arm64.tar.gz && \
-    tar -C /usr/local -xzf go1.23.0.linux-arm64.tar.gz &&
-    export PATH=$PATH:/usr/local/go/bin &&
-    CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
-    go build -a -installsuffix cgo -ldflags '\''-extldflags "-static"'\'' -o gnome_arm64v8 .'
-
-Or on the Pi:
-  go build -x -v -gcflags="all=-N -l" -o gnome
-```
 
 ## Configure the Pi
 ### Update the system
 ```shell
+# Install dependencies
 sudo apt update
-```
+sudo apt install git golang-go make
 
-### Clone the repo, if you'd like.
-```shell
-git clone https://github.com/ztkent/gnome
-```
-
-### Setup Golang
-```shell
-wget https://go.dev/dl/go1.21.11.linux-arm64.tar.gz
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.11.linux-arm64.tar.gz && rm go1.21.11.linux-arm64.tar.gz
-echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
-source ~/.bashrc
+sudo apt update
+sudo apt install gh
+gh auth login
 ```
 
 ### Set GOPATH, GOCACHE, and GOBIN
@@ -58,13 +35,29 @@ source ~/.bashrc
 - reboot
 ```
 
-### Install the app and set it to run at boot
+### Clone, Build
 ```shell
-sudo mv slm /home/gnome/
-mkdir /home/gnome/transfers
-source /home/gnome/.bashrc
-sudo chmod +x /home/gnome/slm
-sudo crontab -e
-  @reboot /home/gnome/slm
-reboot
+  git clone https://github.com/ztkent/gnome.git
+
+  Cross Compile:
+    docker run -v "$(pwd)":/usr/src/myapp -w /usr/src/myapp debian:bookworm-slim sh -c '
+      apt-get update &&
+      apt-get install -y gcc musl-dev curl &&
+      curl -OL https://golang.org/dl/go1.23.0.linux-arm64.tar.gz &&
+      tar -C /usr/local -xzf go1.23.0.linux-arm64.tar.gz &&
+      export PATH=$PATH:/usr/local/go/bin &&
+      CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
+      go build -o gnome_arm64v8 .'
+
+      docker run -v "$(pwd)":/usr/src/myapp -w /usr/src/myapp debian:bookworm-slim sh -c '
+        apt-get update &&
+        apt-get install -y gcc musl-dev curl &&
+        curl -OL https://golang.org/dl/go1.23.0.linux-armv6l.tar.gz &&
+        tar -C /usr/local -xzf go1.23.0.linux-armv6l.tar.gz &&
+        export PATH=$PATH:/usr/local/go/bin &&
+        CGO_ENABLED=1 GOOS=linux GOARCH=arm \
+        go build -o gnome_armv6l .'
+
+  Local Build:
+    go build -x -v -gcflags="all=-N -l" -o gnome
 ```
