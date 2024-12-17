@@ -1,12 +1,19 @@
 # Setup Instructions
 ## Build the app
+
 ```shell
-docker run -v ".":/usr/src/myapp -w /usr/src/myapp arm64v8/alpine:latest sh -c '
-  apk update &&
-  apk add gcc musl-dev curl &&
-  tar -C /usr/local -xzf go1.21.11.linux-arm64.tar.gz &&
-  export PATH=$PATH:/usr/local/go/bin &&
-  CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -a -installsuffix cgo -ldflags '\''-extldflags "-static"'\'' -o slm .'
+Cross Compile:
+  docker run -v ".":/usr/src/myapp -w /usr/src/myapp arm64v8/alpine:latest sh -c '
+    apk update &&
+    apk add gcc musl-dev curl &&
+    curl -OL https://golang.org/dl/go1.23.0.linux-arm64.tar.gz && \
+    tar -C /usr/local -xzf go1.23.0.linux-arm64.tar.gz &&
+    export PATH=$PATH:/usr/local/go/bin &&
+    CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
+    go build -a -installsuffix cgo -ldflags '\''-extldflags "-static"'\'' -o gnome_arm64v8 .'
+
+Or on the Pi:
+  go build -x -v -gcflags="all=-N -l" -o gnome
 ```
 
 ## Configure the Pi

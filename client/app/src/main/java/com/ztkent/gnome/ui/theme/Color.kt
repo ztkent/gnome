@@ -11,8 +11,8 @@ val BG2 = Color(0xFFDCDCDC)
 val DIVIDER_COLOR = Color(0xFFF0F0F0)
 val SELECTED_TAB_COLOR = Color(0xFF33691E)
 
-val LuxColorMoonlessOvercast = Color(0xFF030303) // 0.0001 - 0.002
-val LuxColorMoonlessClear = Color(0xFF191970) // 0.05 - 0.3
+val LuxColorMoonlessOvercast = Color(0xFF3A3A72) // 0.0001 - 0.002
+val LuxColorMoonlessClear = Color(0xFF5A5AB2) // 0.05 - 0.3
 val LuxColorFullMoon = Color(0xFF4682B4) // 3.4
 val LuxColorDarkTwilight = Color(0xFF6495ED) // 20 - 50
 val LuxColorLivingRoom = Color(0xFFADD8E6) // 50
