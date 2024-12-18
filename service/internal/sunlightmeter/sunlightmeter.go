@@ -65,7 +65,8 @@ func (m *SLMeter) StartSensor() error {
 	}
 
 	// Create context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), gnome.MAX_JOB_DURATION)
+	// ctx, cancel := context.WithTimeout(context.Background(), gnome.MAX_JOB_DURATION)
+	ctx, cancel := context.WithCancel(context.Background()) // Lets let it run forever
 	m.cancel = cancel
 
 	// Enable sensor
