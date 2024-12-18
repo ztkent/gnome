@@ -509,12 +509,17 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
 
         IconButton(
             onClick = {
-                device.flipStatus().fold(
-                    onSuccess = {},
-                    onFailure = { exception ->
-                        Log.e("DeviceItem", "Error adjusting device power", exception)
-                    }
-                ) },
+                coroutineScope.launch(Dispatchers.IO) {
+                   device.flipStatus().fold(
+                        onSuccess = {
+                            viewModel.updateDevice(device,250)
+                        },
+                        onFailure = { exception ->
+                            Log.e("DeviceItem", "Error adjusting device power", exception)
+                        }
+                    )
+                }
+            },
             modifier = Modifier
                 .constrainAs(settingsIcon) {
                     top.linkTo(parent.top, margin = 8.dp)
@@ -524,7 +529,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
             Icon(
                 painterResource(id = R.drawable.power_28),
                 contentDescription = "Notifications",
-                tint = Color.Gray
+                tint = Color.Black
             )
         }
 
@@ -598,7 +603,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
             Icon(
                 painterResource(id = R.drawable.refresh_32),
                 contentDescription = "Refresh Device",
-                tint = Color.Gray
+                tint = Color.Black
             )
         }
         IconButton(
@@ -614,7 +619,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
             Icon(
                 painterResource(id = R.drawable.auto_graph_32),
                 contentDescription = "Notifications",
-                tint = Color.Gray
+                tint = Color.Black
             )
         }
         IconButton(
@@ -635,7 +640,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
             Icon(
                 painterResource(id = R.drawable.download_32),
                 contentDescription = "Notifications",
-                tint = Color.Gray
+                tint = Color.Black
             )
         }
     }
@@ -744,14 +749,14 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
         }
     }
 
-    fun updateDevice(updatedDevice: Device) {
+    fun updateDevice(updatedDevice: Device, delay: Long = 500) {
         if (devices.value is DeviceLoadState.Success) {
             val currentDevices = (_devices.value as DeviceLoadState.Success).data
             val updatedDevices = currentDevices.map {
                 if (it.addr == updatedDevice.addr) updatedDevice else it
             }
             _devices.value = DeviceLoadState.Loading // Optional: Show loading state briefly
-            Thread.sleep(500) // Max request time
+            Thread.sleep(delay) // Max request time
             _devices.value = DeviceLoadState.Success(updatedDevices)
         }
     }

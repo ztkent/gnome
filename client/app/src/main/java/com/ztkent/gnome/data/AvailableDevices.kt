@@ -11,6 +11,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -79,11 +80,42 @@ class Device(addr: String) {
         }
     }
 
-    fun flipStatus(): Result<Status> {
+    suspend fun flipStatus(): Result<Device> { // Make flipStatus a suspend function
         return try {
-            // TODO: call the service, refresh the device, and return the new status
-            val newStatus = this.status // Replace with actual logic
-            Result.success(newStatus)
+            if (this.status.connected && !this.status.enabled) {
+                // Turn it on
+                val result = withContext(Dispatchers.IO) {
+                    callEndpoint(this@Device.addr, "/api/v1/start")
+                }
+
+                if (result.isSuccess) {
+                    // Refresh the device status after calling the endpoint
+                    withContext(Dispatchers.IO) {
+                        refreshDevice()
+                    }
+                     return Result.success(this)
+                } else {
+                    return Result.failure(result.exceptionOrNull()!!)
+                }
+            } else if (this.status.connected && this.status.enabled) {
+                // Turn it off
+                val result = withContext(Dispatchers.IO) {
+                    callEndpoint(this@Device.addr, "/api/v1/stop")
+                }
+                if (result.isSuccess) {
+                    // Refresh the device status after calling the endpoint
+                    withContext(Dispatchers.IO) {
+                        refreshDevice()
+                    }
+                    return Result.success(this)
+                } else {
+                    return Result.failure(result.exceptionOrNull()!!)
+                }
+            } else {
+                // We cant do anything, the sensor is not connected.
+                Log.e("flipStatus", "Cannot change the status when sensor is disconnected")
+                return Result.success(this)
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -94,6 +126,27 @@ class Device(addr: String) {
             // TODO: Implement logic to fetch saved sensor data
             val dataExport = "" // Replace with actual logic
             Result.success(dataExport)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun callEndpoint(deviceAddress: String, endpoint: String): Result<Unit> {
+        return try {
+            val url = URL("http://$deviceAddress$endpoint")
+            val connection = withContext(Dispatchers.IO) {
+                url.openConnection()
+            } as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+
+            val responseCode = connection.responseCode
+            if (responseCode in 200..299) { // Success response codes
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("API call failed with response code: $responseCode"))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
