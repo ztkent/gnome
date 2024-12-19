@@ -166,6 +166,19 @@ func (m *SLMeter) ServeResultsDB() http.HandlerFunc {
 	}
 }
 
+func (m *SLMeter) ServeResultsCSV() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := tools.ExportToCSV(gnome.GNOME_DB_PATH, gnome.GNOME_CSV_PATH)
+		if err != nil {
+			http.Error(w, "Failed to export CSV", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "gnome.csv"))
+		w.Header().Set("Content-Type", "text/csv")
+		http.ServeFile(w, r, gnome.GNOME_CSV_PATH)
+	}
+}
+
 // Populate the response div with a message, or reply with a JSON message
 func ServeResponse(w http.ResponseWriter, r *http.Request, message string, status int) {
 	if strings.Contains(r.URL.Path, "/api/v1/") {

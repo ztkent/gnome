@@ -93,6 +93,7 @@ func defineRoutes(r *chi.Mux, meter *sunlightmeter.SLMeter) {
 		r.Get("/signal-strength", meter.SignalStrength())
 		r.Get("/current-conditions", meter.CurrentConditions())
 		r.Get("/export", meter.ServeResultsDB())
+		r.Get("/csv", meter.ServeResultsCSV())
 	})
 
 	// Route for service identification

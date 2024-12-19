@@ -1,9 +1,13 @@
 package tools
 
 import (
+	"database/sql"
+	"encoding/csv"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -89,4 +93,62 @@ func StartAndEndDateToTime(startDate string, endDate string) (time.Time, time.Ti
 		return time.Time{}, time.Time{}, err
 	}
 	return start, end, nil
+}
+
+func ExportToCSV(dbFile, csvFile string) error {
+	db, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %w", err)
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`SELECT id, job_id, lux, full_spectrum, visible, infrared, created_at FROM sunlight`)
+	if err != nil {
+		return fmt.Errorf("failed to query database: %w", err)
+	}
+	defer rows.Close()
+
+	file, err := os.Create(csvFile)
+	if err != nil {
+		return fmt.Errorf("failed to create CSV file: %w", err)
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write CSV header
+	header := []string{"id", "job_id", "lux", "full_spectrum", "visible", "infrared", "created_at"}
+	if err := writer.Write(header); err != nil {
+		return fmt.Errorf("failed to write CSV header: %w", err)
+	}
+
+	// Write CSV rows
+	for rows.Next() {
+		var id int
+		var jobID, lux, fullSpectrum, visible, infrared, createdAt string
+
+		if err := rows.Scan(&id, &jobID, &lux, &fullSpectrum, &visible, &infrared, &createdAt); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		record := []string{
+			fmt.Sprintf("%d", id),
+			jobID,
+			lux,
+			fullSpectrum,
+			visible,
+			infrared,
+			createdAt,
+		}
+
+		if err := writer.Write(record); err != nil {
+			return fmt.Errorf("failed to write CSV record: %w", err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("row iteration error: %w", err)
+	}
+	return nil
 }
