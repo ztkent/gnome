@@ -61,3 +61,38 @@ source ~/.bashrc
   Local Build:
     go build -x -v -gcflags="all=-N -l" -o gnome
 ```
+
+## Run at Startup
+```shell
+Create a new service file in /etc/systemd/system/. For example, gnome.service:
+sudo nano /etc/systemd/system/gnome.service
+
+Add the following content to the service file:
+[Unit]
+Description=Gnome Service
+After=network.target
+
+[Service]
+ExecStart=/home/sunlight/gnome/service/gnome
+WorkingDirectory=/home/sunlight/gnome/service
+User=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+
+Reload systemd to recognize the new service:
+sudo systemctl daemon-reload
+
+Enable the service to start on boot:
+sudo systemctl enable gnome.service
+
+Start the service immediately:
+sudo systemctl start gnome.service
+
+Check the status of the service:
+sudo systemctl status gnome.service
+`
+
+```
