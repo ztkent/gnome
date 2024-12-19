@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.transport.runtime)
     implementation(libs.androidx.foundation.android)
     implementation(libs.core.ktx)
+    implementation(libs.androidx.media3.exoplayer)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

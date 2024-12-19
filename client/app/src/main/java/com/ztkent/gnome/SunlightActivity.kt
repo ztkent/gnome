@@ -625,8 +625,10 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
         IconButton(
             onClick = {
                 coroutineScope.launch(Dispatchers.IO) {
-                    device.getDataExport().fold(
-                        onSuccess = {},
+                    device.getDataExport(viewModel.slActivity).fold(
+                        onSuccess = {
+                            Log.i("DeviceItem", "Data export successful")
+                        },
                         onFailure = { exception ->
                             Log.e("DeviceItem", "Error getting device export", exception)
                         }

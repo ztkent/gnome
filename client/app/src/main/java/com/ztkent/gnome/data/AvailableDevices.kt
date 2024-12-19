@@ -1,8 +1,11 @@
 package com.ztkent.gnome.data
 
+import android.app.DownloadManager
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
+import android.os.Environment
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -121,10 +124,10 @@ class Device(addr: String) {
         }
     }
 
-    suspend fun getDataExport(): Result<String> {
+    suspend fun getDataExport(context: Context): Result<String> {
         return try {
             val result = withContext(Dispatchers.IO) {
-                callEndpoint(this@Device.addr, "/api/v1/export")
+                downloadEndpoint(context, this@Device.addr, "/api/v1/csv")
             }
             if (result.isSuccess) {
                 return Result.success("")
@@ -155,6 +158,22 @@ class Device(addr: String) {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+}
+
+private fun downloadEndpoint(context: Context, deviceAddress: String, endpoint: String): Result<Any> {
+    return try {
+        val filename = "gnome.csv"
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val request = DownloadManager.Request(Uri.parse("http://$deviceAddress$endpoint"))
+            .setTitle(filename)
+            .setDescription("Downloading database...")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
+        val downloadId = downloadManager.enqueue(request)
+        Result.success(downloadId)
+    } catch (e: Exception) {
+        Result.failure(e)
     }
 }
 

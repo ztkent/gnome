@@ -7,7 +7,6 @@ cert.pem
 key.pem
 go1.2*
 gnome.db
+gnome.csv
 gnome.log
 gnome
-gnome_arm64v8
-service/gnome.csv
