@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math"
 	"net/http"
 	"strings"
 
@@ -119,7 +120,18 @@ func (m *SLMeter) ID() http.HandlerFunc {
 			response.Errors["conditions"] = err.Error()
 			response.Conditions = Conditions{}
 		} else {
-			response.Conditions = conditions
+			response.Conditions = Conditions{
+				JobID:                 conditions.JobID,
+				Lux:                   sanitizeFloat64(conditions.Lux),
+				FullSpectrum:          sanitizeFloat64(conditions.FullSpectrum),
+				Visible:               sanitizeFloat64(conditions.Visible),
+				Infrared:              sanitizeFloat64(conditions.Infrared),
+				DateRange:             conditions.DateRange,
+				RecordedHoursInRange:  sanitizeFloat64(conditions.RecordedHoursInRange),
+				FullSunlightInRange:   sanitizeFloat64(conditions.FullSunlightInRange),
+				LightConditionInRange: conditions.LightConditionInRange,
+				AverageLuxInRange:     sanitizeFloat64(conditions.AverageLuxInRange),
+			}
 		}
 
 		status, err := m.GetSensorStatus()
@@ -132,8 +144,17 @@ func (m *SLMeter) ID() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
 	}
+}
+
+func sanitizeFloat64(value float64) float64 {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return 0
+	}
+	return value
 }
 
 // Serve the sqlite db for download
