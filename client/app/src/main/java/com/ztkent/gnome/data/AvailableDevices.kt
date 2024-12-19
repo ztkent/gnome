@@ -167,7 +167,7 @@ private fun downloadEndpoint(context: Context, deviceAddress: String, endpoint: 
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val request = DownloadManager.Request(Uri.parse("http://$deviceAddress$endpoint"))
             .setTitle(filename)
-            .setDescription("Downloading database...")
+            .setDescription("Downloading Sensor Data...")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
         val downloadId = downloadManager.enqueue(request)
