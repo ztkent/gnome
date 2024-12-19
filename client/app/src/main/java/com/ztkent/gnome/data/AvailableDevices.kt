@@ -121,11 +121,16 @@ class Device(addr: String) {
         }
     }
 
-    fun getDataExport(): Result<String> {
+    suspend fun getDataExport(): Result<String> {
         return try {
-            // TODO: Implement logic to fetch saved sensor data
-            val dataExport = "" // Replace with actual logic
-            Result.success(dataExport)
+            val result = withContext(Dispatchers.IO) {
+                callEndpoint(this@Device.addr, "/api/v1/export")
+            }
+            if (result.isSuccess) {
+                return Result.success("")
+            } else {
+                return Result.failure(result.exceptionOrNull()!!)
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

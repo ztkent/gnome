@@ -624,12 +624,15 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
         }
         IconButton(
             onClick = {
-                device.getDataExport().fold(
-                    onSuccess = {},
-                    onFailure = { exception ->
-                        Log.e("DeviceItem", "Error getting device export", exception)
-                    }
-                ) },
+                coroutineScope.launch(Dispatchers.IO) {
+                    device.getDataExport().fold(
+                        onSuccess = {},
+                        onFailure = { exception ->
+                            Log.e("DeviceItem", "Error getting device export", exception)
+                        }
+                    )
+                }
+            },
             modifier = Modifier
                 .constrainAs(downloadIcon) {
                     bottom.linkTo(parent.bottom, margin = 10.dp)
