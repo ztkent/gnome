@@ -54,6 +54,15 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
             _devices.value = DeviceLoadState.Error(e)
         }
     }
+
+    fun getDeviceByAddr(addr: String): Device? {
+        return if (devices.value is DeviceLoadState.Success) {
+            val currentDevices = (devices.value as DeviceLoadState.Success).data
+            currentDevices.find { it.addr == addr }
+        } else {
+            null
+        }
+    }
 }
 sealed class DeviceLoadState {
     data object Loading : DeviceLoadState()
