@@ -50,6 +50,15 @@ class SunlightActivity : ComponentActivity() {
                             )
                         }
                     }
+                    composable("settings") {
+                        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                            SettingsScreen(
+                                modifier = Modifier.padding(innerPadding),
+                                viewModel = viewModel,
+                                navController = navController
+                            )
+                        }
+                    }
                 }
             }
         }
