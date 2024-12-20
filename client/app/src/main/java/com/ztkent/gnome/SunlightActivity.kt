@@ -7,7 +7,6 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +36,6 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -66,8 +64,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.ztkent.gnome.data.AvailableDevices
 import com.ztkent.gnome.data.Conditions
@@ -75,32 +71,22 @@ import com.ztkent.gnome.data.Device
 import com.ztkent.gnome.data.Errors
 import com.ztkent.gnome.data.SignalStrength
 import com.ztkent.gnome.data.Status
+import com.ztkent.gnome.model.DeviceListModel
+import com.ztkent.gnome.model.DeviceLoadState
 import com.ztkent.gnome.ui.theme.BG1
 import com.ztkent.gnome.ui.theme.BG2
 import com.ztkent.gnome.ui.theme.DIVIDER_COLOR
-import com.ztkent.gnome.ui.theme.LuxColorDarkOvercast
 import com.ztkent.gnome.ui.theme.LuxColorDarkOvercastGradient
-import com.ztkent.gnome.ui.theme.LuxColorDarkTwilight
 import com.ztkent.gnome.ui.theme.LuxColorDarkTwilightGradient
-import com.ztkent.gnome.ui.theme.LuxColorDirectSunlight
 import com.ztkent.gnome.ui.theme.LuxColorDirectSunlightGradient
-import com.ztkent.gnome.ui.theme.LuxColorFullDaylight
 import com.ztkent.gnome.ui.theme.LuxColorFullDaylightGradient
-import com.ztkent.gnome.ui.theme.LuxColorFullMoon
 import com.ztkent.gnome.ui.theme.LuxColorFullMoonGradient
-import com.ztkent.gnome.ui.theme.LuxColorLivingRoom
 import com.ztkent.gnome.ui.theme.LuxColorLivingRoomGradient
-import com.ztkent.gnome.ui.theme.LuxColorMoonlessOvercast
 import com.ztkent.gnome.ui.theme.LuxColorMoonlessOvercastGradient
-import com.ztkent.gnome.ui.theme.LuxColorOfficeHallway
 import com.ztkent.gnome.ui.theme.LuxColorOfficeHallwayGradient
-import com.ztkent.gnome.ui.theme.LuxColorOfficeLighting
 import com.ztkent.gnome.ui.theme.LuxColorOfficeLightingGradient
-import com.ztkent.gnome.ui.theme.LuxColorOvercastDay
 import com.ztkent.gnome.ui.theme.LuxColorOvercastDayGradient
-import com.ztkent.gnome.ui.theme.LuxColorSunriseSunset
 import com.ztkent.gnome.ui.theme.LuxColorSunriseSunsetGradient
-import com.ztkent.gnome.ui.theme.LuxColorTrainStation
 import com.ztkent.gnome.ui.theme.LuxColorTrainStationGradient
 import com.ztkent.gnome.ui.theme.LuxDisabledGradient
 import com.ztkent.gnome.ui.theme.LuxUnknownGradient
@@ -108,9 +94,6 @@ import com.ztkent.gnome.ui.theme.NotificationBarColor
 import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
 import com.ztkent.gnome.ui.theme.SunlightMeterTheme
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class SunlightActivity : ComponentActivity() {
@@ -829,56 +812,6 @@ fun EmptyDeviceItem(device: Device, modifier: Modifier = Modifier) {
     }
 }
 
-
-// Device List Model
-open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
-    val _devices = MutableStateFlow<DeviceLoadState>(DeviceLoadState.Loading)
-    val devices: StateFlow<DeviceLoadState> = _devices.asStateFlow()
-    val slActivity = sunlightActivity
-
-    init {
-        viewModelScope.launch {
-            loadDevices()
-        }
-    }
-
-    fun refresh() {
-        viewModelScope.launch {
-            loadDevices()
-        }
-    }
-
-    fun updateDevice(updatedDevice: Device, delay: Long = 500) {
-        if (devices.value is DeviceLoadState.Success) {
-            val currentDevices = (_devices.value as DeviceLoadState.Success).data
-            val updatedDevices = currentDevices.map {
-                if (it.addr == updatedDevice.addr) updatedDevice else it
-            }
-            _devices.value = DeviceLoadState.Loading // Optional: Show loading state briefly
-            Thread.sleep(delay) // Max request time
-            _devices.value = DeviceLoadState.Success(updatedDevices)
-        }
-    }
-
-    private suspend fun loadDevices() {
-        try {
-            _devices.value = DeviceLoadState.Loading
-            val availableDevices = AvailableDevices()
-            val loadedDevices = availableDevices.getAvailableDevices(slActivity)
-            for (device in loadedDevices) {
-                Log.d("SunlightActivity", "Available device: $device")
-            }
-            _devices.value = DeviceLoadState.Success(loadedDevices)
-        } catch (e: Exception) {
-            _devices.value = DeviceLoadState.Error(e)
-        }
-    }
-}
-sealed class DeviceLoadState {
-    data object Loading : DeviceLoadState()
-    data class Success(val data: List<Device>) : DeviceLoadState()
-    data class Error(val exception: Exception) : DeviceLoadState()
-}
 
 @Preview(showBackground = true)
 @Composable
