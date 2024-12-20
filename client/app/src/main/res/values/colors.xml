@@ -7,4 +7,22 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="NotificationBarColor">#FAFAFA</color>
+    <color name="BG1">#F0F0F0</color>
+    <color name="BG2">#DCDCDC</color>
+    <color name="DIVIDER_COLOR">#F0F0F0</color>
+    <color name="SELECTED_TAB_COLOR">#33691E</color>
+    <color name="LuxColorMoonlessOvercast">#806A6AB2</color>
+    <color name="LuxColorFullMoon">#804682B4</color>
+    <color name="LuxColorDarkTwilight">#806495ED</color>
+    <color name="LuxColorLivingRoom">#80ADD8E6</color>
+    <color name="LuxColorOfficeHallway">#80F8F8E5</color>
+    <color name="LuxColorDarkOvercast">#80D3D3D3</color>
+    <color name="LuxColorTrainStation">#80DCDCDC</color>
+    <color name="LuxColorOfficeLighting">#80F0F8FF</color>
+    <color name="LuxColorSunriseSunset">#80F5F5DC</color>
+    <color name="LuxColorOvercastDay">#80B0E0E6</color>
+    <color name="LuxColorFullDaylight">#80CCFFFF</color>
+    <color name="LuxColorDirectSunlight">#806CBCFC</color>
 </resources>

@@ -34,6 +34,10 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.PullRefreshState
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -60,6 +64,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
@@ -74,17 +79,31 @@ import com.ztkent.gnome.ui.theme.BG1
 import com.ztkent.gnome.ui.theme.BG2
 import com.ztkent.gnome.ui.theme.DIVIDER_COLOR
 import com.ztkent.gnome.ui.theme.LuxColorDarkOvercast
+import com.ztkent.gnome.ui.theme.LuxColorDarkOvercastGradient
 import com.ztkent.gnome.ui.theme.LuxColorDarkTwilight
+import com.ztkent.gnome.ui.theme.LuxColorDarkTwilightGradient
 import com.ztkent.gnome.ui.theme.LuxColorDirectSunlight
+import com.ztkent.gnome.ui.theme.LuxColorDirectSunlightGradient
 import com.ztkent.gnome.ui.theme.LuxColorFullDaylight
+import com.ztkent.gnome.ui.theme.LuxColorFullDaylightGradient
 import com.ztkent.gnome.ui.theme.LuxColorFullMoon
+import com.ztkent.gnome.ui.theme.LuxColorFullMoonGradient
 import com.ztkent.gnome.ui.theme.LuxColorLivingRoom
+import com.ztkent.gnome.ui.theme.LuxColorLivingRoomGradient
 import com.ztkent.gnome.ui.theme.LuxColorMoonlessOvercast
+import com.ztkent.gnome.ui.theme.LuxColorMoonlessOvercastGradient
 import com.ztkent.gnome.ui.theme.LuxColorOfficeHallway
+import com.ztkent.gnome.ui.theme.LuxColorOfficeHallwayGradient
 import com.ztkent.gnome.ui.theme.LuxColorOfficeLighting
+import com.ztkent.gnome.ui.theme.LuxColorOfficeLightingGradient
 import com.ztkent.gnome.ui.theme.LuxColorOvercastDay
+import com.ztkent.gnome.ui.theme.LuxColorOvercastDayGradient
 import com.ztkent.gnome.ui.theme.LuxColorSunriseSunset
+import com.ztkent.gnome.ui.theme.LuxColorSunriseSunsetGradient
 import com.ztkent.gnome.ui.theme.LuxColorTrainStation
+import com.ztkent.gnome.ui.theme.LuxColorTrainStationGradient
+import com.ztkent.gnome.ui.theme.LuxDisabledGradient
+import com.ztkent.gnome.ui.theme.LuxUnknownGradient
 import com.ztkent.gnome.ui.theme.NotificationBarColor
 import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
 import com.ztkent.gnome.ui.theme.SunlightMeterTheme
@@ -307,8 +326,8 @@ private fun PortraitMode(
                         end.linkTo(parent.end)
                     }
                     .fillMaxWidth()
-                    .background(Color(0xFFD9D9D9))
                     .height(55.dp)
+                    .zIndex(2f) // Always on top
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.header),
@@ -440,24 +459,26 @@ private fun PortraitMode(
 @Composable
 fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier = Modifier) {
     val coroutineScope = rememberCoroutineScope()
+    var showDialog by remember { mutableStateOf(false) }
     var backgroundDeviceColor = when (device.conditions.lux) {
-        in 0..2 -> LuxColorMoonlessOvercast
-        in 3..20 -> LuxColorFullMoon // Special case for 3.4 lux
-        in 20..49 -> LuxColorDarkTwilight
-        in 50..50 -> LuxColorLivingRoom
-        in 51..79 -> LuxColorOfficeHallway
-        in 80..99 -> LuxColorDarkOvercast
-        in 100..149 -> LuxColorTrainStation
-        in 150..319 -> LuxColorOfficeLighting
-        in 320..399 -> LuxColorSunriseSunset
-        in 400..999 -> LuxColorOvercastDay
-        in 1000..9999 -> LuxColorFullDaylight
-        in 10000..15000 -> LuxColorDirectSunlight
-        else -> Color.White // Default to white for unknown lux levels
+        in 0..2 -> LuxColorMoonlessOvercastGradient
+        in 3..20 -> LuxColorFullMoonGradient // Special case for 3.4 lux
+        in 20..49 -> LuxColorDarkTwilightGradient
+        in 50..50 -> LuxColorLivingRoomGradient
+        in 51..79 -> LuxColorOfficeHallwayGradient
+        in 80..99 -> LuxColorDarkOvercastGradient
+        in 100..149 -> LuxColorTrainStationGradient
+        in 150..319 -> LuxColorOfficeLightingGradient
+        in 320..399 -> LuxColorSunriseSunsetGradient
+        in 400..999 -> LuxColorOvercastDayGradient
+        in 1000..9999 -> LuxColorFullDaylightGradient
+        in 10000..30000 -> LuxColorDirectSunlightGradient
+        else -> LuxUnknownGradient // Default to white for unknown lux levels
     }
     if (!device.status.enabled) {
-        backgroundDeviceColor = Color.White
+        backgroundDeviceColor = LuxDisabledGradient
     }
+
     ConstraintLayout(
         modifier = modifier
             .height(265.dp)
@@ -623,18 +644,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
             )
         }
         IconButton(
-            onClick = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    device.getDataExport(viewModel.slActivity).fold(
-                        onSuccess = {
-                            Log.i("DeviceItem", "Data export successful")
-                        },
-                        onFailure = { exception ->
-                            Log.e("DeviceItem", "Error getting device export", exception)
-                        }
-                    )
-                }
-            },
+            onClick = { showDialog = true }, // Show the dialog on click
             modifier = Modifier
                 .constrainAs(downloadIcon) {
                     bottom.linkTo(parent.bottom, margin = 10.dp)
@@ -646,6 +656,90 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, modifier: Modifier =
                 painterResource(id = R.drawable.download_32),
                 contentDescription = "Notifications",
                 tint = Color.Black
+            )
+        }
+
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Export Sensor Data") },
+                text = { Text("Select the desired export method.") },
+                confirmButton = {
+                    Row {
+                        Button(
+                            onClick = {
+                                showDialog = false
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    device.getDataExport(viewModel.slActivity, "csv").fold(
+                                        onSuccess = {
+                                            Log.i("DeviceItem", "Data export successful")
+                                        },
+                                        onFailure = { exception ->
+                                            Log.e(
+                                                "DeviceItem",
+                                                "Error getting device export",
+                                                exception
+                                            )
+                                        }
+                                    )
+                                }
+                            },
+                            colors = ButtonColors(
+                                NotificationBarColor,
+                                contentColor =Color.Black,
+                                disabledContainerColor = Color.Gray,
+                                disabledContentColor = Color.Black
+                            )
+                        ) {
+                            Text("CSV")
+                        }
+                        Button(
+                            onClick = {
+                                showDialog = false
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    device.getDataExport(viewModel.slActivity, "sqlite").fold(
+                                        onSuccess = {
+                                            Log.i("DeviceItem", "Data export successful")
+                                        },
+                                        onFailure = { exception ->
+                                            Log.e(
+                                                "DeviceItem",
+                                                "Error getting device export",
+                                                exception
+                                            )
+                                        }
+                                    )
+                                }
+                            },
+                            colors = ButtonColors(
+                                NotificationBarColor,
+                                contentColor =Color.Black,
+                                disabledContainerColor = Color.Gray,
+                                disabledContentColor = Color.Black
+                            ),
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                        ) {
+                            Text("SQLite DB")
+
+                        }
+                    }
+                },
+                dismissButton = {
+                    Button(
+                        onClick = {
+                            showDialog = false
+                        },
+                        colors = ButtonColors(
+                            NotificationBarColor,
+                            contentColor =Color.Black,
+                            disabledContainerColor = Color.Gray,
+                            disabledContentColor = Color.Black
+                        )
+                    ) {
+                        Text("Cancel")
+                    }
+                }
             )
         }
     }

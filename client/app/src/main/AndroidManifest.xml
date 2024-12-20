@@ -4,7 +4,6 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <application
         android:allowBackup="true"
         android:usesCleartextTraffic="true"
@@ -18,17 +17,17 @@
         tools:targetApi="31" >
         <activity
             android:name=".SunlightActivity"
-            android:exported="false"
-            android:theme="@style/Theme.SunlightMeter" />
-        <activity
-            android:name=".LandingActivity"
             android:exported="true"
-            android:theme="@style/Theme.SunlightMeter" >
+            android:theme="@style/Theme.SunlightMeter">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".LandingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SunlightMeter" >
         </activity>
     </application>
 

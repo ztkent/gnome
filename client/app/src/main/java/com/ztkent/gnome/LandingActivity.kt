@@ -26,11 +26,11 @@ class LandingActivity : ComponentActivity() {
                         )
                     }
                 }
-            Handler(Looper.getMainLooper()).postDelayed({
+            Handler(Looper.getMainLooper()).post({
                 val intent = Intent(this, SunlightActivity::class.java)
                 startActivity(intent)
                 finish()
-            }, 1500)
+            })
         }
     }
 }

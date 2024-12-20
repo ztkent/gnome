@@ -124,10 +124,14 @@ class Device(addr: String) {
         }
     }
 
-    suspend fun getDataExport(context: Context): Result<String> {
+    suspend fun getDataExport(context: Context, method: String): Result<String> {
         return try {
             val result = withContext(Dispatchers.IO) {
-                downloadEndpoint(context, this@Device.addr, "/api/v1/csv")
+                if (method == "sqlite"){
+                    downloadEndpoint(context, this@Device.addr, "/api/v1/export")
+                } else {
+                    downloadEndpoint(context, this@Device.addr, "/api/v1/csv")
+                }
             }
             if (result.isSuccess) {
                 return Result.success("")
@@ -163,7 +167,10 @@ class Device(addr: String) {
 
 private fun downloadEndpoint(context: Context, deviceAddress: String, endpoint: String): Result<Any> {
     return try {
-        val filename = "gnome.csv"
+        var filename = "gnome.csv"
+        if (endpoint.contains("export")) {
+            filename = "gnome.db"
+        }
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val request = DownloadManager.Request(Uri.parse("http://$deviceAddress$endpoint"))
             .setTitle(filename)
