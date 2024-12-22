@@ -152,3 +152,46 @@ func ExportToCSV(dbFile, csvFile string) error {
 	}
 	return nil
 }
+
+func ExportToJSON(dbFile string, start time.Time, end time.Time) ([]map[string]interface{}, error) {
+	db, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`SELECT id, job_id, lux, full_spectrum, visible, infrared, created_at FROM sunlight WHERE created_at BETWEEN ? AND ?`, start, end)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query database: %w", err)
+	}
+	defer rows.Close()
+
+	var results []map[string]interface{}
+
+	for rows.Next() {
+		var id int
+		var jobID, lux, fullSpectrum, visible, infrared, createdAt string
+
+		if err := rows.Scan(&id, &jobID, &lux, &fullSpectrum, &visible, &infrared, &createdAt); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		record := map[string]interface{}{
+			"id":            id,
+			"job_id":        jobID,
+			"lux":           lux,
+			"full_spectrum": fullSpectrum,
+			"visible":       visible,
+			"infrared":      infrared,
+			"created_at":    createdAt,
+		}
+
+		results = append(results, record)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	return results, nil
+}

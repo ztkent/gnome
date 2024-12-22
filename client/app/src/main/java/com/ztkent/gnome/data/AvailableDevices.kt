@@ -2,6 +2,7 @@ package com.ztkent.gnome.data
 
 import android.app.DownloadManager
 import android.content.Context
+import android.icu.util.Calendar
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -16,11 +17,15 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.minutes
 
@@ -143,6 +148,99 @@ class Device(addr: String) {
         }
     }
 
+
+    data class GraphData(
+        val job_id: String,
+        val lux: Float,
+        val full_spectrum: Float,
+        val visible: Float,
+        val infrared: Float,
+        val created_at: String // Assuming created_at is a string representation of a timestamp
+    )
+    suspend fun getGraphData(context: Context, start: Date, end: Date): Result<List<GraphData>> {
+        return try {
+            // Format dates as RFC 3339 strings
+            val startDateRFC3339 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX",
+                Locale.getDefault()).format(start) // Use full package name
+            val endDateRFC3339 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX",
+                Locale.getDefault()).format(end)
+            val result = withContext(Dispatchers.IO) {
+                getEndpoint(this@Device.addr, "/api/v1/graph?start=$startDateRFC3339&end=$endDateRFC3339")
+            }
+            if (result.isSuccess) {
+                    val jsonResponse = result.getOrNull()
+                    if (jsonResponse == "null") {
+                        // return empty data for the range
+                        val emptyData = mutableListOf<GraphData>()
+                        val calendar = Calendar.getInstance()
+                        calendar.time = start
+
+                        while (calendar.time.before(end)) {
+                            val createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault()).format(calendar.time)
+                            emptyData.add(GraphData("", 0f, 0f, 0f, 0f, createdAt))
+                            calendar.add(Calendar.MINUTE, 60) // Increment by 1 hr
+                        }
+                        return Result.success(emptyData)
+                    }
+
+                    val graphDataList = mutableListOf<GraphData>()
+
+                    val jsonArray = JSONArray(jsonResponse)
+                    for (i in 0 until jsonArray.length()) {
+                        val jsonObject = jsonArray.getJSONObject(i)
+                        val job_id = jsonObject.getString("job_id")
+                        val lux = jsonObject.getDouble("lux").toFloat()
+                        val full_spectrum = jsonObject.getDouble("full_spectrum").toFloat()
+                        val visible = jsonObject.getDouble("visible").toFloat()
+                        val infrared = jsonObject.getDouble("infrared").toFloat()
+                        val created_at = jsonObject.getString("created_at")
+
+                        graphDataList.add(
+                            GraphData(job_id, lux, full_spectrum, visible, infrared, created_at)
+                        )
+                    }
+                    val downsampledData = downsampleData(graphDataList)
+                    Result.success(downsampledData)
+                } else {
+                Result.failure(result.exceptionOrNull()!!)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun downsampleData(data: List<GraphData>): List<GraphData> {
+        val downsampledData = mutableListOf<GraphData>()
+        val dataByMinute = data.groupBy {
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault()).parse(it.created_at)
+                ?.let { it1 ->
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault()).format(
+                        it1
+                    )
+                }
+        }
+
+        dataByMinute.forEach { (minute, dataPoints) ->
+            val avgLux = dataPoints.map { it.lux }.average().toFloat()
+            val avgFullSpectrum = dataPoints.map { it.full_spectrum }.average().toFloat()
+            val avgVisible = dataPoints.map { it.visible }.average().toFloat()
+            val avgInfrared = dataPoints.map { it.infrared }.average().toFloat()
+            val createdAt = minute // Use the minute as the timestamp for the downsampled data point
+
+            createdAt?.let {
+                GraphData("", avgLux, avgFullSpectrum, avgVisible, avgInfrared,
+                    it
+                )
+            }?.let {
+                downsampledData.add(
+                    it
+                )
+            }
+        }
+
+        return downsampledData
+    }
+
     private suspend fun callEndpoint(deviceAddress: String, endpoint: String): Result<Unit> {
         return try {
             val url = URL("http://$deviceAddress$endpoint")
@@ -156,6 +254,36 @@ class Device(addr: String) {
             val responseCode = connection.responseCode
             if (responseCode in 200..299) { // Success response codes
                 Result.success(Unit)
+            } else {
+                Result.failure(Exception("API call failed with response code: $responseCode"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    private suspend fun getEndpoint(deviceAddress: String, endpoint: String): Result<String> {
+        return try {
+            val url = URL("http://$deviceAddress$endpoint")
+            val connection = withContext(Dispatchers.IO) { url.openConnection() } as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+
+            val responseCode = connection.responseCode
+            if (responseCode in 200..299) {
+                // Read the response as a string
+                val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                val response = StringBuilder()
+                var line: String?
+                while (withContext(Dispatchers.IO) {
+                        reader.readLine()
+                    }.also { line = it } != null) {
+                    response.append(line)
+                }
+                withContext(Dispatchers.IO) {
+                    reader.close()
+                }
+                Result.success(response.toString()) // Return the JSON string
             } else {
                 Result.failure(Exception("API call failed with response code: $responseCode"))
             }

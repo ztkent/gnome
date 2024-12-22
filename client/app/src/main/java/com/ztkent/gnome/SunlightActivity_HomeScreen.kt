@@ -1,5 +1,6 @@
 package com.ztkent.gnome
 
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.util.Log
 import androidx.compose.foundation.Image
@@ -24,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.PullRefreshState
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -54,11 +54,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.ztkent.gnome.data.Device
 import com.ztkent.gnome.model.DeviceListModel
 import com.ztkent.gnome.model.DeviceLoadState
@@ -81,6 +83,7 @@ import com.ztkent.gnome.ui.theme.LuxDisabledGradient
 import com.ztkent.gnome.ui.theme.LuxUnknownGradient
 import com.ztkent.gnome.ui.theme.NotificationBarColor
 import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
+import com.ztkent.gnome.ui.theme.SunlightMeterTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -97,7 +100,7 @@ fun HomeScreen(modifier: Modifier = Modifier, viewModel: DeviceListModel, navCon
         }
     }
 
-    // Setup for landscape config
+    viewModel.slActivity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
@@ -783,5 +786,14 @@ fun EmptyDeviceItem(device: Device, modifier: Modifier = Modifier) {
                 }
                 .padding(12.dp)
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun HomeScreenPreview() {
+    SunlightMeterTheme {
+        val navController = rememberNavController()
+        HomeScreen(viewModel = DeviceListModelPreview(), navController = navController)
     }
 }

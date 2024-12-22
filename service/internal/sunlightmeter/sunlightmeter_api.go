@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/ztkent/gnome/internal/gnome"
 	"github.com/ztkent/gnome/internal/tools"
@@ -176,6 +177,41 @@ func (m *SLMeter) ServeResultsCSV() http.HandlerFunc {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "gnome.csv"))
 		w.Header().Set("Content-Type", "text/csv")
 		http.ServeFile(w, r, gnome.GNOME_CSV_PATH)
+	}
+}
+
+func (m *SLMeter) ServeResultsJSON() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		startDate := time.Now().UTC().Add(-8 * time.Hour)
+		endDate := time.Now().UTC()
+
+		startDateStr := r.FormValue("start")
+		endDateStr := r.FormValue("end")
+		if startDateStr != "" && endDateStr != "" {
+			var err error
+			startDate, err = time.Parse(time.RFC3339, startDateStr)
+			if err != nil {
+				http.Error(w, "Invalid start date", http.StatusBadRequest)
+				return
+			}
+			endDate, err = time.Parse(time.RFC3339, endDateStr)
+			if err != nil {
+				http.Error(w, "Invalid end date", http.StatusBadRequest)
+				return
+			}
+		}
+
+		data, err := tools.ExportToJSON(gnome.GNOME_DB_PATH, startDate, endDate)
+		if err != nil {
+			http.Error(w, "Failed to export CSV", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(data)
+		return
 	}
 }
 
