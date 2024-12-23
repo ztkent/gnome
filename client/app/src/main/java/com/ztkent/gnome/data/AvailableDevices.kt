@@ -148,7 +148,6 @@ class Device(addr: String) {
         }
     }
 
-
     data class GraphData(
         val job_id: String,
         val lux: Float,
@@ -174,7 +173,6 @@ class Device(addr: String) {
                         val emptyData = mutableListOf<GraphData>()
                         val calendar = Calendar.getInstance()
                         calendar.time = start
-
                         while (calendar.time.before(end)) {
                             val createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault()).format(calendar.time)
                             emptyData.add(GraphData("", 0f, 0f, 0f, 0f, createdAt))
@@ -184,7 +182,6 @@ class Device(addr: String) {
                     }
 
                     val graphDataList = mutableListOf<GraphData>()
-
                     val jsonArray = JSONArray(jsonResponse)
                     for (i in 0 until jsonArray.length()) {
                         val jsonObject = jsonArray.getJSONObject(i)
@@ -211,33 +208,40 @@ class Device(addr: String) {
 
     private fun downsampleData(data: List<GraphData>): List<GraphData> {
         val downsampledData = mutableListOf<GraphData>()
-        val dataByMinute = data.groupBy {
+        val dataByInterval = data.groupBy {
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault()).parse(it.created_at)
-                ?.let { it1 ->
+                ?.let { date ->
+                    val interval = 120 // 2-hour interval
+                    val calendar = Calendar.getInstance().apply { time = date }
+                    val minutes = calendar.get(Calendar.MINUTE)
+                    val intervalStart = minutes / interval * interval // Calculate interval start minute
                     SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault()).format(
-                        it1
+                        calendar.apply { set(Calendar.MINUTE, intervalStart) }.time
                     )
                 }
         }
 
-        dataByMinute.forEach { (minute, dataPoints) ->
-            val avgLux = dataPoints.map { it.lux }.average().toFloat()
-            val avgFullSpectrum = dataPoints.map { it.full_spectrum }.average().toFloat()
-            val avgVisible = dataPoints.map { it.visible }.average().toFloat()
-            val avgInfrared = dataPoints.map { it.infrared }.average().toFloat()
-            val createdAt = minute // Use the minute as the timestamp for the downsampled data point
-
-            createdAt?.let {
-                GraphData("", avgLux, avgFullSpectrum, avgVisible, avgInfrared,
-                    it
-                )
-            }?.let {
-                downsampledData.add(
-                    it
-                )
+        dataByInterval.forEach { (intervalTimestamp, dataPoints) ->
+            var avgLux = dataPoints.map { it.lux }.average().toFloat()
+            var avgFullSpectrum = dataPoints.map { it.full_spectrum }.average().toFloat()
+            var avgVisible = dataPoints.map { it.visible }.average().toFloat()
+            var avgInfrared = dataPoints.map { it.infrared }.average().toFloat()
+            if (avgLux.isNaN()) {
+                avgLux = 0f
             }
+            if (avgFullSpectrum.isNaN()) {
+                avgFullSpectrum = 0f
+            }
+            if (avgVisible.isNaN()) {
+                avgVisible = 0f
+            }
+            if (avgInfrared.isNaN()) {
+                avgInfrared = 0f
+            }
+            downsampledData.add(
+                GraphData("", avgLux, avgFullSpectrum, avgVisible, avgInfrared, intervalTimestamp!!)
+            )
         }
-
         return downsampledData
     }
 

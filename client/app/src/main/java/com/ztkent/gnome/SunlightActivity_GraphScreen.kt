@@ -22,7 +22,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -144,43 +143,62 @@ fun GraphScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(24.dp)
-                                    .zIndex(1f) // Always on top
-                            ){
-                                Box(
+                                    .padding(8.dp)
+                                    .zIndex(1f)
+                            ) {
+                                ConstraintLayout(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                ){
+                                        .fillMaxHeight()
+                                        .zIndex(1f)
+                                        .padding(8.dp)
+                                ) {
+                                    val (luxBox, inputsBox) = createRefs() // Add refs for titles
+
+                                    // Sunlight Graph 1
                                     ConstraintLayout(
                                         modifier = Modifier
-                                            .zIndex(2f) // Always on top
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(0.45f) // Reduced height for gap
+                                            .zIndex(2f)
                                             .background(
                                                 NotificationBarColor,
                                                 shape = RoundedCornerShape(8.dp)
                                             )
-                                    ) {
-                                        val (title, graph) = createRefs()
-                                        Text("Sunlight Graph", color = Color.Black, modifier = Modifier
-                                            .constrainAs(title) {
-                                                top.linkTo(parent.top)
+                                            .padding(8.dp)
+                                            .constrainAs(luxBox) {
+                                                top.linkTo(parent.top, margin = 4.dp) // Constrain to title1
                                                 start.linkTo(parent.start)
                                                 end.linkTo(parent.end)
                                             }
+                                    ) {
+                                        SunlightTimeGraph(viewModel, data, modifier = Modifier.padding(4.dp))
+                                    }
+
+                                    // Sunlight Graph 2
+                                    ConstraintLayout(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(0.45f) // Reduced height for gap
+                                            .zIndex(2f)
+                                            .background(
+                                                NotificationBarColor,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
                                             .padding(8.dp)
-                                        )
-                                        SunlightGraph(viewModel, data, modifier = Modifier
-                                            .constrainAs(graph) {
-                                                top.linkTo(title.bottom)
+                                            .constrainAs(inputsBox) {
+                                                top.linkTo(luxBox.bottom, margin = 12.dp) // Constrain to luxBox
+                                                start.linkTo(parent.start)
+                                                end.linkTo(parent.end)
                                             }
-                                        )
+                                    ) {
+                                        SunlightTimeGraph(viewModel, data, modifier = Modifier.padding(4.dp))
                                     }
                                 }
                             }
                         }
                     }
                 }
-
-
                 Box(
                     modifier = Modifier
                         .constrainAs(bottomBar) {
@@ -217,7 +235,7 @@ fun GraphScreen(
 }
 
 @Composable
-fun SunlightGraph(viewModel: DeviceListModel, graphData: List<Device.GraphData>?, modifier: Modifier = Modifier) {
+fun SunlightTimeGraph(viewModel: DeviceListModel, graphData: List<Device.GraphData>?, modifier: Modifier = Modifier) {
     AndroidView(
         factory = { ctx ->
             LineChart(ctx).apply {
@@ -235,22 +253,61 @@ fun SunlightGraph(viewModel: DeviceListModel, graphData: List<Device.GraphData>?
         },
         update = { lineChart ->
             if (graphData != null && graphData.isNotEmpty()) {
-                val entries = graphData.map { data ->
+                val luxEntries = graphData.map { data ->
                     val timeInMillis = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
                         .parse(data.created_at)?.time?.toFloat() ?: 0f
                     Entry(timeInMillis, data.lux)
                 }
+                val visibleEntries = graphData.map { data ->
+                    val timeInMillis = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
+                        .parse(data.created_at)?.time?.toFloat() ?: 0f
+                    Entry(timeInMillis, data.visible)
+                }
+                val infraredEntries = graphData.map { data ->
+                    val timeInMillis = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
+                        .parse(data.created_at)?.time?.toFloat() ?: 0f
+                    Entry(timeInMillis, data.infrared)
+                }
+                val fullEntries = graphData.map { data ->
+                    val timeInMillis = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
+                        .parse(data.created_at)?.time?.toFloat() ?: 0f
+                    Entry(timeInMillis, data.full_spectrum)
+                }
 
-                val dataSet = LineDataSet(entries, "Sunlight").apply {
-                    color = Color.Blue.toArgb()
-                    setCircleColor(Color.Blue.toArgb())
+
+                val dataSetLux = LineDataSet(luxEntries, "Lux").apply {
+                    color = Color.Black.toArgb()
+                    setCircleColor(Color.Black.toArgb())
                     lineWidth = 2f
                     circleRadius = 3f
-                    setDrawCircleHole(true)
                     valueTextSize = 0f
                     mode = LineDataSet.Mode.CUBIC_BEZIER
                 }
-                lineChart.data = LineData(dataSet)
+                val dataSetFull = LineDataSet(fullEntries, "Full Spectrum Light").apply {
+                    color = Color.Gray.toArgb()
+                    setCircleColor(Color.Gray.toArgb())
+                    lineWidth = 2f
+                    circleRadius = 3f
+                    valueTextSize = 0f
+                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                }
+                val dataSetVisible = LineDataSet(visibleEntries, "Visible Light").apply {
+                    color = Color.Magenta.toArgb()
+                    setCircleColor(Color.Magenta.toArgb())
+                    lineWidth = 2f
+                    circleRadius = 3f
+                    valueTextSize = 0f
+                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                }
+                val dataSetInfrared = LineDataSet(infraredEntries, "Infrared Lux").apply {
+                    color = Color.Green.toArgb()
+                    setCircleColor(Color.Green.toArgb())
+                    lineWidth = 2f
+                    circleRadius = 3f
+                    valueTextSize = 0f
+                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                }
+                lineChart.data = LineData(dataSetLux, dataSetVisible, dataSetInfrared, dataSetFull)
 
                 // Display timestamps on x-axis
                 val xAxis = lineChart.xAxis
