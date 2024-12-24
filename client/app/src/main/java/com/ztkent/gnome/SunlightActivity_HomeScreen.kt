@@ -193,12 +193,17 @@ private fun LandscapeMode(
                         }
 
                         is DeviceLoadState.Error -> {
+                            var message = devices.exception.message
+                            if (message != null && message.contains("Device is not connected to WIFI")){
+                                message = "Connect to WIFI to monitor your Gnomes"
+                            }
                             item {
-                                Text(
-                                    text = "Error loading devices: ${devices.exception.message}",
+                                ErrorItem(
+                                    device = Device(""),
+                                    msg = message!!,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .wrapContentSize(Alignment.Center)
+                                        .padding(8.dp)
                                 )
                             }
                         }
@@ -325,6 +330,7 @@ private fun PortraitMode(
                 is DeviceLoadState.Success -> {
                     if (devices.data.isEmpty()) {
                         // Display some information
+                        // TODO: This should be where the bluetooth/wifi setup process starts
                         item {
                             EmptyDeviceItem(device = Device(""),
                                 modifier = Modifier
@@ -350,12 +356,17 @@ private fun PortraitMode(
                 }
 
                 is DeviceLoadState.Error -> {
+                    var message = devices.exception.message
+                    if (message != null && message.contains("Device is not connected to WIFI")){
+                        message = "Connect to WIFI to monitor your Gnomes"
+                    }
                     item {
-                        Text(
-                            text = "Error loading devices: ${devices.exception.message}",
+                        ErrorItem(
+                            device = Device(""),
+                            msg = message!!,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .wrapContentSize(Alignment.Center)
+                                .padding(8.dp)
                         )
                     }
                 }
@@ -704,6 +715,77 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
         }
     }
 }
+
+@Composable
+fun ErrorItem(device: Device, msg: String, modifier: Modifier = Modifier) {
+    ConstraintLayout(
+        modifier = modifier
+            .height(265.dp)
+            .background(
+                Color.White,
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        val (image, address, status, infoIcon, divider, brightness) = createRefs()
+        Image(
+            painter = painterResource(id = R.drawable.network_wifi_off),
+            contentDescription = "Device image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .constrainAs(image) {
+                    top.linkTo(parent.top, margin = 4.dp)
+                    start.linkTo(parent.start, margin = 8.dp)
+                }
+        )
+        Text(
+            text = device.addr,
+            fontSize = 12.sp,
+            fontFamily = FontFamily(Font(R.font.roboto)),
+            color = Color.Black,
+            modifier = Modifier
+                .constrainAs(address) {
+                    top.linkTo(parent.top, margin = 4.dp)
+                    start.linkTo(image.end, margin = 8.dp)
+                }
+        )
+        Text(
+            text = "No Devices Found",
+            fontSize = 16.sp,
+            fontFamily = FontFamily(Font(R.font.roboto)),
+            color = Color.Black,
+            modifier = Modifier
+                .constrainAs(status) {
+                    top.linkTo(image.bottom, margin = 8.dp)
+                    start.linkTo(parent.start, margin = 8.dp)
+                }
+        )
+
+        HorizontalDivider(
+            color = DIVIDER_COLOR,
+            thickness = 1.dp,
+            modifier = Modifier
+                .constrainAs(divider) {
+                    top.linkTo(status.bottom, margin = 16.dp)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                }
+        )
+
+        Text(
+            text = msg,
+            fontSize = 18.sp,
+            fontFamily = FontFamily(Font(R.font.robotolight)),
+            color = Color.Black,
+            modifier = Modifier
+                .constrainAs(brightness) {
+                    centerVerticallyTo(parent)
+                    centerHorizontallyTo(parent)
+                }
+                .padding(12.dp)
+        )
+    }
+}
+
 
 @Composable
 fun EmptyDeviceItem(device: Device, modifier: Modifier = Modifier) {
