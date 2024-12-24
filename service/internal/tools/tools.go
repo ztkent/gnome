@@ -160,7 +160,7 @@ func ExportToJSON(dbFile string, start time.Time, end time.Time) ([]map[string]i
 	}
 	defer db.Close()
 
-	rows, err := db.Query(`SELECT id, job_id, lux, full_spectrum, visible, infrared, created_at FROM sunlight WHERE created_at BETWEEN ? AND ?`, start, end)
+	rows, err := db.Query(`SELECT id, job_id, lux, full_spectrum, visible, infrared, created_at FROM sunlight WHERE created_at BETWEEN ? AND ?`, start.UTC(), end.UTC())
 	if err != nil {
 		return nil, fmt.Errorf("failed to query database: %w", err)
 	}
