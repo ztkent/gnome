@@ -122,7 +122,7 @@ class Device(addr: String) {
             } else {
                 // We cant do anything, the sensor is not connected.
                 Log.e("flipStatus", "Cannot change the status when sensor is disconnected")
-                return Result.success(this)
+                return Result.failure(IllegalStateException("Sensor is disconnected"))
             }
         } catch (e: Exception) {
             Result.failure(e)

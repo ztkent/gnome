@@ -1,8 +1,10 @@
 package com.ztkent.gnome
 
+import android.content.ActivityNotFoundException
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +53,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -86,6 +90,7 @@ import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
 import com.ztkent.gnome.ui.theme.SunlightMeterTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -398,9 +403,18 @@ private fun PortraitMode(
                         tint = SELECTED_TAB_COLOR
                     )
                 }
-                IconButton(onClick = { /* TODO */ }) {
+
+                val context = LocalContext.current
+                val uriHandler = LocalUriHandler.current
+                IconButton(onClick = {
+                    try {
+                        uriHandler.openUri("https://www.ztkent.com")
+                    } catch (e: ActivityNotFoundException) {
+                        Toast.makeText(context, "No browser app found", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
                     Icon(
-                        painter = painterResource(id = R.drawable.solar),
+                        painter = painterResource(id = R.drawable.store_24),
                         contentDescription = "Shop", tint = Color.Black
                     )
                 }
@@ -508,6 +522,9 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                         },
                         onFailure = { exception ->
                             Log.e("DeviceItem", "Error adjusting device power", exception)
+                            withContext(Dispatchers.Main) { // Switch to main thread
+                                Toast.makeText(viewModel.slActivity, "Error adjusting device power", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     )
                 }
@@ -572,6 +589,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                     bottom.linkTo(parent.bottom, margin = 60.dp)
                 }
         )
+
         IconButton(
             onClick = {
                 coroutineScope.launch(Dispatchers.IO) {
@@ -581,6 +599,9 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                         },
                         onFailure = { exception ->
                             Log.e("DeviceItem", "Error refreshing device", exception)
+                            withContext(Dispatchers.Main) { // Switch to main thread
+                                Toast.makeText(viewModel.slActivity, "Error refreshing device", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     )
                 }
@@ -651,6 +672,9 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                                                 "Error getting device export",
                                                 exception
                                             )
+                                            withContext(Dispatchers.Main) { // Switch to main thread
+                                                Toast.makeText(viewModel.slActivity, "Error getting csv export", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
                                     )
                                 }
@@ -678,6 +702,9 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                                                 "Error getting device export",
                                                 exception
                                             )
+                                            withContext(Dispatchers.Main) { // Switch to main thread
+                                                Toast.makeText(viewModel.slActivity, "Error getting sqlite export", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
                                     )
                                 }

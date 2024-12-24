@@ -10,13 +10,16 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,7 +46,11 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -140,59 +147,84 @@ fun GraphScreen(
                     } else {
                         graphData?.let { data ->
                             Log.d("GraphScreen", "Graph data: $data")
-                            Box(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(8.dp)
                                     .zIndex(1f)
+                                    .verticalScroll(rememberScrollState())
                             ) {
                                 ConstraintLayout(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .fillMaxHeight()
-                                        .zIndex(1f)
                                         .padding(8.dp)
                                 ) {
-                                    val (luxBox, inputsBox) = createRefs() // Add refs for titles
+                                    val (luxBox, lomBox, componentsBox) = createRefs() // Add refs for titles
 
                                     // Sunlight Graph 1
                                     ConstraintLayout(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .fillMaxHeight(0.45f) // Reduced height for gap
-                                            .zIndex(2f)
+                                            .height(400.dp)
                                             .background(
                                                 NotificationBarColor,
                                                 shape = RoundedCornerShape(8.dp)
                                             )
                                             .padding(8.dp)
                                             .constrainAs(luxBox) {
-                                                top.linkTo(parent.top, margin = 4.dp) // Constrain to title1
+                                                top.linkTo(
+                                                    parent.top,
+                                                    margin = 4.dp
+                                                ) // Constrain to title1
                                                 start.linkTo(parent.start)
                                                 end.linkTo(parent.end)
                                             }
                                     ) {
-                                        SunlightTimeGraph(viewModel, data, modifier = Modifier.padding(4.dp))
+                                        SunlightLuxGraph(viewModel, data, modifier = Modifier.padding(4.dp))
                                     }
 
                                     // Sunlight Graph 2
                                     ConstraintLayout(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .fillMaxHeight(0.45f) // Reduced height for gap
-                                            .zIndex(2f)
+                                            .height(400.dp)
                                             .background(
                                                 NotificationBarColor,
                                                 shape = RoundedCornerShape(8.dp)
                                             )
                                             .padding(8.dp)
-                                            .constrainAs(inputsBox) {
-                                                top.linkTo(luxBox.bottom, margin = 12.dp) // Constrain to luxBox
+                                            .constrainAs(lomBox) {
+                                                top.linkTo(
+                                                    luxBox.bottom,
+                                                    margin = 12.dp
+                                                ) // Constrain to luxBox
                                                 start.linkTo(parent.start)
                                                 end.linkTo(parent.end)
                                             }
                                     ) {
-                                        SunlightTimeGraph(viewModel, data, modifier = Modifier.padding(4.dp))
+                                        SunlightLomBarChart(viewModel, data, modifier = Modifier.padding(4.dp))
+                                    }
+
+                                    // Sunlight Graph 3
+                                    ConstraintLayout(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(400.dp)
+                                            .background(
+                                                NotificationBarColor,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(8.dp)
+                                            .constrainAs(componentsBox) {
+                                                top.linkTo(
+                                                    lomBox.bottom,
+                                                    margin = 12.dp
+                                                ) // Constrain to lomBox
+                                                start.linkTo(parent.start)
+                                                end.linkTo(parent.end)
+                                            }
+                                    ) {
+                                        SunlightComponentsGraph(viewModel, data, modifier = Modifier.padding(4.dp))
                                     }
                                 }
                             }
@@ -235,7 +267,7 @@ fun GraphScreen(
 }
 
 @Composable
-fun SunlightTimeGraph(viewModel: DeviceListModel, graphData: List<Device.GraphData>?, modifier: Modifier = Modifier) {
+fun SunlightLuxGraph(viewModel: DeviceListModel, graphData: List<Device.GraphData>?, modifier: Modifier = Modifier) {
     AndroidView(
         factory = { ctx ->
             LineChart(ctx).apply {
@@ -258,6 +290,65 @@ fun SunlightTimeGraph(viewModel: DeviceListModel, graphData: List<Device.GraphDa
                         .parse(data.created_at)?.time?.toFloat() ?: 0f
                     Entry(timeInMillis, data.lux)
                 }
+
+                val dataSetLux = LineDataSet(luxEntries, "Lux").apply {
+                    color = Color.Black.toArgb()
+                    setCircleColor(Color.Black.toArgb())
+                    lineWidth = 2f
+                    circleRadius = 3f
+                    valueTextSize = 0f
+                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                }
+                lineChart.data = LineData(dataSetLux)
+
+                // Display timestamps on x-axis
+                val xAxis = lineChart.xAxis
+                xAxis.valueFormatter = object : ValueFormatter() {
+                    private val format = SimpleDateFormat("HH:mm", Locale.ENGLISH)
+                    override fun getFormattedValue(value: Float): String {
+                        return format.format(Date(value.toLong()))
+                    }
+                }
+
+                // Handle too many data points
+                xAxis.labelRotationAngle = 45f // Rotate labels for better visibility
+                xAxis.setLabelCount(8, true) // Display a limited number of labels
+
+                // Set minimum value for y-axis to 0
+                val yAxis = lineChart.axisLeft
+                yAxis.axisMinimum = 0f
+
+                // Display y-axis labels only on the left
+                val axisRight = lineChart.axisRight
+                axisRight.isEnabled = false
+                yAxis.isEnabled = true
+
+                lineChart.invalidate()
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun SunlightComponentsGraph(viewModel: DeviceListModel, graphData: List<Device.GraphData>?, modifier: Modifier = Modifier) {
+    AndroidView(
+        factory = { ctx ->
+            LineChart(ctx).apply {
+                setTouchEnabled(true)
+                isDragEnabled = true
+                setScaleEnabled(true)
+                setPinchZoom(true)
+                description.isEnabled = false
+
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            }
+        },
+        update = { lineChart ->
+            if (graphData != null && graphData.isNotEmpty()) {
                 val visibleEntries = graphData.map { data ->
                     val timeInMillis = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
                         .parse(data.created_at)?.time?.toFloat() ?: 0f
@@ -274,15 +365,6 @@ fun SunlightTimeGraph(viewModel: DeviceListModel, graphData: List<Device.GraphDa
                     Entry(timeInMillis, data.full_spectrum)
                 }
 
-
-                val dataSetLux = LineDataSet(luxEntries, "Lux").apply {
-                    color = Color.Black.toArgb()
-                    setCircleColor(Color.Black.toArgb())
-                    lineWidth = 2f
-                    circleRadius = 3f
-                    valueTextSize = 0f
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
-                }
                 val dataSetFull = LineDataSet(fullEntries, "Full Spectrum Light").apply {
                     color = Color.Gray.toArgb()
                     setCircleColor(Color.Gray.toArgb())
@@ -307,7 +389,7 @@ fun SunlightTimeGraph(viewModel: DeviceListModel, graphData: List<Device.GraphDa
                     valueTextSize = 0f
                     mode = LineDataSet.Mode.CUBIC_BEZIER
                 }
-                lineChart.data = LineData(dataSetLux, dataSetVisible, dataSetInfrared, dataSetFull)
+                lineChart.data = LineData(dataSetVisible, dataSetInfrared, dataSetFull)
 
                 // Display timestamps on x-axis
                 val xAxis = lineChart.xAxis
@@ -320,8 +402,7 @@ fun SunlightTimeGraph(viewModel: DeviceListModel, graphData: List<Device.GraphDa
 
                 // Handle too many data points
                 xAxis.labelRotationAngle = 45f // Rotate labels for better visibility
-                xAxis.granularity = 60f * 60 * 1000 // Display labels every hour (adjust as needed)
-                // xAxis.setLabelCount(5, true) // Display a limited number of labels
+                 xAxis.setLabelCount(8, true) // Display a limited number of labels
 
                 // Set minimum value for y-axis to 0
                 val yAxis = lineChart.axisLeft
@@ -339,7 +420,83 @@ fun SunlightTimeGraph(viewModel: DeviceListModel, graphData: List<Device.GraphDa
     )
 }
 
+@Composable
+fun SunlightLomBarChart(viewModel: DeviceListModel, graphData: List<Device.GraphData>?, modifier: Modifier = Modifier) {
+    AndroidView(
+        factory = { ctx ->
+            BarChart(ctx).apply {
+                setTouchEnabled(true)
+                isDragEnabled = false // Disable dragging for bar chart
+                setScaleEnabled(true)
+                setPinchZoom(false) // Disable pinch zoom for bar chart
+                description.isEnabled = false
 
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            }
+        },
+        update = { barChart ->
+            if (graphData != null && graphData.isNotEmpty()) {
+                val lomEntries = calculateCumulativeLom(graphData)
+
+                val dataSetLom = BarDataSet(lomEntries, "Cumulative LOM").apply {
+                    color = Color.Black.toArgb()
+                    valueTextSize = 0f
+                }
+                barChart.data = BarData(dataSetLom)
+
+                // Display timestamps on x-axis
+                val xAxis = barChart.xAxis
+                xAxis.valueFormatter = object : ValueFormatter() {
+                    private val format = SimpleDateFormat("HH:mm", Locale.ENGLISH)
+                    override fun getFormattedValue(value: Float): String {
+                        val calendar = Calendar.getInstance()
+                        calendar.set(Calendar.HOUR_OF_DAY, value.toInt())
+                        calendar.set(Calendar.MINUTE, 0)
+                        return format.format(calendar.time)
+                    }
+                }
+                xAxis.labelRotationAngle = 45f // Rotate labels for better visibility
+                xAxis.setLabelCount(8, true) // Display a limited number of labels
+
+                // Set minimum value for y-axis to 0
+                val yAxis = barChart.axisLeft
+                yAxis.axisMinimum = 0f
+
+                // Display y-axis labels only on the left
+                val axisRight = barChart.axisRight
+                axisRight.isEnabled = false
+                yAxis.isEnabled = true
+
+                barChart.invalidate()
+            }
+        },
+        modifier = modifier
+    )
+}
+
+fun calculateCumulativeLom(graphData: List<Device.GraphData>): List<BarEntry> {
+    val lomByHour = mutableMapOf<Int, Float>() // Store LOM by hour
+
+    for (data in graphData) {
+        val timeInMillis = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
+            .parse(data.created_at)?.time ?: 0
+        val calendar = Calendar.getInstance().also { it.timeInMillis = timeInMillis }
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+
+        // Generalize LOM from lux: Assume constant lux for the interval between readings
+        val lomForInterval = data.lux * (5f / 60f) // Assuming 5-minute intervals (adjust as needed)
+
+        lomByHour[hour] = (lomByHour[hour] ?: 0f) + lomForInterval
+    }
+
+    // Create BarEntry list from the calculated LOM values
+    return lomByHour.entries.map { (hour, lom) ->
+        BarEntry(hour.toFloat(), lom) // Use 'hour' as x-value
+    }
+}
 suspend fun fetchGraphData(context: Context, device: Device): List<Device.GraphData>? {
     val calendar = Calendar.getInstance()
     val endDate = calendar.time
