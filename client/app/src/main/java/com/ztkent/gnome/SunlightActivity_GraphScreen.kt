@@ -17,14 +17,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,21 +49,29 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.charts.CombinedChart
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.data.CombinedData
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.ztkent.gnome.data.DATA_INTERVAL_MINUTES
 import com.ztkent.gnome.data.Device
 import com.ztkent.gnome.model.DeviceListModel
 import com.ztkent.gnome.ui.theme.BG1
 import com.ztkent.gnome.ui.theme.BG2
+import com.ztkent.gnome.ui.theme.DLILineColor
+import com.ztkent.gnome.ui.theme.FullSpectrumColor
+import com.ztkent.gnome.ui.theme.InfraredLightColor
+import com.ztkent.gnome.ui.theme.LuxChartColor
 import com.ztkent.gnome.ui.theme.NotificationBarColor
+import com.ztkent.gnome.ui.theme.PPFDBarColor
 import com.ztkent.gnome.ui.theme.SunlightMeterTheme
+import com.ztkent.gnome.ui.theme.VisibleLightColor
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -81,6 +92,7 @@ fun GraphScreen(
         viewModel.slActivity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         graphData = device?.let { fetchGraphData(viewModel.slActivity, it) }
         if (graphData == null) {
+            // TODO: We need to handle this and display something on the screen
             Log.e("GraphScreen", "Graph data is null")
         } else {
             Log.d("GraphScreen", "Graph data: $graphData")
@@ -159,9 +171,72 @@ fun GraphScreen(
                                         .fillMaxWidth()
                                         .padding(8.dp)
                                 ) {
-                                    val (luxBox, lomBox, componentsBox) = createRefs() // Add refs for titles
-
-                                    // Sunlight Graph 1
+                                    val (ppfdBox, luxBox, componentsBox) = createRefs() // Add refs for titles
+                                    ConstraintLayout(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(400.dp)
+                                            .background(
+                                                NotificationBarColor,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(8.dp)
+                                            .constrainAs(ppfdBox) {
+                                                top.linkTo(
+                                                    parent.top,
+                                                    margin = 12.dp
+                                                )
+                                                start.linkTo(parent.start)
+                                                end.linkTo(parent.end)
+                                            }
+                                    ) {
+                                        ConstraintLayout(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(8.dp)
+                                        ) {
+                                            val (title, infoButton, chart) = createRefs()
+                                            Text(
+                                                text = "Daily Light Integral (mol/m²/day)",
+                                                color = Color.Black,
+                                                modifier = Modifier
+                                                    .constrainAs(title) {
+                                                        top.linkTo(parent.top)
+                                                        start.linkTo(parent.start)
+                                                        end.linkTo(infoButton.start) // Adjust end constraint
+                                                        width = Dimension.fillToConstraints
+                                                    }
+                                                    .padding(4.dp,4.dp, 0.dp, 4.dp)
+                                                    .wrapContentSize(Alignment.Center)
+                                            )
+                                            IconButton(
+                                                onClick = {},
+                                                modifier = Modifier
+                                                    .constrainAs(infoButton) {
+                                                        top.linkTo(parent.top)
+                                                        end.linkTo(parent.end)
+                                                        bottom.linkTo(chart.top)
+                                                    }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Info, // Use appropriate info icon
+                                                    contentDescription = "Info",
+                                                    tint = Color.Black
+                                                )
+                                            }
+                                            SunlightPPFDCombinedChart(
+                                                viewModel = viewModel,
+                                                graphData = data,
+                                                modifier = Modifier
+                                                    .constrainAs(chart) {
+                                                        top.linkTo(title.bottom)
+                                                        start.linkTo(parent.start)
+                                                        end.linkTo(parent.end)
+                                                    }
+                                                    .padding(4.dp,4.dp,4.dp, 24.dp)
+                                            )
+                                        }
+                                    }
                                     ConstraintLayout(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -173,39 +248,55 @@ fun GraphScreen(
                                             .padding(8.dp)
                                             .constrainAs(luxBox) {
                                                 top.linkTo(
-                                                    parent.top,
-                                                    margin = 4.dp
+                                                    ppfdBox.bottom,
+                                                    margin = 12.dp
                                                 ) // Constrain to title1
                                                 start.linkTo(parent.start)
                                                 end.linkTo(parent.end)
                                             }
                                     ) {
-                                        SunlightLuxGraph(viewModel, data, modifier = Modifier.padding(4.dp))
-                                    }
-
-                                    // Sunlight Graph 2
-                                    ConstraintLayout(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(400.dp)
-                                            .background(
-                                                NotificationBarColor,
-                                                shape = RoundedCornerShape(8.dp)
+                                        val (title, infoButton, chart) = createRefs()
+                                        Text(
+                                            text = "Daily Light Conditions",
+                                            color = Color.Black,
+                                            modifier = Modifier
+                                                .constrainAs(title) {
+                                                    top.linkTo(parent.top)
+                                                    start.linkTo(parent.start)
+                                                    end.linkTo(infoButton.start) // Adjust end constraint
+                                                    width = Dimension.fillToConstraints
+                                                }
+                                                .padding(4.dp,4.dp, 0.dp, 4.dp)
+                                                .wrapContentSize(Alignment.Center)
+                                        )
+                                        IconButton(
+                                            onClick = { /* Handle info button click */ },
+                                            modifier = Modifier
+                                                .constrainAs(infoButton) {
+                                                    top.linkTo(parent.top)
+                                                    end.linkTo(parent.end)
+                                                    bottom.linkTo(chart.top)
+                                                }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Info, // Use appropriate info icon
+                                                contentDescription = "Info",
+                                                tint = Color.Black
                                             )
-                                            .padding(8.dp)
-                                            .constrainAs(lomBox) {
-                                                top.linkTo(
-                                                    luxBox.bottom,
-                                                    margin = 12.dp
-                                                ) // Constrain to luxBox
-                                                start.linkTo(parent.start)
-                                                end.linkTo(parent.end)
-                                            }
-                                    ) {
-                                        SunlightLomBarChart(viewModel, data, modifier = Modifier.padding(4.dp))
-                                    }
+                                        }
+                                        SunlightLuxGraph(
+                                            viewModel = viewModel,
+                                            graphData = data,
+                                            modifier = Modifier
+                                                .constrainAs(chart) { // Constrain the chart
+                                                    top.linkTo(title.bottom) // Position below the text
+                                                    start.linkTo(parent.start)
+                                                    end.linkTo(parent.end)
+                                                }
+                                                .padding(4.dp,4.dp,4.dp, 28.dp)
 
-                                    // Sunlight Graph 3
+                                        )
+                                    }
                                     ConstraintLayout(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -217,14 +308,54 @@ fun GraphScreen(
                                             .padding(8.dp)
                                             .constrainAs(componentsBox) {
                                                 top.linkTo(
-                                                    lomBox.bottom,
+                                                    luxBox.bottom,
                                                     margin = 12.dp
-                                                ) // Constrain to lomBox
+                                                )
                                                 start.linkTo(parent.start)
                                                 end.linkTo(parent.end)
                                             }
                                     ) {
-                                        SunlightComponentsGraph(viewModel, data, modifier = Modifier.padding(4.dp))
+                                        val (title, infoButton, chart) = createRefs()
+                                        Text(
+                                            text = "Light Components Breakdown",
+                                            color = Color.Black,
+                                            modifier = Modifier
+                                                .constrainAs(title) { // Constrain the text
+                                                    top.linkTo(parent.top)
+                                                    start.linkTo(parent.start)
+                                                    end.linkTo(parent.end)
+                                                    width = Dimension.fillToConstraints // Make text fill width
+                                                }
+                                                .padding(0.dp,4.dp,4.dp,4.dp)
+                                                .wrapContentSize(Alignment.Center) // Center text horizontally
+                                        )
+                                        IconButton(
+                                            onClick = { /* Handle info button click */ },
+                                            modifier = Modifier
+                                                .constrainAs(infoButton) {
+                                                    top.linkTo(parent.top)
+                                                    end.linkTo(parent.end)
+                                                    bottom.linkTo(chart.top)
+                                                }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Info, // Use appropriate info icon
+                                                contentDescription = "Info",
+                                                tint = Color.Black
+                                            )
+                                        }
+
+                                        SunlightComponentsGraph(
+                                            viewModel = viewModel,
+                                            graphData = data,
+                                            modifier = Modifier
+                                                .constrainAs(chart) { // Constrain the chart
+                                                    top.linkTo(title.bottom) // Position below the text
+                                                    start.linkTo(parent.start)
+                                                    end.linkTo(parent.end)
+                                                }
+                                                .padding(4.dp,4.dp,4.dp,28.dp)
+                                        )
                                     }
                                 }
                             }
@@ -250,7 +381,7 @@ fun GraphScreen(
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
                         IconButton(
-                            onClick = { navController.navigate("home") },
+                            onClick = { navController.popBackStack() },
                             modifier = Modifier
                         ) {
                             Icon(
@@ -291,9 +422,9 @@ fun SunlightLuxGraph(viewModel: DeviceListModel, graphData: List<Device.GraphDat
                     Entry(timeInMillis, data.lux)
                 }
 
-                val dataSetLux = LineDataSet(luxEntries, "Lux").apply {
-                    color = Color.Black.toArgb()
-                    setCircleColor(Color.Black.toArgb())
+                val dataSetLux = LineDataSet(luxEntries, "Lux (lm/m²)").apply {
+                    color = LuxChartColor.toArgb()
+                    setCircleColor(LuxChartColor.toArgb())
                     lineWidth = 2f
                     circleRadius = 3f
                     valueTextSize = 0f
@@ -366,28 +497,28 @@ fun SunlightComponentsGraph(viewModel: DeviceListModel, graphData: List<Device.G
                 }
 
                 val dataSetFull = LineDataSet(fullEntries, "Full Spectrum Light").apply {
-                    color = Color.Gray.toArgb()
-                    setCircleColor(Color.Gray.toArgb())
+                    color = FullSpectrumColor.toArgb()
+                    setCircleColor(FullSpectrumColor.toArgb())
                     lineWidth = 2f
                     circleRadius = 3f
                     valueTextSize = 0f
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                    mode = LineDataSet.Mode.HORIZONTAL_BEZIER
                 }
                 val dataSetVisible = LineDataSet(visibleEntries, "Visible Light").apply {
-                    color = Color.Magenta.toArgb()
-                    setCircleColor(Color.Magenta.toArgb())
+                    color = VisibleLightColor.toArgb()
+                    setCircleColor(VisibleLightColor.toArgb())
                     lineWidth = 2f
                     circleRadius = 3f
                     valueTextSize = 0f
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                    mode = LineDataSet.Mode.HORIZONTAL_BEZIER
                 }
                 val dataSetInfrared = LineDataSet(infraredEntries, "Infrared Lux").apply {
-                    color = Color.Green.toArgb()
-                    setCircleColor(Color.Green.toArgb())
+                    color = InfraredLightColor.toArgb()
+                    setCircleColor(InfraredLightColor.toArgb())
                     lineWidth = 2f
                     circleRadius = 3f
                     valueTextSize = 0f
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                    mode = LineDataSet.Mode.HORIZONTAL_BEZIER
                 }
                 lineChart.data = LineData(dataSetVisible, dataSetInfrared, dataSetFull)
 
@@ -421,10 +552,10 @@ fun SunlightComponentsGraph(viewModel: DeviceListModel, graphData: List<Device.G
 }
 
 @Composable
-fun SunlightLomBarChart(viewModel: DeviceListModel, graphData: List<Device.GraphData>?, modifier: Modifier = Modifier) {
+fun SunlightPPFDCombinedChart(viewModel: DeviceListModel, graphData: List<Device.GraphData>?, modifier: Modifier = Modifier) {
     AndroidView(
         factory = { ctx ->
-            BarChart(ctx).apply {
+            CombinedChart(ctx).apply {
                 setTouchEnabled(true)
                 isDragEnabled = false // Disable dragging for bar chart
                 setScaleEnabled(true)
@@ -437,66 +568,86 @@ fun SunlightLomBarChart(viewModel: DeviceListModel, graphData: List<Device.Graph
                 )
             }
         },
-        update = { barChart ->
+        update = { combinedChart ->
             if (graphData != null && graphData.isNotEmpty()) {
-                val lomEntries = calculateCumulativeLom(graphData)
-
-                val dataSetLom = BarDataSet(lomEntries, "Cumulative LOM").apply {
-                    color = Color.Black.toArgb()
+                val ppfdEntries = calculateCumulativePPFD(graphData)
+                val dataSetPPFD = BarDataSet(ppfdEntries, "Cumulative Photosensitive Flux Density (μmol/m²/s)").apply {
+                    color = PPFDBarColor.toArgb()
                     valueTextSize = 0f
                 }
-                barChart.data = BarData(dataSetLom)
+                val dataSetLine = LineDataSet(ppfdEntries, "DLI").apply { // Empty label for the line
+                    color = DLILineColor.toArgb() // Choose your desired line color
+                    lineWidth = 2f
+                    setCircleColor(DLILineColor.toArgb())
+                    circleRadius = 3f
+                    mode = LineDataSet.Mode.HORIZONTAL_BEZIER
+                    valueTextSize = 0f // Hide values on the line
+                }
+                val barData = BarData(dataSetPPFD)
+                val lineData = LineData(dataSetLine)
+
+                val combinedData = CombinedData()
+                combinedData.setData(barData)
+                combinedData.setData(lineData)
+                combinedChart.data = combinedData
+                val legend = combinedChart.legend
+                legend.isEnabled = true // Enable the legend
+                if (legend.entries.size > 1) {
+                    legend.setCustom(arrayOf(legend.entries[1]))
+                }
 
                 // Display timestamps on x-axis
-                val xAxis = barChart.xAxis
+                val xAxis = combinedChart.xAxis
                 xAxis.valueFormatter = object : ValueFormatter() {
                     private val format = SimpleDateFormat("HH:mm", Locale.ENGLISH)
                     override fun getFormattedValue(value: Float): String {
                         val calendar = Calendar.getInstance()
-                        calendar.set(Calendar.HOUR_OF_DAY, value.toInt())
-                        calendar.set(Calendar.MINUTE, 0)
+                        calendar.set(Calendar.HOUR_OF_DAY, value.toInt()) // Set the hour of the day
+                        calendar.set(Calendar.MINUTE, 0) // Set minutes to 0 (optional)
+                        calendar.set(Calendar.SECOND, 0) // Set seconds to 0 (optional)
                         return format.format(calendar.time)
                     }
                 }
+
                 xAxis.labelRotationAngle = 45f // Rotate labels for better visibility
                 xAxis.setLabelCount(8, true) // Display a limited number of labels
 
                 // Set minimum value for y-axis to 0
-                val yAxis = barChart.axisLeft
+                val yAxis = combinedChart.axisLeft
                 yAxis.axisMinimum = 0f
 
                 // Display y-axis labels only on the left
-                val axisRight = barChart.axisRight
+                val axisRight = combinedChart.axisRight
                 axisRight.isEnabled = false
                 yAxis.isEnabled = true
 
-                barChart.invalidate()
+                combinedChart.invalidate()
             }
         },
         modifier = modifier
     )
 }
 
-fun calculateCumulativeLom(graphData: List<Device.GraphData>): List<BarEntry> {
-    val lomByHour = mutableMapOf<Int, Float>() // Store LOM by hour
-
+fun calculateCumulativePPFD(graphData: List<Device.GraphData>): List<BarEntry> {
+    val ppfdByHourAndDay = mutableMapOf<Pair<Int, Int>, Float>() // Store PPFD by hour and day
     for (data in graphData) {
         val timeInMillis = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.getDefault())
             .parse(data.created_at)?.time ?: 0
         val calendar = Calendar.getInstance().also { it.timeInMillis = timeInMillis }
         val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        val day = calendar.get(Calendar.DAY_OF_YEAR) // Get the day of the year
 
-        // Generalize LOM from lux: Assume constant lux for the interval between readings
-        val lomForInterval = data.lux * (5f / 60f) // Assuming 5-minute intervals (adjust as needed)
-
-        lomByHour[hour] = (lomByHour[hour] ?: 0f) + lomForInterval
+        val ppfdForInterval = data.lux * 0.0185f * DATA_INTERVAL_MINUTES
+        ppfdByHourAndDay[Pair(day, hour)] = (ppfdByHourAndDay[Pair(day, hour)] ?: 0f) + ppfdForInterval
     }
 
-    // Create BarEntry list from the calculated LOM values
-    return lomByHour.entries.map { (hour, lom) ->
-        BarEntry(hour.toFloat(), lom) // Use 'hour' as x-value
+    // Create BarEntry list from the calculated PPFD values
+    return ppfdByHourAndDay.entries.map { (dayHour, ppfd) ->
+        val (day, hour) = dayHour
+        BarEntry( (day * 24 + hour).toFloat(), ppfd) // Use a combined value for x-axis
     }
 }
+
 suspend fun fetchGraphData(context: Context, device: Device): List<Device.GraphData>? {
     val calendar = Calendar.getInstance()
     val endDate = calendar.time

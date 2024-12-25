@@ -29,6 +29,8 @@ import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.time.Duration.Companion.minutes
 
+const val DATA_INTERVAL_MINUTES = 30
+
 class Device(addr: String) {
     var addr: String
     var serviceName: String = ""
@@ -211,7 +213,7 @@ class Device(addr: String) {
         val dataByInterval = data.groupBy {
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault()).parse(it.created_at)
                 ?.let { date ->
-                    val interval = 120 // 2-hour interval
+                    val interval = DATA_INTERVAL_MINUTES // 30-min interval
                     val calendar = Calendar.getInstance().apply { time = date }
                     val minutes = calendar.get(Calendar.MINUTE)
                     val intervalStart = minutes / interval * interval // Calculate interval start minute

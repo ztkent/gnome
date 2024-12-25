@@ -555,7 +555,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
 
         if (device.status.enabled) {
             Text(
-                text = "" + device.conditions.lux + " lm",
+                text = "" + device.conditions.lux + " lx",
                 fontSize = 36.sp,
                 fontFamily = FontFamily(Font(R.font.roboto)),
                 color = Color.Black,
