@@ -54,7 +54,7 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
             for (device in loadedDevices) {
                 Log.d("SunlightActivity", "Available device: $device")
             }
-            storeDevice(this, Device(""))
+
             val remDevices = getRememberedDevices()
             for (remDevice in remDevices) {
                 if (loadedDevices.none {

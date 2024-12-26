@@ -12,14 +12,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -41,9 +46,13 @@ fun DeviceSettingsScreen(
     viewModel: DeviceListModel,
     deviceAddr: String
 ) {
+    var deviceName by remember { mutableStateOf("") }
+    var device by remember { mutableStateOf<com.ztkent.gnome.data.Device?>(null) }
     LaunchedEffect(Unit) {
-        viewModel.getDeviceByAddr(deviceAddr)
+        device = viewModel.getDeviceByAddr(deviceAddr)
+        device?.let { deviceName = it.device_prefs_name.ifBlank { it.addr } }
     }
+
     Box(
         modifier = modifier
     ) {
@@ -54,8 +63,8 @@ fun DeviceSettingsScreen(
         ) {
             ConstraintLayout(
                 modifier = Modifier
-                    .fillMaxWidth() // Changed to fillMaxWidth()
-                    .fillMaxHeight() // Changed to fillMaxHeight()
+                    .fillMaxWidth()
+                    .fillMaxHeight()
                     .weight(1f)
                     .background(
                         brush = Brush.linearGradient(
@@ -92,13 +101,37 @@ fun DeviceSettingsScreen(
                             bottom.linkTo(bottomBar.top)
                         }
                         .fillMaxSize(),
-                    contentPadding = PaddingValues(top = 65.dp ,bottom = 65.dp)
+                    contentPadding = PaddingValues(top = 65.dp, bottom = 65.dp)
                 ) {
-                        items(listOf("Item 1", "Item 2", "Item 3")) { text ->
-                            Text(text = text, modifier = Modifier.padding(16.dp), color = Color.Black)
+                    item {
+                        if (device != null) {
+                            OutlinedTextField(
+                                value = deviceName,
+                                onValueChange = { deviceName = it },
+                                label = { Text("Device Name") },
+                                placeholder = { Text(deviceName) },
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxWidth()
+                            )
                         }
-
+                    }
+                    item {
+                        Button(
+                            onClick = {
+                                device?.let { viewModel.addRememberedDevice(it, deviceName) }
+                                viewModel.refresh()
+                                navController.navigate("home")
+                            },
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
+                        ) {
+                            Text("Save")
+                        }
+                    }
                 }
+
                 Box(
                     modifier = Modifier
                         .constrainAs(bottomBar) {

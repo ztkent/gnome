@@ -311,8 +311,8 @@ fun storeDevice(viewModel: DeviceListModel, device: Device) {
     val json = gson.toJson(device)
     val editor = viewModel.rememberedDevices.edit()
     if (device.macAddresses.isNotEmpty() && device.macAddresses[0].isNotEmpty()) {
-        editor.apply()
         editor.putString(device.macAddresses[0], json) // Use first MAC address as key
+        editor.apply()
     }
 }
 
@@ -328,20 +328,21 @@ fun removeDevice(viewModel: DeviceListModel, device: Device) {
 fun getAllRememberedDevices(viewModel: DeviceListModel): List<Device> {
     val devices = mutableListOf<Device>()
     val gson = Gson()
-    val allPrefs = viewModel.rememberedDevices.all
-    for ((key, value) in allPrefs) {
-        if (value is String) { // Ensure value is a string
+    viewModel.rememberedDevices.all.forEach { (key, value) ->
+        if (value is String) {
             try {
                 val device = gson.fromJson(value, Device::class.java)
                 devices.add(device)
             } catch (e: JsonSyntaxException) {
-                Log.e("DeviceListModel", "Error parsing device JSON: $e")
+                Log.e("DeviceListModel", "Error parsing device JSON for key $key: ${e.message}")
+                viewModel.rememberedDevices.edit().remove(key).apply()
             }
+        } else {
+            Log.w("DeviceListModel", "Unexpected value type for key $key: ${value?.javaClass}")
         }
     }
     return devices
 }
-
 private fun downloadEndpoint(context: Context, deviceAddress: String, endpoint: String): Result<Any> {
     return try {
         var filename = "gnome.csv"
