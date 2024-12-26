@@ -24,10 +24,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,6 +89,7 @@ fun GraphScreen(
     var isLoading by remember { mutableStateOf(true) }
     val device = viewModel.getDeviceByAddr(deviceAddr)
     var graphData by remember { mutableStateOf<List<Device.GraphData>?>(null) }
+    var showPopup by remember { mutableStateOf<String>("") }
 
     LaunchedEffect(Unit) {
         viewModel.slActivity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -206,11 +209,11 @@ fun GraphScreen(
                                                         end.linkTo(infoButton.start) // Adjust end constraint
                                                         width = Dimension.fillToConstraints
                                                     }
-                                                    .padding(4.dp,4.dp, 0.dp, 4.dp)
+                                                    .padding(4.dp, 4.dp, 0.dp, 4.dp)
                                                     .wrapContentSize(Alignment.Center)
                                             )
                                             IconButton(
-                                                onClick = {},
+                                                onClick = { showPopup = "DLI"},
                                                 modifier = Modifier
                                                     .constrainAs(infoButton) {
                                                         top.linkTo(parent.top)
@@ -221,7 +224,9 @@ fun GraphScreen(
                                                 Icon(
                                                     imageVector = Icons.Outlined.Info, // Use appropriate info icon
                                                     contentDescription = "Info",
-                                                    tint = Color.Black
+                                                    tint = Color.LightGray,
+                                                    modifier = Modifier
+                                                        .padding(4.dp, 4.dp)
                                                 )
                                             }
                                             SunlightPPFDCombinedChart(
@@ -233,7 +238,7 @@ fun GraphScreen(
                                                         start.linkTo(parent.start)
                                                         end.linkTo(parent.end)
                                                     }
-                                                    .padding(4.dp,4.dp,4.dp, 24.dp)
+                                                    .padding(4.dp, 4.dp, 4.dp, 24.dp)
                                             )
                                         }
                                     }
@@ -266,11 +271,11 @@ fun GraphScreen(
                                                     end.linkTo(infoButton.start) // Adjust end constraint
                                                     width = Dimension.fillToConstraints
                                                 }
-                                                .padding(4.dp,4.dp, 0.dp, 4.dp)
+                                                .padding(4.dp, 4.dp, 0.dp, 4.dp)
                                                 .wrapContentSize(Alignment.Center)
                                         )
                                         IconButton(
-                                            onClick = { /* Handle info button click */ },
+                                            onClick = { showPopup = "Lux" },
                                             modifier = Modifier
                                                 .constrainAs(infoButton) {
                                                     top.linkTo(parent.top)
@@ -281,7 +286,9 @@ fun GraphScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Info, // Use appropriate info icon
                                                 contentDescription = "Info",
-                                                tint = Color.Black
+                                                tint = Color.LightGray,
+                                                modifier = Modifier
+                                                    .padding(4.dp, 4.dp)
                                             )
                                         }
                                         SunlightLuxGraph(
@@ -293,7 +300,7 @@ fun GraphScreen(
                                                     start.linkTo(parent.start)
                                                     end.linkTo(parent.end)
                                                 }
-                                                .padding(4.dp,4.dp,4.dp, 28.dp)
+                                                .padding(4.dp, 4.dp, 4.dp, 28.dp)
 
                                         )
                                     }
@@ -324,13 +331,14 @@ fun GraphScreen(
                                                     top.linkTo(parent.top)
                                                     start.linkTo(parent.start)
                                                     end.linkTo(parent.end)
-                                                    width = Dimension.fillToConstraints // Make text fill width
+                                                    width =
+                                                        Dimension.fillToConstraints // Make text fill width
                                                 }
-                                                .padding(0.dp,4.dp,4.dp,4.dp)
+                                                .padding(0.dp, 4.dp, 4.dp, 4.dp)
                                                 .wrapContentSize(Alignment.Center) // Center text horizontally
                                         )
                                         IconButton(
-                                            onClick = { /* Handle info button click */ },
+                                            onClick = { showPopup = "Components" },
                                             modifier = Modifier
                                                 .constrainAs(infoButton) {
                                                     top.linkTo(parent.top)
@@ -341,7 +349,9 @@ fun GraphScreen(
                                             Icon(
                                                 imageVector = Icons.Outlined.Info, // Use appropriate info icon
                                                 contentDescription = "Info",
-                                                tint = Color.Black
+                                                tint = Color.LightGray,
+                                                modifier = Modifier
+                                                    .padding(4.dp, 4.dp)
                                             )
                                         }
 
@@ -354,11 +364,55 @@ fun GraphScreen(
                                                     start.linkTo(parent.start)
                                                     end.linkTo(parent.end)
                                                 }
-                                                .padding(4.dp,4.dp,4.dp,28.dp)
+                                                .padding(4.dp, 4.dp, 4.dp, 28.dp)
                                         )
                                     }
                                 }
                             }
+                        }
+                    }
+                    if (showPopup != "") {
+                        if (showPopup == "DLI") {
+                            AlertDialog(
+                                onDismissRequest = { showPopup = "" },
+                                title = { Text("Daily Light Integral") },
+                                text = { Text("The estimated amount of photosynthetically active radiation (PAR) that is delivered to a specific area over a 24-hour period. " +
+                                        "\n\nIn agriculture and forestry PPFD is preferred as it more accurately reflects that amount of light that can activate photosynthesis (400-700nm). " +
+                                        "\n\nIndoor plants that receive more than 100-200 μmol m²/s of PPFD generally achieve optimal growth rates and yields. " +
+                                        "\n\nFor outdoor plants, target a PPFD reading of 500-700 μmol m²/s. Some plants may perform best at a value exceeding 800-1000 μmol m²/s.") },
+                                confirmButton = {
+                                    TextButton(onClick = { showPopup = "" }) {
+                                        Text("OK", color = Color.White)
+                                    }
+                                }
+                            )
+                        } else if (showPopup == "Lux") {
+                            AlertDialog(
+                                onDismissRequest = { showPopup = "" },
+                                title = { Text("Daily Light Conditions") },
+                                text = { Text("Lux (lx) is the SI unit of illuminance. " +
+                                        "\n\nIlluminance (lx) is a measure of the intensity of light on a surface. " +
+                                        "\n\nLuminous flux (lm) as a measure of the total amount of visible light present.") },
+                                confirmButton = {
+                                    TextButton(onClick = { showPopup = "" }) {
+                                        Text("OK", color = Color.White)
+                                    }
+                                }
+                            )
+                        } else if (showPopup == "Components") {
+                            AlertDialog(
+                                onDismissRequest = { showPopup = "" },
+                                title = { Text("Light Components") },
+                                text = { Text("Full-spectrum light is light that covers the electromagnetic spectrum from infrared to near-ultraviolet." +
+                                        "\n\nIt reflects most wavelengths that are useful to plant or animal life. " +
+                                        "\n\nSunlight can be considered full spectrum. The emission spectrum of a given light source can vary.")
+                                       },
+                                confirmButton = {
+                                    TextButton(onClick = { showPopup = "" }) {
+                                        Text("OK", color = Color.White)
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -571,7 +625,7 @@ fun SunlightPPFDCombinedChart(viewModel: DeviceListModel, graphData: List<Device
         update = { combinedChart ->
             if (graphData != null && graphData.isNotEmpty()) {
                 val ppfdEntries = calculateCumulativePPFD(graphData)
-                val dataSetPPFD = BarDataSet(ppfdEntries, "Cumulative Photosensitive Flux Density (μmol/m²/s)").apply {
+                val dataSetPPFD = BarDataSet(ppfdEntries, "Photosensitive Flux Density (μmol/m²/s)").apply {
                     color = PPFDBarColor.toArgb()
                     valueTextSize = 0f
                 }
