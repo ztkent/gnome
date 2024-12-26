@@ -310,8 +310,18 @@ fun storeDevice(viewModel: DeviceListModel, device: Device) {
     val gson = Gson()
     val json = gson.toJson(device)
     val editor = viewModel.rememberedDevices.edit()
-    editor.putString(device.addr, json) // Use device address as key
-    editor.apply()
+    if (device.macAddresses.isNotEmpty() && device.macAddresses[0].isNotEmpty()) {
+        editor.apply()
+        editor.putString(device.macAddresses[0], json) // Use first MAC address as key
+    }
+}
+
+fun removeDevice(viewModel: DeviceListModel, device: Device) {
+    val editor = viewModel.rememberedDevices.edit()
+    if (device.macAddresses.isNotEmpty() && device.macAddresses[0].isNotEmpty()) {
+        editor.remove(device.macAddresses[0]) // Use first MAC address as key
+        editor.apply()
+    }
 }
 
 // Function to return all remembered devices

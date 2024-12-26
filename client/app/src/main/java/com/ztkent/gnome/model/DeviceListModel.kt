@@ -8,6 +8,7 @@ import com.ztkent.gnome.SunlightActivity
 import com.ztkent.gnome.data.AvailableDevices
 import com.ztkent.gnome.data.Device
 import com.ztkent.gnome.data.getAllRememberedDevices
+import com.ztkent.gnome.data.removeDevice
 import com.ztkent.gnome.data.storeDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,16 +54,18 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
             for (device in loadedDevices) {
                 Log.d("SunlightActivity", "Available device: $device")
             }
-
+            storeDevice(this, Device(""))
             val remDevices = getRememberedDevices()
             for (remDevice in remDevices) {
-                if (loadedDevices.none { it.addr == remDevice.addr }) {
+                if (loadedDevices.none {
+                        it.macAddresses.isNotEmpty() && remDevice.macAddresses.isNotEmpty() && it.macAddresses[0] == remDevice.macAddresses[0]
+                }) {
                     remDevice.status.connected = false
                     remDevice.status.enabled = false
                     loadedDevices.add(remDevice)
                 } else {
-                    loadedDevices.find { it.addr == remDevice.addr }?.device_prefs_saved = true
-                    loadedDevices.find { it.addr == remDevice.addr }?.device_prefs_name = remDevice.device_prefs_name
+                    loadedDevices.find {  it.macAddresses.isNotEmpty() && remDevice.macAddresses.isNotEmpty() && it.macAddresses[0] == remDevice.macAddresses[0] }?.device_prefs_saved = true
+                    loadedDevices.find {  it.macAddresses.isNotEmpty() && remDevice.macAddresses.isNotEmpty() && it.macAddresses[0] == remDevice.macAddresses[0] }?.device_prefs_name = remDevice.device_prefs_name
                 }
             }
 
@@ -85,6 +88,10 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
         device.device_prefs_saved = true
         device.device_prefs_name = name
         storeDevice(this, device)
+    }
+
+    fun removeRememberedDevice(device: Device) {
+        removeDevice(this, device)
     }
 
     private fun getRememberedDevices(): List<Device> {

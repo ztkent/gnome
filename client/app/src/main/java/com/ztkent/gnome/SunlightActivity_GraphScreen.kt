@@ -378,7 +378,7 @@ fun GraphScreen(
                                 onDismissRequest = { showPopup = "" },
                                 title = { Text("Daily Light Integral") },
                                 text = { Text("The estimated amount of photosynthetically active radiation (PAR) that is delivered to a specific area over a 24-hour period. " +
-                                        "\n\nIn agriculture and forestry PPFD is preferred as it more accurately reflects that amount of light that can activate photosynthesis (400-700nm). " +
+                                        "\n\nIn agriculture and forestry, PPFD can be preferred as it more accurately reflects that amount of light that can activate photosynthesis (400-700nm). " +
                                         "\n\nIndoor plants that receive more than 100-200 μmol m²/s of PPFD generally achieve optimal growth rates and yields. " +
                                         "\n\nFor outdoor plants, target a PPFD reading of 500-700 μmol m²/s. Some plants may perform best at a value exceeding 800-1000 μmol m²/s.") },
                                 confirmButton = {
@@ -391,7 +391,7 @@ fun GraphScreen(
                             AlertDialog(
                                 onDismissRequest = { showPopup = "" },
                                 title = { Text("Daily Light Conditions") },
-                                text = { Text("Lux (lx) is the SI unit of illuminance. " +
+                                text = { Text("Lux is the SI unit of illuminance. " +
                                         "\n\nIlluminance (lx) is a measure of the intensity of light on a surface. " +
                                         "\n\nLuminous flux (lm) as a measure of the total amount of visible light present.") },
                                 confirmButton = {
