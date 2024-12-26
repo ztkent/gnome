@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -240,9 +239,17 @@ private fun LandscapeMode(
                                 tint = SELECTED_TAB_COLOR
                             )
                         }
-                        IconButton(onClick = { /* TODO */ }) {
+                        val context = LocalContext.current
+                        val uriHandler = LocalUriHandler.current
+                        IconButton(onClick = {
+                            try {
+                                uriHandler.openUri("https://www.ztkent.com")
+                            } catch (e: ActivityNotFoundException) {
+                                Toast.makeText(context, "No browser app found", Toast.LENGTH_SHORT).show()
+                            }
+                        }) {
                             Icon(
-                                painter = painterResource(id = R.drawable.solar),
+                                painter = painterResource(id = R.drawable.store_24),
                                 contentDescription = "Shop", tint = Color.Black
                             )
                         }
@@ -444,7 +451,7 @@ private fun PortraitMode(
 @Composable
 fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHostController, modifier: Modifier = Modifier) {
     val coroutineScope = rememberCoroutineScope()
-    var showDialog by remember { mutableStateOf(false) }
+    var showDownloadDialog by remember { mutableStateOf(false) }
     var backgroundDeviceColor = when (device.conditions.lux) {
         in 0..2 -> LuxColorMoonlessOvercastGradient
         in 3..20 -> LuxColorFullMoonGradient // Special case for 3.4 lux
@@ -472,7 +479,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                 shape = RoundedCornerShape(8.dp)
             )
     ) {
-        val (image, address, status, settingsIcon, divider, brightness, divider2, refreshIcon, graphIcon, downloadIcon) = createRefs()
+        val (image, address, status, settingsIcon, divider, brightness, divider2, bottomRow) = createRefs()
         val wifiId = when {
             device.signalStrength.strength > 80 -> R.drawable.network_wifi
             device.signalStrength.strength > 60 -> R.drawable.network_wifi_3
@@ -491,53 +498,39 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                 }
         )
         Text(
-            text = device.addr,
+            text = if (device.status.connected) "Connected" else "Sensor Disconnected",
             fontSize = 14.sp,
             fontFamily = FontFamily(Font(R.font.roboto)),
             color = Color.Black,
             modifier = Modifier
-                .constrainAs(address) {
-                    top.linkTo(parent.top, margin = 4.dp)
+                .constrainAs(status) {
+                    top.linkTo(parent.top, margin = 3.dp)
                     start.linkTo(image.end, margin = 8.dp)
                 }
         )
         Text(
-            text = if (device.status.connected) "Connected" else "Sensor Disconnected",
-            fontSize = 16.sp,
+            text = device.addr,
+            fontSize = 18.sp,
             fontFamily = FontFamily(Font(R.font.roboto)),
             color = Color.Black,
             modifier = Modifier
-                .constrainAs(status) {
-                    top.linkTo(image.bottom, margin = 4.dp)
+                .constrainAs(address) {
+                    top.linkTo(image.bottom, margin = 6.dp)
                     start.linkTo(parent.start, margin = 8.dp)
                 }
         )
 
         IconButton(
-            onClick = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    device.flipStatus().fold(
-                        onSuccess = {
-                            viewModel.updateDevice(device,250)
-                        },
-                        onFailure = { exception ->
-                            Log.e("DeviceItem", "Error adjusting device power", exception)
-                            withContext(Dispatchers.Main) { // Switch to main thread
-                                Toast.makeText(viewModel.slActivity, "Error adjusting device power", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    )
-                }
-            },
+            onClick = {},
             modifier = Modifier
                 .constrainAs(settingsIcon) {
-                    top.linkTo(parent.top, margin = 8.dp)
+                    top.linkTo(parent.top, margin = 6.dp)
                     end.linkTo(parent.end, margin = 4.dp)
                 }
         ) {
             Icon(
-                painterResource(id = R.drawable.power_28),
-                contentDescription = "Notifications",
+                painterResource(id = R.drawable.settings_24),
+                contentDescription = "Device Settings",
                 tint = Color.Black
             )
         }
@@ -547,7 +540,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
             thickness = 1.dp,
             modifier = Modifier
                 .constrainAs(divider) {
-                    top.linkTo(status.bottom, margin = 8.dp)
+                    top.linkTo(address.bottom, margin = 8.dp)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }
@@ -590,77 +583,93 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                 }
         )
 
-        IconButton(
-            onClick = {
-                coroutineScope.launch(Dispatchers.IO) {
-                    device.refreshDevice().fold(
-                        onSuccess = {
-                            viewModel.updateDevice(device)
-                        },
-                        onFailure = { exception ->
-                            Log.e("DeviceItem", "Error refreshing device", exception)
-                            withContext(Dispatchers.Main) { // Switch to main thread
-                                Toast.makeText(viewModel.slActivity, "Error refreshing device", Toast.LENGTH_SHORT).show()
+        Row(
+            modifier = Modifier
+                .constrainAs(bottomRow) {
+                    bottom.linkTo(parent.bottom, margin = 10.dp)
+                },
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ){
+            IconButton(
+                onClick = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        device.flipStatus().fold(
+                            onSuccess = {
+                                viewModel.updateDevice(device,250)
+                            },
+                            onFailure = { exception ->
+                                Log.e("DeviceItem", "Error adjusting device power", exception)
+                                withContext(Dispatchers.Main) { // Switch to main thread
+                                    Toast.makeText(viewModel.slActivity, "Error adjusting device power", Toast.LENGTH_SHORT).show()
+                                }
                             }
-                        }
-                    )
-                }
-            },
-            modifier = Modifier
-                .constrainAs(refreshIcon) {
-                    bottom.linkTo(parent.bottom, margin = 10.dp)
-                    start.linkTo(parent.start, margin = 40.dp)
-                }
-                .size(45.dp)
-        ) {
-            Icon(
-                painterResource(id = R.drawable.refresh_32),
-                contentDescription = "Refresh Device",
-                tint = Color.Black
-            )
-        }
-        IconButton(
-            onClick = { navController.navigate("graph/${device.addr}") },
-            modifier = Modifier
-                .constrainAs(graphIcon) {
-                    bottom.linkTo(parent.bottom, margin = 10.dp)
-                    start.linkTo(parent.start, margin = 0.dp)
-                    end.linkTo(parent.end, margin = 0.dp)
-                }
-                .size(45.dp)
-        ) {
-            Icon(
-                painterResource(id = R.drawable.auto_graph_32),
-                contentDescription = "Notifications",
-                tint = Color.Black
-            )
-        }
-        IconButton(
-            onClick = { showDialog = true }, // Show the dialog on click
-            modifier = Modifier
-                .constrainAs(downloadIcon) {
-                    bottom.linkTo(parent.bottom, margin = 10.dp)
-                    end.linkTo(parent.end, margin = 40.dp)
-                }
-                .size(45.dp)
-        ) {
-            Icon(
-                painterResource(id = R.drawable.download_32),
-                contentDescription = "Notifications",
-                tint = Color.Black
-            )
+                        )
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                ) {
+                Icon(
+                    painterResource(id = R.drawable.power_28),
+                    contentDescription = "Power",
+                    tint = Color.Black
+                )
+            }
+            IconButton(
+                onClick = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        device.refreshDevice().fold(
+                            onSuccess = {
+                                viewModel.updateDevice(device)
+                            },
+                            onFailure = { exception ->
+                                Log.e("DeviceItem", "Error refreshing device", exception)
+                                withContext(Dispatchers.Main) { // Switch to main thread
+                                    Toast.makeText(viewModel.slActivity, "Error refreshing device", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
+                    }
+                },
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    painterResource(id = R.drawable.refresh_32),
+                    contentDescription = "Refresh Device",
+                    tint = Color.Black
+                )
+            }
+            IconButton(
+                onClick = { navController.navigate("graph/${device.addr}") },
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    painterResource(id = R.drawable.auto_graph_32),
+                    contentDescription = "Notifications",
+                    tint = Color.Black
+                )
+            }
+            IconButton(
+                onClick = { showDownloadDialog = true },
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(
+                    painterResource(id = R.drawable.download_32),
+                    contentDescription = "Notifications",
+                    tint = Color.Black
+                )
+            }
         }
 
-        if (showDialog) {
+        if (showDownloadDialog) {
             AlertDialog(
-                onDismissRequest = { showDialog = false },
+                onDismissRequest = { showDownloadDialog = false },
                 title = { Text("Export Sensor Data") },
                 text = { Text("Select the desired export method.") },
                 confirmButton = {
                     Row {
                         Button(
                             onClick = {
-                                showDialog = false
+                                showDownloadDialog = false
                                 coroutineScope.launch(Dispatchers.IO) {
                                     device.getDataExport(viewModel.slActivity, "csv").fold(
                                         onSuccess = {
@@ -690,7 +699,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                         }
                         Button(
                             onClick = {
-                                showDialog = false
+                                showDownloadDialog = false
                                 coroutineScope.launch(Dispatchers.IO) {
                                     device.getDataExport(viewModel.slActivity, "sqlite").fold(
                                         onSuccess = {
@@ -726,7 +735,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                 dismissButton = {
                     Button(
                         onClick = {
-                            showDialog = false
+                            showDownloadDialog = false
                         },
                         colors = ButtonColors(
                             NotificationBarColor,
