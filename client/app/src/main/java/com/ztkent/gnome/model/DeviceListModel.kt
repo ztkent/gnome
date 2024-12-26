@@ -1,11 +1,14 @@
 package com.ztkent.gnome.model
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ztkent.gnome.SunlightActivity
 import com.ztkent.gnome.data.AvailableDevices
 import com.ztkent.gnome.data.Device
+import com.ztkent.gnome.data.getAllRememberedDevices
+import com.ztkent.gnome.data.storeDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +19,7 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
     val _devices = MutableStateFlow<DeviceLoadState>(DeviceLoadState.Loading)
     val devices: StateFlow<DeviceLoadState> = _devices.asStateFlow()
     val slActivity = sunlightActivity
+    val rememberedDevices = slActivity.getSharedPreferences("RememberedDevices", Context.MODE_PRIVATE)
 
     init {
         viewModelScope.launch {
@@ -45,10 +49,23 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
         try {
             _devices.value = DeviceLoadState.Loading
             val availableDevices = AvailableDevices()
-            val loadedDevices = availableDevices.getAvailableDevices(slActivity)
+            var loadedDevices = availableDevices.getAvailableDevices(slActivity).toMutableList()
             for (device in loadedDevices) {
                 Log.d("SunlightActivity", "Available device: $device")
             }
+
+            val remDevices = getRememberedDevices()
+            for (remDevice in remDevices) {
+                if (loadedDevices.none { it.addr == remDevice.addr }) {
+                    remDevice.status.connected = false
+                    remDevice.status.enabled = false
+                    loadedDevices.add(remDevice)
+                } else {
+                    loadedDevices.find { it.addr == remDevice.addr }?.device_prefs_saved = true
+                    loadedDevices.find { it.addr == remDevice.addr }?.device_prefs_name = remDevice.device_prefs_name
+                }
+            }
+
             _devices.value = DeviceLoadState.Success(loadedDevices)
         } catch (e: Exception) {
             _devices.value = DeviceLoadState.Error(e)
@@ -63,6 +80,17 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
             null
         }
     }
+
+    fun addRememberedDevice(device: Device, name: String) {
+        device.device_prefs_saved = true
+        device.device_prefs_name = name
+        storeDevice(this, device)
+    }
+
+    private fun getRememberedDevices(): List<Device> {
+        return getAllRememberedDevices(this)
+    }
+
 }
 sealed class DeviceLoadState {
     data object Loading : DeviceLoadState()

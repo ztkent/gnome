@@ -509,7 +509,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                 }
         )
         Text(
-            text = device.addr,
+            text = device.device_prefs_name.ifEmpty { device.addr },
             fontSize = 18.sp,
             fontFamily = FontFamily(Font(R.font.roboto)),
             color = Color.Black,

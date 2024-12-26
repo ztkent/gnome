@@ -72,4 +72,5 @@ dependencies {
     implementation(libs.kotlinx.datetime)
     implementation(libs.androidx.constraintlayout.compose)
     implementation (libs.mpandroidchart)
+    implementation(libs.gson)
 }

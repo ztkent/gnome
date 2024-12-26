@@ -8,6 +8,9 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
+import com.ztkent.gnome.model.DeviceListModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -40,6 +43,9 @@ class Device(addr: String) {
     var conditions: Conditions = Conditions()
     var status: Status = Status()
     var errors: Errors = Errors()
+
+    var device_prefs_saved: Boolean = false
+    var device_prefs_name: String = ""
 
     init {
         this.addr = addr
@@ -297,6 +303,33 @@ class Device(addr: String) {
             Result.failure(e)
         }
     }
+}
+
+// Function to store a Device
+fun storeDevice(viewModel: DeviceListModel, device: Device) {
+    val gson = Gson()
+    val json = gson.toJson(device)
+    val editor = viewModel.rememberedDevices.edit()
+    editor.putString(device.addr, json) // Use device address as key
+    editor.apply()
+}
+
+// Function to return all remembered devices
+fun getAllRememberedDevices(viewModel: DeviceListModel): List<Device> {
+    val devices = mutableListOf<Device>()
+    val gson = Gson()
+    val allPrefs = viewModel.rememberedDevices.all
+    for ((key, value) in allPrefs) {
+        if (value is String) { // Ensure value is a string
+            try {
+                val device = gson.fromJson(value, Device::class.java)
+                devices.add(device)
+            } catch (e: JsonSyntaxException) {
+                Log.e("DeviceListModel", "Error parsing device JSON: $e")
+            }
+        }
+    }
+    return devices
 }
 
 private fun downloadEndpoint(context: Context, deviceAddress: String, endpoint: String): Result<Any> {
