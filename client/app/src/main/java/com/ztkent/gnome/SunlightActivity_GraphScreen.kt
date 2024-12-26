@@ -87,6 +87,7 @@ fun GraphScreen(
     deviceAddr: String
 ) {
     var isLoading by remember { mutableStateOf(true) }
+    // TODO: this can probably cause problems when it fails?
     val device = viewModel.getDeviceByAddr(deviceAddr)
     var graphData by remember { mutableStateOf<List<Device.GraphData>?>(null) }
     var showPopup by remember { mutableStateOf<String>("") }

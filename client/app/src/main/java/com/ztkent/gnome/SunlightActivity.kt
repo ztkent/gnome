@@ -59,6 +59,17 @@ class SunlightActivity : ComponentActivity() {
                             )
                         }
                     }
+                    composable("devicesettings/{deviceAddr}") { backStackEntry ->
+                        val deviceAddr = backStackEntry.arguments?.getString("deviceAddr")
+                        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                            DeviceSettingsScreen(
+                                modifier = Modifier.padding(innerPadding),
+                                viewModel = viewModel,
+                                navController = navController,
+                                deviceAddr = deviceAddr ?: ""
+                            )
+                        }
+                    }
                 }
             }
         }

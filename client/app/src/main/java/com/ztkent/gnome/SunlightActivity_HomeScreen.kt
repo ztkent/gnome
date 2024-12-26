@@ -521,7 +521,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
         )
 
         IconButton(
-            onClick = {},
+            onClick = { navController.navigate("devicesettings/${device.addr}") },
             modifier = Modifier
                 .constrainAs(settingsIcon) {
                     top.linkTo(parent.top, margin = 6.dp)
