@@ -404,7 +404,7 @@ fun GraphScreen(
                             AlertDialog(
                                 onDismissRequest = { showPopup = "" },
                                 title = { Text("Light Components") },
-                                text = { Text("Full-spectrum light is light that covers the electromagnetic spectrum from infrared to near-ultraviolet." +
+                                text = { Text("Full-spectrum light covers the electromagnetic spectrum from infrared to near-ultraviolet." +
                                         "\n\nIt reflects most wavelengths that are useful to plant or animal life. " +
                                         "\n\nSunlight can be considered full spectrum. The emission spectrum of a given light source can vary.")
                                        },
