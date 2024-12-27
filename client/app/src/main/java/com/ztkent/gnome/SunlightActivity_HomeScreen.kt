@@ -188,6 +188,7 @@ private fun LandscapeMode(
                                         device = device,
                                         viewModel = viewModel,
                                         navController = navController,
+                                        sharedState = sharedState,
                                         modifier = Modifier
                                             .fillParentMaxWidth(0.5f)
                                             .padding(8.dp)
@@ -359,6 +360,7 @@ private fun PortraitMode(
                                 device = device,
                                 viewModel = viewModel,
                                 navController = navController,
+                                sharedState = sharedState,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(8.dp)
@@ -449,7 +451,7 @@ private fun PortraitMode(
 }
 
 @Composable
-fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHostController, modifier: Modifier = Modifier) {
+fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHostController, sharedState: SharedState, modifier: Modifier = Modifier) {
     val coroutineScope = rememberCoroutineScope()
     var showDownloadDialog by remember { mutableStateOf(false) }
     var backgroundDeviceColor = when (device.conditions.lux) {
@@ -605,6 +607,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
         ){
             IconButton(
                 onClick = {
+                    sharedState.refreshing = !sharedState.refreshing
                     coroutineScope.launch(Dispatchers.IO) {
                         device.flipStatus().fold(
                             onSuccess = {

@@ -405,8 +405,9 @@ fun GraphScreen(
                                 onDismissRequest = { showPopup = "" },
                                 title = { Text("Light Components") },
                                 text = { Text("Full-spectrum light covers the electromagnetic spectrum from infrared to near-ultraviolet." +
-                                        "\n\nIt reflects most wavelengths that are useful to plant or animal life. " +
-                                        "\n\nSunlight can be considered full spectrum. The emission spectrum of a given light source can vary.")
+                                        "\n\nIt contains most wavelengths that are useful to plant or animal life. " +
+                                        "\n\nSunlight can be considered full spectrum. The emission spectrum of a given light source can vary." +
+                                        "\n\nThis graph represents the normalized emission spectrum of the current light source.")
                                        },
                                 confirmButton = {
                                     TextButton(onClick = { showPopup = "" }) {
