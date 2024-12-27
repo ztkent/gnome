@@ -654,21 +654,23 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
             IconButton(
                 onClick = { navController.navigate("graph/${device.addr}") },
                 modifier = Modifier.weight(1f),
+                enabled = device.status.connected
             ) {
                 Icon(
                     painterResource(id = R.drawable.auto_graph_32),
                     contentDescription = "Notifications",
-                    tint = Color.Black
+                    tint = if (device.status.connected) Color.Black else Color.Gray
                 )
             }
             IconButton(
                 onClick = { showDownloadDialog = true },
                 modifier = Modifier.weight(1f),
+                enabled = device.status.connected
             ) {
                 Icon(
                     painterResource(id = R.drawable.download_32),
                     contentDescription = "Notifications",
-                    tint = Color.Black
+                    tint = if (device.status.connected) Color.Black else Color.Gray
                 )
             }
         }

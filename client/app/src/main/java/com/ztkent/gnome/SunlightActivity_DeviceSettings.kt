@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults.buttonColors
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,6 +55,8 @@ fun DeviceSettingsScreen(
 ) {
     var deviceName by remember { mutableStateOf("") }
     var device by remember { mutableStateOf<Device?>(null) }
+    var showWarningDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         device = viewModel.getDeviceByAddr(deviceAddr)
         device?.let { deviceName = it.device_prefs_name.ifBlank { it.addr } }
@@ -95,6 +98,42 @@ fun DeviceSettingsScreen(
                         contentDescription = "Header image",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
+                    )
+                }
+
+                if (showWarningDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showWarningDialog = false },
+                        title = { Text("Warning") },
+                        text = { Text("Removing a disconnected device will remove it from the devices list. \n\nAre you sure you want to continue?") },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    showWarningDialog = false
+                                    device?.let { viewModel.removeRememberedDevice(device!!) }
+                                    viewModel.refresh()
+                                    navController.popBackStack()
+                                },
+                                colors = buttonColors(
+                                    containerColor = NotificationBarColor
+                                )
+                            ) {
+                                Text("Continue",
+                                    color = Color.Black)
+
+                            }
+                        },
+                        dismissButton = {
+                            Button(
+                                onClick = { showWarningDialog = false },
+                                colors = buttonColors(
+                                    containerColor = NotificationBarColor
+                                )
+                            ) {
+                                Text("Cancel",
+                                    color = Color.Black)
+                            }
+                        }
                     )
                 }
 
@@ -163,15 +202,19 @@ fun DeviceSettingsScreen(
                         item {
                             Button(
                                 onClick = {
-                                    device?.let { viewModel.removeRememberedDevice(device!!) }
-                                    viewModel.refresh()
-                                    navController.popBackStack()
+                                    if (!device!!.status.connected) {
+                                        showWarningDialog = true // Show warning dialog
+                                    } else {
+                                        device?.let { viewModel.removeRememberedDevice(device!!) }
+                                        viewModel.refresh()
+                                        navController.popBackStack()
+                                    }
                                 },
                                 colors = buttonColors(
                                     containerColor = NotificationBarColor
                                 ),
                                 modifier = Modifier
-                                    .padding(4.dp,8.dp, 4.dp, 0.dp)
+                                    .padding(4.dp, 8.dp, 4.dp, 0.dp)
                                     .fillMaxWidth()
                             ) {
                                 Text(
