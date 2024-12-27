@@ -14,7 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults.buttonColors
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuDefaults.outlinedTextFieldColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,11 +38,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavHostController
+import com.ztkent.gnome.data.Device
 import com.ztkent.gnome.model.DeviceListModel
 import com.ztkent.gnome.ui.theme.BG1
 import com.ztkent.gnome.ui.theme.BG2
 import com.ztkent.gnome.ui.theme.NotificationBarColor
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceSettingsScreen(
     modifier: Modifier = Modifier,
@@ -47,7 +53,7 @@ fun DeviceSettingsScreen(
     deviceAddr: String
 ) {
     var deviceName by remember { mutableStateOf("") }
-    var device by remember { mutableStateOf<com.ztkent.gnome.data.Device?>(null) }
+    var device by remember { mutableStateOf<Device?>(null) }
     LaunchedEffect(Unit) {
         device = viewModel.getDeviceByAddr(deviceAddr)
         device?.let { deviceName = it.device_prefs_name.ifBlank { it.addr } }
@@ -110,10 +116,69 @@ fun DeviceSettingsScreen(
                                 onValueChange = { deviceName = it },
                                 label = { Text("Device Name") },
                                 placeholder = { Text(deviceName) },
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = { deviceName = "" },
+                                        modifier = Modifier
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Clear,
+                                            contentDescription = "Clear",
+                                            tint = Color.Black
+                                        )
+                                    }
+                                },
+                                colors = outlinedTextFieldColors(
+                                    cursorColor = Color.Black,
+                                    focusedBorderColor = Color.Black,
+                                    unfocusedBorderColor = Color.Black,
+                                    focusedLabelColor = Color.Black,
+                                    unfocusedLabelColor = Color.Black,
+                                    focusedTrailingIconColor = Color.Black,
+                                    unfocusedTrailingIconColor = Color.Black,
+                                    focusedLeadingIconColor = Color.Black,
+                                    unfocusedLeadingIconColor = Color.Black,
+                                    focusedTextColor = Color.Black,
+                                    unfocusedTextColor = Color.Black,
+                                    focusedPrefixColor = Color.Black,
+                                    unfocusedPrefixColor = Color.Black,
+                                    focusedSuffixColor = Color.Black,
+                                    unfocusedSuffixColor = Color.Black,
+                                    errorBorderColor = Color.Red,
+                                    errorCursorColor = Color.Red,
+                                    errorLabelColor = Color.Red,
+                                    errorLeadingIconColor = Color.Red,
+                                    errorTrailingIconColor = Color.Red,
+                                    errorTextColor = Color.Red,
+                                    errorPrefixColor = Color.Red,
+                                    errorSuffixColor = Color.Red
+                                ),
                                 modifier = Modifier
                                     .padding(16.dp)
                                     .fillMaxWidth()
                             )
+                        }
+                    }
+                    if (device?.device_prefs_saved == true) {
+                        item {
+                            Button(
+                                onClick = {
+                                    device?.let { viewModel.removeRememberedDevice(device!!) }
+                                    viewModel.refresh()
+                                    navController.popBackStack()
+                                },
+                                colors = buttonColors(
+                                    containerColor = NotificationBarColor
+                                ),
+                                modifier = Modifier
+                                    .padding(4.dp,8.dp, 4.dp, 0.dp)
+                                    .fillMaxWidth()
+                            ) {
+                                Text(
+                                    "Remove",
+                                    color = Color.Black
+                                )
+                            }
                         }
                     }
                     item {
@@ -121,13 +186,19 @@ fun DeviceSettingsScreen(
                             onClick = {
                                 device?.let { viewModel.addRememberedDevice(it, deviceName) }
                                 viewModel.refresh()
-                                navController.navigate("home")
+                                navController.popBackStack()
                             },
+                            colors = buttonColors(
+                                containerColor = NotificationBarColor
+                            ),
                             modifier = Modifier
-                                .padding(16.dp)
+                                .padding(4.dp)
                                 .fillMaxWidth()
                         ) {
-                            Text("Save")
+                            Text(
+                                "Save",
+                                color = Color.Black
+                            )
                         }
                     }
                 }

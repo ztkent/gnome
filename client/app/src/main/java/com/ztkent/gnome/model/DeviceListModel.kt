@@ -6,7 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ztkent.gnome.SunlightActivity
 import com.ztkent.gnome.data.AvailableDevices
+import com.ztkent.gnome.data.Conditions
 import com.ztkent.gnome.data.Device
+import com.ztkent.gnome.data.SignalStrength
+import com.ztkent.gnome.data.Status
 import com.ztkent.gnome.data.getAllRememberedDevices
 import com.ztkent.gnome.data.removeDevice
 import com.ztkent.gnome.data.storeDevice
@@ -60,8 +63,9 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
                 if (loadedDevices.none {
                         it.macAddresses.isNotEmpty() && remDevice.macAddresses.isNotEmpty() && it.macAddresses[0] == remDevice.macAddresses[0]
                 }) {
-                    remDevice.status.connected = false
-                    remDevice.status.enabled = false
+                    remDevice.status = Status()
+                    remDevice.signalStrength = SignalStrength()
+                    remDevice.conditions = Conditions()
                     loadedDevices.add(remDevice)
                 } else {
                     loadedDevices.find {  it.macAddresses.isNotEmpty() && remDevice.macAddresses.isNotEmpty() && it.macAddresses[0] == remDevice.macAddresses[0] }?.device_prefs_saved = true

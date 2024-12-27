@@ -498,7 +498,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                 }
         )
         Text(
-            text = if (device.status.connected) "Connected" else "Sensor Disconnected",
+            text = if (device.status.connected) "Connected" else "Disconnected",
             fontSize = 14.sp,
             fontFamily = FontFamily(Font(R.font.roboto)),
             color = Color.Black,
@@ -546,7 +546,7 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                 }
         )
 
-        if (device.status.enabled) {
+        if (device.status.sensor_connected && device.status.enabled) {
             Text(
                 text = "" + device.conditions.lux + " lx",
                 fontSize = 36.sp,
@@ -560,10 +560,23 @@ fun DeviceItem(device: Device, viewModel : DeviceListModel, navController: NavHo
                     }
                     .padding(12.dp)
             )
-        } else {
+        } else if (device.status.sensor_connected && !device.status.enabled) {
             Text(
                 text = "Disabled",
-                fontSize = 36.sp,
+                fontSize = 32.sp,
+                fontFamily = FontFamily(Font(R.font.robotolight)),
+                color = Color.Black,
+                modifier = Modifier
+                    .constrainAs(brightness) {
+                        centerVerticallyTo(parent)
+                        centerHorizontallyTo(parent)
+                    }
+                    .padding(12.dp)
+            )
+        } else {
+            Text(
+                text = "Sensor Disconnected",
+                fontSize = 32.sp,
                 fontFamily = FontFamily(Font(R.font.robotolight)),
                 color = Color.Black,
                 modifier = Modifier

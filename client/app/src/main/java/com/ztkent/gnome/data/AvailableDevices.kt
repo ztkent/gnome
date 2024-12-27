@@ -98,7 +98,7 @@ class Device(addr: String) {
 
     suspend fun flipStatus(): Result<Device> { // Make flipStatus a suspend function
         return try {
-            if (this.status.connected && !this.status.enabled) {
+            if (this.status.sensor_connected && !this.status.enabled) {
                 // Turn it on
                 val result = withContext(Dispatchers.IO) {
                     callEndpoint(this@Device.addr, "/api/v1/start")
@@ -113,7 +113,7 @@ class Device(addr: String) {
                 } else {
                     return Result.failure(result.exceptionOrNull()!!)
                 }
-            } else if (this.status.connected && this.status.enabled) {
+            } else if (this.status.sensor_connected && this.status.enabled) {
                 // Turn it off
                 val result = withContext(Dispatchers.IO) {
                     callEndpoint(this@Device.addr, "/api/v1/stop")
@@ -381,7 +381,8 @@ data class Conditions(
 )
 
 data class Status(
-    var connected: Boolean = false, // If the sensor is plugged in
+    var connected: Boolean = false, // If the sensor is connected. This might be false for saved devices
+    var sensor_connected: Boolean = false, // If the sensor is plugged in
     var enabled: Boolean = false // If the sensor is turned on
 )
 
@@ -538,6 +539,7 @@ private fun checkForDeviceResponse(ip: String, host: String): Pair<Device?, Bool
                 // Extract status
                 val statusJson = jsonObject.optJSONObject("status")
                 device.status = Status(
+                    true,
                     statusJson?.optBoolean("connected", false) ?: false,
                     statusJson?.optBoolean("enabled", false) ?: false
                 )

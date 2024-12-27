@@ -119,7 +119,9 @@ fun SettingsScreen(
                             .padding(8.dp),
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        IconButton(onClick = { navController.navigate("home") }) {
+                        IconButton(onClick = {
+                            navController.navigate("home")
+                        }) {
                             Icon(
                                 Icons.Filled.Home,
                                 contentDescription = "Home",
