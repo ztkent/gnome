@@ -8,11 +8,14 @@ import com.ztkent.gnome.SunlightActivity
 import com.ztkent.gnome.data.AvailableDevices
 import com.ztkent.gnome.data.Conditions
 import com.ztkent.gnome.data.Device
+import com.ztkent.gnome.data.GnomeSettings
 import com.ztkent.gnome.data.SignalStrength
 import com.ztkent.gnome.data.Status
 import com.ztkent.gnome.data.getAllRememberedDevices
+import com.ztkent.gnome.data.getSettings
 import com.ztkent.gnome.data.removeDevice
 import com.ztkent.gnome.data.storeDevice
+import com.ztkent.gnome.data.storeSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +27,7 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
     val devices: StateFlow<DeviceLoadState> = _devices.asStateFlow()
     val slActivity = sunlightActivity
     val rememberedDevices = slActivity.getSharedPreferences("RememberedDevices", Context.MODE_PRIVATE)
+    var gnomeSettings = slActivity.getSharedPreferences("Settings", Context.MODE_PRIVATE)
 
     init {
         viewModelScope.launch {
@@ -33,6 +37,7 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
 
     fun refresh() {
         viewModelScope.launch {
+            gnomeSettings = slActivity.getSharedPreferences("Settings", Context.MODE_PRIVATE)
             loadDevices()
         }
     }
@@ -102,6 +107,12 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
         return getAllRememberedDevices(this)
     }
 
+    fun updateGnomeSettings(settings: GnomeSettings) {
+        storeSettings(this, settings)
+    }
+    fun getGnomeSettings(): GnomeSettings {
+       return getSettings(this)
+    }
 }
 sealed class DeviceLoadState {
     data object Loading : DeviceLoadState()

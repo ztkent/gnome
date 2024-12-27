@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -53,6 +54,7 @@ fun SettingsScreen(
     navController: NavHostController,
     viewModel: DeviceListModel
 ) {
+    var settings = viewModel.gnomeSettings
     Box(
         modifier = modifier
     ) {
@@ -95,14 +97,32 @@ fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .constrainAs(settingsList) {
-                            top.linkTo(header.bottom)
+                            top.linkTo(header.bottom, margin = 8.dp)
                             start.linkTo(parent.start)
                             end.linkTo(parent.end)
                         }
-                        .fillMaxSize()
+                        .width(360.dp)
+                        .background(
+                            Color.White,
+                            shape = RoundedCornerShape(8.dp)
+                        )
                 ) {
-                    var selectedUnit by remember { mutableStateOf("Celsius") }
                     var expanded by remember { mutableStateOf(false) }
+                    var selectedUnit by remember {
+                        mutableStateOf(
+                            when (viewModel.getGnomeSettings().tempUnits) {
+                                "Celsius" -> "Celsius"
+                                "Fahrenheit" -> "Fahrenheit"
+                                else -> "Fahrenheit" // Default to Fahrenheit
+                            }
+                        )
+                    }
+                    Text("Gnome Options",
+                        color = Color.Black,
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .align(Alignment.CenterHorizontally)
+                    )
                     Row(
                         modifier = Modifier
                             .padding(16.dp)
@@ -122,17 +142,25 @@ fun SettingsScreen(
                                 onDismissRequest = { expanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Celsius") },
-                                    onClick = {
-                                        selectedUnit = "Celsius"
-                                        expanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
                                     text = { Text("Fahrenheit") },
                                     onClick = {
                                         selectedUnit = "Fahrenheit"
                                         expanded = false
+                                        viewModel.updateGnomeSettings(
+                                            viewModel.getGnomeSettings().copy(tempUnits = "Fahrenheit")
+                                        )
+                                        viewModel.refresh()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Celsius") },
+                                    onClick = {
+                                        selectedUnit = "Celsius"
+                                        expanded = false
+                                        viewModel.updateGnomeSettings(
+                                            viewModel.getGnomeSettings().copy(tempUnits = "Celsius")
+                                        )
+                                        viewModel.refresh()
                                     }
                                 )
                             }
