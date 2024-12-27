@@ -39,7 +39,7 @@ func init() {
 	case "error":
 		l.SetLevel(logrus.ErrorLevel)
 	default:
-		l.SetLevel(logrus.InfoLevel)
+		l.SetLevel(logrus.DebugLevel)
 	}
 }
 
@@ -103,12 +103,12 @@ func (tsl *TSL2591) GetFullLuminosity() (uint16, uint16, error) {
 		fmt.Printf("Error reading from register: %v\n", err)
 		return 0, 0, err
 	}
-	l.Debugf("Bytes read: %v\n", bytes)
+	// l.Debugf("Bytes read: %v\n", bytes)
 
 	channel0 := binary.LittleEndian.Uint16(bytes[0:])
 	channel1 := binary.LittleEndian.Uint16(bytes[2:])
 
-	l.Debugf("Channel 0: %v, Channel 1: %v\n", channel0, channel1)
+	// l.Debugf("Channel 0: %v, Channel 1: %v\n", channel0, channel1)
 	return channel0, channel1, nil
 }
 
@@ -158,12 +158,12 @@ func (tsl *TSL2591) CalculateLux(ch0, ch1 uint16) (float64, error) {
 
 func (tsl *TSL2591) SetOptimalGain() error {
 	// Try each gain option and see if the sensor is saturated
-	gainOptions := []byte{TSL2591_GAIN_LOW, TSL2591_GAIN_MED, TSL2591_GAIN_HIGH, TSL2591_GAIN_MAX}
+	gainOptions := []byte{TSL2591_GAIN_MAX, TSL2591_GAIN_HIGH, TSL2591_GAIN_MED, TSL2591_GAIN_LOW}
 	integrationOptions := []byte{TSL2591_INTEGRATIONTIME_600MS, TSL2591_INTEGRATIONTIME_500MS, TSL2591_INTEGRATIONTIME_400MS, TSL2591_INTEGRATIONTIME_300MS, TSL2591_INTEGRATIONTIME_200MS, TSL2591_INTEGRATIONTIME_100MS}
-	for _, gain := range gainOptions {
-		tsl.SetGain(gain)
-		for _, time := range integrationOptions {
-			tsl.SetTiming(time)
+	for _, time := range integrationOptions {
+		tsl.SetTiming(time)
+		for _, gain := range gainOptions {
+			tsl.SetGain(gain)
 			l.Debugf("Attempting - Gain: %v, Integration Time: %v", GainToString(gain), IntegrationTimeToString(time))
 			ch0, ch1, err := tsl.GetFullLuminosity()
 			if err != nil {

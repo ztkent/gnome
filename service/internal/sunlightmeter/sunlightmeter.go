@@ -72,10 +72,17 @@ func (m *SLMeter) StartSensor() error {
 	// Enable sensor
 	m.Enable()
 
+	// Initializing Sensor Optimal Gain
+	log.Printf("Setting sensor initial gain & integration time")
+	if err := m.SetOptimalGain(); err != nil {
+		log.Printf("Failed to set initial optimal gain: %s, using default settings", err)
+	}
+
 	go func() {
 		defer m.Disable()
 		jobID := uuid.New().String()
 		ticker := time.NewTicker(gnome.RECORD_INTERVAL)
+		isLowLight := true
 
 		for {
 			select {
@@ -101,6 +108,22 @@ func (m *SLMeter) StartSensor() error {
 				}
 				time.Sleep(5 * time.Second)
 				continue
+			}
+
+			if lux < 25 && !isLowLight {
+				log.Printf("Rechecking optimal gain in low-light")
+				if err := m.SetOptimalGain(); err != nil {
+					log.Printf("Failed to set optimal gain: %s", err)
+				}
+				isLowLight = true
+				time.Sleep(5 * time.Second)
+			} else if lux > 25 && isLowLight{
+				log.Printf("Rechecking optimal gain in high-light")
+				if err := m.SetOptimalGain(); err != nil {
+					log.Printf("Failed to set optimal gain: %s", err)
+				}
+				time.Sleep(5 * time.Second)
+				isLowLight = false
 			}
 
 			m.LuxResultsChan <- LuxResults{
