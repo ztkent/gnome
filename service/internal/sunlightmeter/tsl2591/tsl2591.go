@@ -274,3 +274,11 @@ func (tsl *TSL2591) SetTiming(timing byte) error {
 	tsl.Timing = timing
 	return nil
 }
+
+func (tsl *TSL2591) GetGain() string {
+	return GainToString(tsl.Gain)
+}
+
+func (tsl *TSL2591) GetTiming() string {
+	return IntegrationTimeToString(tsl.Timing)
+}

@@ -21,16 +21,16 @@ func main() {
 	pid := os.Getpid()
 	log.Println("Gnome PID: ", pid)
 
-	// Manage wireless connection. Once we're past here, we should have internet.
-	err := tools.ManageInternetConnection()
-	if err != nil {
-		log.Fatalf("Failed to manage internet connection: %v", err)
-	}
-
 	// connect to the sqlite database
 	gnomeDB, err := tools.ConnectSqlite(gnome.GNOME_DB_PATH)
 	if err != nil {
 		log.Fatalf("Failed to connect to the sqlite database: %v", err)
+	}
+
+	// This process will run in the background, and allow us to manage the internet connection via bluetooth
+	err = tools.ManageInternetConnection()
+	if err != nil {
+		log.Fatalf("Failed to manage internet connection: %v", err)
 	}
 
 	// Connect and start the Sunlight Meter
@@ -49,16 +49,21 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 		log.Printf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 
-	// Start a new chi router
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(handleServerPanic)
-	defineRoutes(r, &sunlightmeter.SLMeter{
+	slMeter := sunlightmeter.SLMeter{
 		TSL2591:        device,
 		ResultsDB:      gnomeDB,
 		LuxResultsChan: make(chan sunlightmeter.LuxResults),
 		Pid:            pid,
-	})
+	}
+
+	// Start a new chi router
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(handleServerPanic)
+	defineRoutes(r, &slMeter)
+
+	// Lets start the sensor off the jump, if we can.
+	go slMeter.StartSensor()
 
 	if os.Getenv("SSL") == "true" {
 		// Start the HTTPS server
