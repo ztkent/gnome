@@ -65,7 +65,6 @@ func (m *SLMeter) StartSensor() error {
 	}
 
 	// Create context with timeout
-	// ctx, cancel := context.WithTimeout(context.Background(), gnome.MAX_JOB_DURATION)
 	ctx, cancel := context.WithCancel(context.Background()) // Lets let it run forever
 	m.cancel = cancel
 
@@ -110,6 +109,14 @@ func (m *SLMeter) StartSensor() error {
 				log.Printf("Updated Sensor Settings: Gain: %s, Timing: %s", m.GetGain(), m.GetTiming())
 				time.Sleep(5 * time.Second)
 				continue
+			} else if math.IsInf(lux, 0) {
+				log.Printf("Lux is +inf, the sensor is over/under saturated, rechecking optimal gain")
+				if err := m.SetOptimalGain(); err != nil {
+					log.Printf("Failed to set optimal gain: %s", err)
+				}
+				log.Printf("Updated Sensor Settings: Gain: %s, Timing: %s", m.GetGain(), m.GetTiming())
+				time.Sleep(5 * time.Second)
+				continue
 			}
 
 			if lux < 25 && !isLowLight {
@@ -124,8 +131,8 @@ func (m *SLMeter) StartSensor() error {
 				if err := m.SetOptimalGain(); err != nil {
 					log.Printf("Failed to set optimal gain: %s", err)
 				}
-				log.Printf("Updated Sensor Settings: Gain: %s, Timing: %s", m.GetGain(), m.GetTiming())
 				isLowLight = false
+				log.Printf("Updated Sensor Settings: Gain: %s, Timing: %s", m.GetGain(), m.GetTiming())
 			}
 
 			m.LuxResultsChan <- LuxResults{
