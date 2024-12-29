@@ -69,19 +69,20 @@ Create a new service file in /etc/systemd/system/. For example, gnome.service:
 sudo nano /etc/systemd/system/gnome.service
 
 Add the following content to the service file:
+
 [Unit]
 Description=Gnome Service
 After=network.target
 
 [Service]
 ExecStart=/home/sunlight/gnome/service/gnome
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games:/home/sunlight/go/bin:/usr/libexec/bluetooth"
 WorkingDirectory=/home/sunlight/gnome/service
 User=root
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
-
 
 Reload systemd to recognize the new service:
 sudo systemctl daemon-reload
