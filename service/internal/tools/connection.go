@@ -65,15 +65,14 @@ func ManageWIFI() error {
 	defer btm.ControlOBEXServer(false, "")
 
 	// Accept Bluetooth connections
-	btm.Start()
 	log.Printf("Now accepting devices via Bluetooth\n")
-
-	return manageWIFI()
+	return manageWIFI(btm)
 }
 
-func manageWIFI() error {
+func manageWIFI(btm pitooth.BluetoothManager) error {
 	// Watch for new credentials
 	for {
+		go btm.AcceptConnections(time.Second * 30)
 		creds, err := watchForCreds(time.Second * 30)
 		if err != nil {
 			fmt.Printf("Failed to receive wifi credentials: %v", err)
@@ -115,7 +114,6 @@ func watchForCreds(timeout time.Duration) (*Credentials, error) {
 }
 
 func processDirectory(dirPath string) (Credentials, error) {
-	log.Println("Processing directory:", dirPath)
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
 		return Credentials{}, fmt.Errorf("Error reading directory: %v", err)
