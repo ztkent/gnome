@@ -65,14 +65,16 @@ func ManageWIFI() error {
 	defer btm.ControlOBEXServer(false, "")
 
 	// Accept Bluetooth connections
+	btm.Start()
+	defer btm.Stop()
 	log.Printf("Now accepting devices via Bluetooth\n")
-	return manageWIFI(btm)
+
+	return manageWIFI()
 }
 
-func manageWIFI(btm pitooth.BluetoothManager) error {
+func manageWIFI() error {
 	// Watch for new credentials
 	for {
-		go btm.AcceptConnections(time.Second * 30)
 		creds, err := watchForCreds(time.Second * 30)
 		if err != nil {
 			fmt.Printf("Failed to receive wifi credentials: %v", err)
