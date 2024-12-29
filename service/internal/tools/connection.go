@@ -95,7 +95,6 @@ func manageWIFI() error {
 
 func watchForCreds(timeout time.Duration) (*Credentials, error) {
 	cleanUpTransfers()
-	log.Println("Watching for new files in ", TRANSFER_DIRECTORY)
 	timeoutTimer := time.NewTimer(timeout)
 	retryTicker := time.NewTicker(5 * time.Second)
 	defer retryTicker.Stop()
