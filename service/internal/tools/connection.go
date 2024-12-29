@@ -2,6 +2,7 @@ package tools
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -42,8 +43,14 @@ type Credentials struct {
 func ManageWIFI() error {
 	log.Println("Starting WIFI management...")
 
-	// TODO: We will need to tag this with a mac address or something to ensure we don't connect to the wrong device
-	btm, err := pitooth.NewBluetoothManager("Gnome")
+	// Use device mac to create distinct bt device names
+	activeMacs, err := GetAllActiveMACAddresses()
+	if err != nil || len(activeMacs) == 0 {
+		log.Println("Failed to get active MAC addresses, falling back to random MAC")
+		activeMacs = []string{GenerateRandomMAC()}
+	}
+
+	btm, err := pitooth.NewBluetoothManager("Gnome" + "_" + strings.Join(strings.Split(activeMacs[0], ":"), ""))
 	if err != nil {
 		return fmt.Errorf("Failed to create Bluetooth manager: %v", err)
 	}
@@ -226,6 +233,17 @@ func GetOutboundIP() net.IP {
 	defer conn.Close()
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP
+}
+
+// GenerateRandomMAC generates a random MAC address.
+func GenerateRandomMAC() string {
+	mac := make([]byte, 6)
+	rand.Read(mac)
+
+	// Set the locally administered bit (second least significant bit of the first byte)
+	// and ensure the unicast bit (least significant bit of the first byte) is 0.
+	mac[0] = (mac[0] | 0x02) & 0xfe
+	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5])
 }
 
 func GetAllActiveMACAddresses() ([]string, error) {
