@@ -41,6 +41,8 @@ type Credentials struct {
 
 func ManageWIFI() error {
 	log.Println("Starting WIFI management...")
+
+	// TODO: We will need to tag this with a mac address or something to ensure we don't connect to the wrong device
 	btm, err := pitooth.NewBluetoothManager("Gnome")
 	if err != nil {
 		return fmt.Errorf("Failed to create Bluetooth manager: %v", err)
@@ -59,37 +61,31 @@ func ManageWIFI() error {
 	btm.Start()
 	log.Printf("Now accepting devices via Bluetooth\n")
 
-	return manageWIFI(btm)
+	return manageWIFI()
 }
 
-func manageWIFI(btm pitooth.BluetoothManager) error {
+func manageWIFI() error {
 	// Watch for new credentials
 	for {
 		creds, err := watchForCreds(time.Second * 30)
 		if err != nil {
-			return fmt.Errorf("Failed to receive wifi credentials: %v", err)
-		} else if len(creds) == 0 {
+			fmt.Printf("Failed to receive wifi credentials: %v", err)
+			continue
+		} else if creds == nil {
 			// Keep watching for new creds
 			continue
 		}
 
 		// Connect to the provided creds with nmcli
-		err = attemptWifiConnection(creds)
+		err = attemptWifiConnection(*creds)
 		if err != nil {
-			return fmt.Errorf("Failed to connect to Wi-Fi network: %v", err)
-		}
-
-		// Log the SSID we're connected to
-		currentSSID, err := GetCurrentSSID()
-		if err != nil {
-			return fmt.Errorf("Failed to get current SSID: %v", err)
-		} else {
-			log.Printf("Successfully connected to Wi-Fi network: %s\n", currentSSID)
+			log.Printf("Failed to connect to the target Wi-Fi network: %v\n", err)
+			continue
 		}
 	}
 }
 
-func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
+func watchForCreds(timeout time.Duration) (*Credentials, error) {
 	cleanUpTransfers()
 	log.Println("Watching for new files in ", TRANSFER_DIRECTORY)
 	timeoutTimer := time.NewTimer(timeout)
@@ -104,20 +100,21 @@ func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
 			if err != nil {
 				return nil, fmt.Errorf("Error processing creds directory: %v", err)
 			}
-			if len(creds) > 0 {
-				return creds, nil
+			if creds.SSID != "" && creds.Password != "" {
+				return &creds, nil
 			}
 		}
 	}
 }
 
-func processDirectory(dirPath string) ([]*Credentials, error) {
+func processDirectory(dirPath string) (Credentials, error) {
 	log.Println("Processing directory:", dirPath)
 	files, err := os.ReadDir(dirPath)
 	if err != nil {
-		return nil, err
+		return Credentials{}, fmt.Errorf("Error reading directory: %v", err)
 	}
-	foundCreds := []*Credentials{}
+
+	foundCreds := Credentials{}
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -131,7 +128,8 @@ func processDirectory(dirPath string) ([]*Credentials, error) {
 				continue
 			}
 			if creds.SSID != "" && creds.Password != "" {
-				foundCreds = append(foundCreds, creds)
+				foundCreds = *creds
+				break
 			}
 		}
 	}
@@ -154,32 +152,31 @@ func readCredentials(filePath string) (*Credentials, error) {
 }
 
 // Use nmcli to connect to the provided Wi-Fi network credentials
-func attemptWifiConnection(creds []*Credentials) error {
-	for _, cred := range creds {
-		log.Printf("Attempting to connect to Wi-Fi network: %s\n", cred.SSID)
+func attemptWifiConnection(creds Credentials) error {
+	log.Printf("Attempting to connect to Wi-Fi network: %s\n", creds.SSID)
 
-		// Recan for available networks
-		_, err := runCommand("nmcli", "device", "wifi", "rescan")
-		if err != nil {
-			return fmt.Errorf("Failed to rescan Wi-Fi networks: %v", err)
-		}
-
-		// Add new Wi-Fi connection
-		_, err = runCommand("nmcli", "dev", "wifi", "connect", cred.SSID, "password", cred.Password)
-		if err != nil {
-			return fmt.Errorf("failed to connect to Wi-Fi network %s: %v", cred.SSID, err)
-		}
-
-		// Ensure our network matches the SSID we requested
-		currentSSID, err := GetCurrentSSID()
-		if err != nil {
-			return fmt.Errorf("Failed to get current SSID: %v", err)
-		}
-		if currentSSID != cred.SSID {
-			return fmt.Errorf("Connected to %s, not %s", currentSSID, cred.SSID)
-		}
+	// Recan for available networks
+	_, err := runCommand("nmcli", "device", "wifi", "rescan")
+	if err != nil {
+		return fmt.Errorf("Failed to rescan Wi-Fi networks: %v", err)
 	}
-	return fmt.Errorf("Failed to connect to any Wi-Fi network")
+
+	// Add new Wi-Fi connection
+	_, err = runCommand("nmcli", "dev", "wifi", "connect", creds.SSID, "password", creds.Password)
+	if err != nil {
+		return fmt.Errorf("failed to connect to Wi-Fi network %s: %v", creds.SSID, err)
+	}
+
+	// Ensure our network matches the SSID we requested
+	currentSSID, err := GetCurrentSSID()
+	if err != nil {
+		return fmt.Errorf("Failed to get current SSID: %v", err)
+	}
+	if currentSSID != creds.SSID {
+		return fmt.Errorf("Connected to %s, not %s", currentSSID, creds.SSID)
+	}
+	log.Printf("Connected to Wi-Fi network: %s\n", currentSSID)
+	return nil
 }
 
 func checkInternetConnection(testSite string) bool {
