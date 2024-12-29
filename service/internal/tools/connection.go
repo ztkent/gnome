@@ -39,43 +39,32 @@ type Credentials struct {
 	Hopefully this will get us online.
 */
 
-func ManageInternetConnection() error {
-	if !checkInternetConnection("http://www.google.com") {
-		log.Println("No internet connection detected. Starting WIFI management...")
-		btm, err := pitooth.NewBluetoothManager("Gnome")
-		if err != nil {
-			return fmt.Errorf("Failed to create Bluetooth manager: %v", err)
-		}
-		defer btm.Close(false)
+func ManageWIFI() error {
+	log.Println("Starting WIFI management...")
+	btm, err := pitooth.NewBluetoothManager("Gnome")
+	if err != nil {
+		return fmt.Errorf("Failed to create Bluetooth manager: %v", err)
+	}
+	defer btm.Stop()
 
-		// Accept OBEX file transfers
-		// This needs to be open first, so pairing devices will idenify the capability.
-		log.Println("Starting OBEX server")
-		if err := btm.ControlOBEXServer(true, TRANSFER_DIRECTORY); err != nil {
-			return fmt.Errorf("Failed to start OBEX server: %v", err)
-		}
-		defer btm.ControlOBEXServer(false, "")
+	// Accept OBEX file transfers
+	// This needs to be open first, so pairing devices will idenify the capability.
+	log.Println("Starting OBEX server")
+	if err := btm.ControlOBEXServer(true, TRANSFER_DIRECTORY); err != nil {
+		return fmt.Errorf("Failed to start OBEX server: %v", err)
+	}
+	defer btm.ControlOBEXServer(false, "")
 
-		// Accept Bluetooth connections
-		log.Printf("Attempting to accept Bluetooth connections\n")
-		var connectedDevices map[string]pitooth.Device
-		for attempt := 1; attempt <= 5; attempt++ {
-			var err error
-			connectedDevices, err = btm.AcceptConnections(30 * time.Second)
-			if err != nil {
-				log.Printf("Attempt %d: Failed to accept Bluetooth connections: %v\n", attempt, err)
-			} else if len(connectedDevices) == 0 {
-				log.Printf("Attempt %d: No devices connected via Bluetooth\n", attempt)
-			} else {
-				log.Printf("Attempt %d: Successfully connected to %d devices via Bluetooth\n", attempt, len(connectedDevices))
-				break
-			}
-		}
-		if len(connectedDevices) == 0 {
-			return fmt.Errorf("No devices connected via Bluetooth")
-		}
+	// Accept Bluetooth connections
+	btm.Start()
+	log.Printf("Now accepting devices via Bluetooth\n")
 
-		// Watch for new credentials
+	return manageWIFI(btm)
+}
+
+func manageWIFI(btm pitooth.BluetoothManager) error {
+	// Watch for new credentials
+	for {
 		creds, err := watchForCreds(time.Second * 180)
 		if err != nil {
 			return fmt.Errorf("Failed to receive wifi credentials: %v", err)
@@ -97,7 +86,6 @@ func ManageInternetConnection() error {
 			log.Printf("Successfully connected to Wi-Fi network: %s\n", currentSSID)
 		}
 	}
-	return nil
 }
 
 func watchForCreds(timeout time.Duration) ([]*Credentials, error) {

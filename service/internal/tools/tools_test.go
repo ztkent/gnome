@@ -6,5 +6,5 @@ import (
 
 func Test_ManageConnection(t *testing.T) {
 	// Test the ManageInternetConnection function
-	ManageInternetConnection()
+	ManageWIFI()
 }

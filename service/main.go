@@ -28,10 +28,12 @@ func main() {
 	}
 
 	// This process will run in the background, and allow us to manage the internet connection via bluetooth
-	err = tools.ManageInternetConnection()
-	if err != nil {
-		log.Fatalf("Failed to manage internet connection: %v", err)
-	}
+	go func() {
+		err = tools.ManageWIFI()
+		if err != nil {
+			log.Printf("Failed to manage internet connection: %v", err)
+		}
+	}()
 
 	// Connect and start the Sunlight Meter
 	startSunLightMeter(gnomeDB, pid)
