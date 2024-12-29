@@ -266,7 +266,6 @@ func GetAllActiveMACAddresses() ([]string, error) {
 }
 
 func cleanUpTransfers() {
-	log.Println("Cleaning up transfers directory of .creds files")
 	files, _ := filepath.Glob(filepath.Join(TRANSFER_DIRECTORY, "*.creds"))
 	for _, file := range files {
 		if err := os.Remove(file); err != nil {
