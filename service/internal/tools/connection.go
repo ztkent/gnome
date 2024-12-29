@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/muka/go-bluetooth/bluez/profile/agent"
 	pitooth "github.com/ztkent/pitooth"
 )
 
@@ -69,6 +70,13 @@ func ManageWIFI() error {
 	if err != nil {
 		return fmt.Errorf("Failed to power on Bluetooth adapter: %v", err)
 	}
+
+	// Allow pairing without confirmations
+	err = agent.ExposeAgent(btm.GetAdapter().Client().GetConnection(), btm.GetAgent(), agent.CapNoInputNoOutput, true)
+	if err != nil {
+		return fmt.Errorf("Failed to register agent: %v", err)
+	}
+
 	err = btm.GetAdapter().SetPairable(true)
 	if err != nil {
 		return fmt.Errorf("Failed to make device pairable: %v", err)
