@@ -1,9 +1,13 @@
 package com.ztkent.gnome
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -29,6 +33,7 @@ class SunlightActivity : ComponentActivity() {
             SunlightMeterTheme {
                 val navController = rememberNavController() // Create NavController here
                 val viewModel = DeviceListModel(this@SunlightActivity)
+//                ScanBluetoothDevices(this@SunlightActivity)
                 NavHost(navController = navController, startDestination = "home") {
                     composable("home") {
                         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -72,6 +77,42 @@ class SunlightActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private var bluetoothPermissionsGranted: Boolean = false
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            if (permissions[Manifest.permission.BLUETOOTH_SCAN] == true) {
+                Log.d("BluetoothPermissions", "BLUETOOTH_SCAN permission granted")
+                // Permission granted, perform Bluetooth-related operations
+                bluetoothPermissionsGranted = true
+            } else {
+                Log.d("BluetoothPermissions", "BLUETOOTH_SCAN permission denied")
+                // Permission denied, handle accordingly
+            }
+        }
+
+    fun requestBluetoothPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12 or above
+            requestPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                )
+            )
+        } else {
+            // Android 11 or below
+            requestPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.BLUETOOTH_ADMIN
+                )
+            )
         }
     }
 }

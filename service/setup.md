@@ -23,6 +23,7 @@ source ~/.bashrc
 
 ### Add OBEXD
 ```shell
+sudo apt-get update
 sudo apt install bluez-obexd
 echo 'export PATH=$PATH:/usr/libexec/bluetooth' >> ~/.bashrc
 source ~/.bashrc

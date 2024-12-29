@@ -73,4 +73,5 @@ dependencies {
     implementation(libs.androidx.constraintlayout.compose)
     implementation (libs.mpandroidchart)
     implementation(libs.gson)
+    implementation(libs.androidx.activity.ktx)
 }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -294,7 +295,7 @@ private fun PortraitMode(
             )
             .pullRefresh(pullRefreshState)
     ) {
-        val (header, deviceList, bottomBar, refreshIndicator) = createRefs()
+        val (header, deviceList, bottomBar, textBox, refreshIndicator) = createRefs()
         Box(
             modifier = Modifier
                 .constrainAs(header) {
@@ -322,10 +323,10 @@ private fun PortraitMode(
                     top.linkTo(header.bottom)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
-                    bottom.linkTo(bottomBar.top)
                 }
-                .fillMaxSize(),
-            contentPadding = PaddingValues(top = 65.dp ,bottom = 65.dp)
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            contentPadding = PaddingValues(top = 8.dp ,bottom = 4.dp)
         ) {
             when (devices) {
                 is DeviceLoadState.Loading -> {
@@ -343,7 +344,6 @@ private fun PortraitMode(
                 is DeviceLoadState.Success -> {
                     if (devices.data.isEmpty()) {
                         // Display some information
-                        // TODO: This should be where the bluetooth/wifi setup process starts
                         item {
                             EmptyDeviceItem(device = Device(""),
                                 modifier = Modifier
@@ -383,6 +383,27 @@ private fun PortraitMode(
                                 .padding(8.dp)
                         )
                     }
+                }
+            }
+        }
+
+        val btDevicesState by viewModel.btDevices.collectAsState()
+        val btDevices = btDevicesState
+        Box(
+            modifier = Modifier
+                .constrainAs(textBox) {
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                    top.linkTo(deviceList.bottom)
+                }
+        ) {
+            when (devices) {
+                is DeviceLoadState.Loading -> {}
+                is DeviceLoadState.Error, is DeviceLoadState.Success -> {
+                    Text(
+                        "BT Devices",
+                        color = Color.Black
+                    )
                 }
             }
         }

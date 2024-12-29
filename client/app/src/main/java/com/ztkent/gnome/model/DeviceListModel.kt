@@ -25,6 +25,9 @@ import kotlinx.coroutines.launch
 open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
     val _devices = MutableStateFlow<DeviceLoadState>(DeviceLoadState.Loading)
     val devices: StateFlow<DeviceLoadState> = _devices.asStateFlow()
+    val _btDevices = MutableStateFlow<DeviceLoadState>(DeviceLoadState.Loading)
+    val btDevices: StateFlow<DeviceLoadState> = _btDevices.asStateFlow()
+
     val slActivity = sunlightActivity
     val rememberedDevices = slActivity.getSharedPreferences("RememberedDevices", Context.MODE_PRIVATE)
     var gnomeSettings = slActivity.getSharedPreferences("Settings", Context.MODE_PRIVATE)
