@@ -65,11 +65,12 @@ func ManageWIFI() error {
 func manageWIFI(btm pitooth.BluetoothManager) error {
 	// Watch for new credentials
 	for {
-		creds, err := watchForCreds(time.Second * 180)
+		creds, err := watchForCreds(time.Second * 30)
 		if err != nil {
 			return fmt.Errorf("Failed to receive wifi credentials: %v", err)
 		} else if len(creds) == 0 {
-			return fmt.Errorf("No wifi credentials received")
+			// Keep watching for new creds
+			continue
 		}
 
 		// Connect to the provided creds with nmcli
@@ -97,12 +98,11 @@ func watchForCreds(timeout time.Duration) ([]*Credentials, error) {
 	for {
 		select {
 		case <-timeoutTimer.C:
-			return nil, fmt.Errorf("Timed out waiting for credentials")
+			return nil, nil
 		case <-retryTicker.C:
 			creds, err := processDirectory(TRANSFER_DIRECTORY)
 			if err != nil {
-				log.Println("Error processing directory:", err)
-				return nil, err
+				return nil, fmt.Errorf("Error processing creds directory: %v", err)
 			}
 			if len(creds) > 0 {
 				return creds, nil
@@ -153,7 +153,7 @@ func readCredentials(filePath string) (*Credentials, error) {
 	return &creds, nil
 }
 
-// This uses the wpa_supplicant.conf file to add the Wi-Fi network credentials, then restarts the networking service
+// Use nmcli to connect to the provided Wi-Fi network credentials
 func attemptWifiConnection(creds []*Credentials) error {
 	for _, cred := range creds {
 		log.Printf("Attempting to connect to Wi-Fi network: %s\n", cred.SSID)
@@ -161,7 +161,7 @@ func attemptWifiConnection(creds []*Credentials) error {
 		// Recan for available networks
 		_, err := runCommand("nmcli", "device", "wifi", "rescan")
 		if err != nil {
-			log.Printf("Failed to rescan Wi-Fi networks: %v\n", err)
+			return fmt.Errorf("Failed to rescan Wi-Fi networks: %v", err)
 		}
 
 		// Add new Wi-Fi connection
@@ -170,8 +170,13 @@ func attemptWifiConnection(creds []*Credentials) error {
 			return fmt.Errorf("failed to connect to Wi-Fi network %s: %v", cred.SSID, err)
 		}
 
-		if checkInternetConnection("http://www.google.com") {
-			return nil
+		// Ensure our network matches the SSID we requested
+		currentSSID, err := GetCurrentSSID()
+		if err != nil {
+			return fmt.Errorf("Failed to get current SSID: %v", err)
+		}
+		if currentSSID != cred.SSID {
+			return fmt.Errorf("Connected to %s, not %s", currentSSID, cred.SSID)
 		}
 	}
 	return fmt.Errorf("Failed to connect to any Wi-Fi network")
