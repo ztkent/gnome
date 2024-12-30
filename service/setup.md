@@ -22,7 +22,7 @@ echo "export GOROOT=/usr/local/go" >> ~/.bashrc
 echo "export GOCACHE=\$HOME/.cache/go-build" >> ~/.bashrc
 echo "export GOBIN=\$GOROOT/bin" >> ~/.bashrc
 echo "export PATH=\$PATH:\$GOBIN:\$GOPATH:" >> ~/.bashrc
-source ~/.bashrc
+source /home/sunlight/.bashrc
 ```
 
 ### Add OBEXD
@@ -30,7 +30,7 @@ source ~/.bashrc
 sudo apt-get update
 sudo apt install bluez-obexd
 echo 'export PATH=$PATH:/usr/libexec/bluetooth' >> ~/.bashrc
-source ~/.bashrc
+source /home/sunlight/.bashrc
 ```
 
 ### Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
