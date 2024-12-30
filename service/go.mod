@@ -2,6 +2,8 @@ module github.com/ztkent/gnome
 
 go 1.23
 
+replace github.com/ztkent/pitooth => ../../pitooth
+
 require (
 	github.com/go-chi/chi/v5 v5.0.14
 	github.com/google/uuid v1.6.0
