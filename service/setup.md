@@ -5,7 +5,10 @@
 ```shell
 # Install dependencies
 sudo apt update
-sudo apt install git golang-go make
+sudo apt install git make
+
+curl -OL https://golang.org/dl/go1.23.4.linux-arm64.tar.gz &&
+tar -C /usr/local -xzf go1.23.4.linux-arm64.tar.gz
 
 sudo apt update
 sudo apt install gh
@@ -14,10 +17,11 @@ gh auth login
 
 ### Set GOPATH, GOCACHE, and GOBIN
 ```shell
-echo "export GOPATH=\$HOME/go" >> ~/.bashrc
+echo "export GOPATH=/home/sunlight/go" >> ~/.bashrc
+echo "export GOROOT=/usr/local/go" >> ~/.bashrc
 echo "export GOCACHE=\$HOME/.cache/go-build" >> ~/.bashrc
-echo "export GOBIN=\$GOPATH/bin" >> ~/.bashrc
-echo "export PATH=\$PATH:\$GOBIN" >> ~/.bashrc
+echo "export GOBIN=\$GOROOT/bin" >> ~/.bashrc
+echo "export PATH=\$PATH:\$GOBIN:\$GOPATH:" >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -31,70 +35,61 @@ source ~/.bashrc
 
 ### Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
 ```shell
-- `sudo raspi-config`
+- sudo raspi-config
 - Interfacing Options > I2C > Yes
 - reboot
 ```
 
 ### Clone, Build
 ```shell
-  git clone https://github.com/ztkent/gnome.git
+git clone https://github.com/ztkent/gnome.git
 
-  Cross Compile:
-    docker run -v "$(pwd)":/usr/src/myapp -w /usr/src/myapp debian:bookworm-slim sh -c '
-      apt-get update &&
-      apt-get install -y gcc musl-dev curl &&
-      curl -OL https://golang.org/dl/go1.23.0.linux-arm64.tar.gz &&
-      tar -C /usr/local -xzf go1.23.0.linux-arm64.tar.gz &&
-      export PATH=$PATH:/usr/local/go/bin &&
-      CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
-      go build -o gnome_arm64v8 .'
+Cross Compile:
+  docker run -v "$(pwd)":/usr/src/myapp -w /usr/src/myapp debian:bookworm-slim sh -c '
+    apt-get update &&
+    apt-get install -y gcc musl-dev curl &&
+    curl -OL https://golang.org/dl/go1.23.4.linux-arm64.tar.gz &&
+    tar -C /usr/local -xzf go1.23.4.linux-arm64.tar.gz &&
+    export PATH=$PATH:/usr/local/go/bin &&
+    CGO_ENABLED=1 GOOS=linux GOARCH=arm64 \
+    go build -o gnome_aarch64 .'
 
-      docker run -v "$(pwd)":/usr/src/myapp -w /usr/src/myapp debian:bookworm-slim sh -c '
-        apt-get update &&
-        apt-get install -y gcc musl-dev curl &&
-        curl -OL https://golang.org/dl/go1.23.0.linux-armv6l.tar.gz &&
-        tar -C /usr/local -xzf go1.23.0.linux-armv6l.tar.gz &&
-        export PATH=$PATH:/usr/local/go/bin &&
-        CGO_ENABLED=1 GOOS=linux GOARCH=arm \
-        go build -o gnome_armv6l .'
-
-  Local Build:
-    go build -x -v -gcflags="all=-N -l" -o gnome
+Local Build:
+  go build -x -v -gcflags="all=-N -l" -o gnome
 ```
 
 ## Run at Startup
-```shell
-Create a new service file in /etc/systemd/system/. For example, gnome.service:
+Create a new service file in /etc/systemd/system.
+```
+gnome.service:
 sudo nano /etc/systemd/system/gnome.service
+```
 
 Add the following content to the service file:
-
+```shell
 [Unit]
 Description=Gnome Service
 After=network.target
 
 [Service]
 ExecStart=/home/sunlight/gnome/service/gnome
-Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games:/home/sunlight/go/bin:/usr/libexec/bluetooth"
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games:/usr/local/go/bin:/usr/libexec/bluetooth"
 WorkingDirectory=/home/sunlight/gnome/service
 User=root
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
+```
 
 Reload systemd to recognize the new service:
-sudo systemctl daemon-reload
+`sudo systemctl daemon-reload`
 
 Enable the service to start on boot:
-sudo systemctl enable gnome.service
+`sudo systemctl enable gnome.service`
 
 Start the service immediately:
-sudo systemctl start gnome.service
+`sudo systemctl start gnome.service`
 
 Check the status of the service:
-sudo systemctl status gnome.service
-`
-
-```
+`sudo systemctl status gnome.service`
