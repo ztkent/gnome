@@ -36,8 +36,8 @@ github.com/stretchr/testify v1.7.5 h1:s5PTfem8p8EbKQOctVV53k6jCJt3UX4IEJzwh+C324
 github.com/stretchr/testify v1.7.5/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/suapapa/go_eddystone v1.3.1/go.mod h1:bXC11TfJOS+3g3q/Uzd7FKd5g62STQEfeEIhcKe4Qy8=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
-github.com/ztkent/pitooth v0.1.5 h1:G2HZ3/1Z/Mq2/9DoSiG8BWQcXYzE3gMKVc4Ojt5v3YU=
-github.com/ztkent/pitooth v0.1.5/go.mod h1:HSC3psj+Il4ac9yAGgV4LjhnKu2mcC31zMim78St38g=
+github.com/ztkent/pitooth v0.1.8 h1:NEL20XPnsP38N5lb3aZGSKB4UB1CT1xqhGnJHyR98zg=
+github.com/ztkent/pitooth v0.1.8/go.mod h1:HSC3psj+Il4ac9yAGgV4LjhnKu2mcC31zMim78St38g=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=

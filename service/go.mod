@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/sirupsen/logrus v1.9.3
-	github.com/ztkent/pitooth v0.1.5
+	github.com/ztkent/pitooth v0.1.8
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 )
 

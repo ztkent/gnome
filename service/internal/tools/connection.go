@@ -67,20 +67,21 @@ func ManageWIFI() error {
 	// Accept Bluetooth connections
 	err = btm.GetAdapter().SetPowered(true)
 	if err != nil {
-		return fmt.Errorf("Failed to power on Bluetooth adapter: %v", err)
+		log.Println("Failed to power on Bluetooth adapter:", err)
 	}
 	err = btm.GetAdapter().SetPairable(true)
 	if err != nil {
-		return fmt.Errorf("Failed to make device pairable: %v", err)
+		log.Println("Failed to make Bluetooth pairable:", err)
 	}
 	err = btm.GetAdapter().SetDiscoverable(true)
 	if err != nil {
-		return fmt.Errorf("Failed to make device discoverable: %v", err)
+		log.Println("Failed to make Bluetooth discoverable:", err)
 	}
 	err = btm.GetAdapter().StartDiscovery()
 	if err != nil {
-		return fmt.Errorf("Failed to start Bluetooth discovery: %v", err)
+		log.Println("Failed to start Bluetooth discovery:", err)
 	}
+
 	fmt.Println("Bluetooth is discoverable and pairable")
 	return manageWIFI()
 }
