@@ -82,6 +82,19 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
+```shell
+[Unit]
+Description=OBEX Object Push daemon
+Before=bluetooth.service
+
+[Service]
+ExecStart=/usr/lib/bluetooth/obexd -a -r /home/gnome/transfers
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
 Reload systemd to recognize the new service:
 `sudo systemctl daemon-reload`
 
