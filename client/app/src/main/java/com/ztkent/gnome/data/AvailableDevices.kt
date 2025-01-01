@@ -482,9 +482,9 @@ open class AvailableDevices {
 }
 
 private fun checkForDeviceResponse(ip: String, host: String): Pair<Device?, Boolean> {
-    var url = "http://$ip/id"
+    var url = "http://$ip:8080/id"
     if (host.isNotEmpty()) {
-        url = "http://$host/id"
+        url = "http://$host:8080/id"
     }
     try {
         val connection = URL(url).openConnection() as HttpURLConnection

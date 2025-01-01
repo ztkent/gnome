@@ -5,7 +5,7 @@
 ```shell
 # Install dependencies
 sudo apt update
-sudo apt install git make
+sudo apt install git make vim
 
 curl -OL https://golang.org/dl/go1.23.4.linux-arm64.tar.gz &&
 tar -C /usr/local -xzf go1.23.4.linux-arm64.tar.gz
@@ -17,12 +17,12 @@ gh auth login
 
 ### Set GOPATH, GOCACHE, and GOBIN
 ```shell
-echo "export GOPATH=/home/sunlight/go" >> ~/.bashrc
+echo "export GOPATH=/home/gnome/go" >> ~/.bashrc
 echo "export GOROOT=/usr/local/go" >> ~/.bashrc
 echo "export GOCACHE=\$HOME/.cache/go-build" >> ~/.bashrc
 echo "export GOBIN=\$GOROOT/bin" >> ~/.bashrc
-echo "export PATH=\$PATH:\$GOBIN:\$GOPATH:" >> ~/.bashrc
-source /home/sunlight/.bashrc
+echo "export PATH=\$PATH:\$GOBIN:\$GOPATH" >> ~/.bashrc
+source /home/gnome/.bashrc
 ```
 
 ### Add OBEXD
@@ -30,7 +30,7 @@ source /home/sunlight/.bashrc
 sudo apt-get update
 sudo apt install bluez-obexd
 echo 'export PATH=$PATH:/usr/libexec/bluetooth' >> ~/.bashrc
-source /home/sunlight/.bashrc
+source /home/gnome/.bashrc
 ```
 
 ### Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
@@ -77,6 +77,19 @@ Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/
 WorkingDirectory=/home/sunlight/gnome/service
 User=root
 Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```shell
+[Unit]
+Description=OBEX Object Push daemon
+Before=bluetooth.service
+
+[Service]
+ExecStart=/usr/lib/bluetooth/obexd -a -r /home/gnome/transfers
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
