@@ -295,7 +295,7 @@ private fun PortraitMode(
             )
             .pullRefresh(pullRefreshState)
     ) {
-        val (header, deviceList, bottomBar, textBox, refreshIndicator) = createRefs()
+        val (header, deviceList, bottomBar, refreshIndicator) = createRefs()
         Box(
             modifier = Modifier
                 .constrainAs(header) {
@@ -323,10 +323,12 @@ private fun PortraitMode(
                     top.linkTo(header.bottom)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
+                    bottom.linkTo(bottomBar.top)
                 }
                 .fillMaxWidth()
                 .wrapContentHeight(),
-            contentPadding = PaddingValues(top = 8.dp ,bottom = 4.dp)
+            contentPadding = PaddingValues(top = 72.dp ,bottom = 64.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             when (devices) {
                 is DeviceLoadState.Loading -> {
@@ -366,6 +368,14 @@ private fun PortraitMode(
                                     .padding(8.dp)
                             )
                         }
+                        item {
+                            Text(
+                                "BT Devices",
+                                color = Color.Black,
+                                modifier = Modifier
+                                    .padding(16.dp)
+                            )
+                        }
                     }
                 }
 
@@ -383,27 +393,6 @@ private fun PortraitMode(
                                 .padding(8.dp)
                         )
                     }
-                }
-            }
-        }
-
-        val btDevicesState by viewModel.btDevices.collectAsState()
-        val btDevices = btDevicesState
-        Box(
-            modifier = Modifier
-                .constrainAs(textBox) {
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    top.linkTo(deviceList.bottom)
-                }
-        ) {
-            when (devices) {
-                is DeviceLoadState.Loading -> {}
-                is DeviceLoadState.Error, is DeviceLoadState.Success -> {
-                    Text(
-                        "BT Devices",
-                        color = Color.Black
-                    )
                 }
             }
         }
