@@ -93,6 +93,20 @@ Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
+
+sudo bash -c 'echo "[Unit]
+Description=Gnome Service
+After=network.target
+
+[Service]
+ExecStart=/home/gnome/gnome/service/gnome
+Environment=\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/usr/libexec/bluetooth\"
+WorkingDirectory=/home/gnome/gnome/service
+User=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/gnome.service'
 ```
 
 Reload systemd to recognize the new service:
