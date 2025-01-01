@@ -65,10 +65,6 @@ func ManageWIFI() error {
 	defer btm.ControlOBEXServer(false, "")
 
 	// Accept Bluetooth connections
-	err = btm.GetAdapter().SetPowered(true)
-	if err != nil {
-		log.Println("Failed to power on Bluetooth adapter:", err)
-	}
 	err = btm.GetAdapter().SetPairable(true)
 	if err != nil {
 		log.Println("Failed to make Bluetooth pairable:", err)
@@ -76,10 +72,6 @@ func ManageWIFI() error {
 	err = btm.GetAdapter().SetDiscoverable(true)
 	if err != nil {
 		log.Println("Failed to make Bluetooth discoverable:", err)
-	}
-	err = btm.GetAdapter().StartDiscovery()
-	if err != nil {
-		log.Println("Failed to start Bluetooth discovery:", err)
 	}
 
 	fmt.Println("Bluetooth is discoverable and pairable")
