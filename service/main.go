@@ -66,26 +66,12 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 
 	// Lets start the sensor off the jump, if we can.
 	go slMeter.StartSensor()
-
-	if os.Getenv("SSL") == "true" {
-		// Start the HTTPS server
-		tools.EnsureCertificate("cert.pem", "key.pem")
-		app_port := "443"
-		certPath := "cert.pem"
-		keyPath := "key.pem"
-		log.Printf("Starting HTTPS server on port %s", app_port)
-		err = http.ListenAndServeTLS(":"+app_port, certPath, keyPath, r)
-		if err != nil {
-			log.Fatalf("Failed to start HTTPS server: %v", err)
-		}
-	} else {
-		// Default to an HTTP server
-		app_port := "80"
-		log.Printf("Starting HTTP server on port %s", app_port)
-		err = http.ListenAndServe(":"+app_port, r)
-		if err != nil {
-			log.Fatalf("Failed to start HTTP server: %v", err)
-		}
+	// Default to an HTTP server
+	app_port := "8080"
+	log.Printf("Starting HTTP server on port %s", app_port)
+	err = http.ListenAndServe(":"+app_port, r)
+	if err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
 	}
 }
 
