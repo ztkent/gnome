@@ -255,7 +255,7 @@ class Device(addr: String) {
 
     private suspend fun callEndpoint(deviceAddress: String, endpoint: String): Result<Unit> {
         return try {
-            val url = URL("http://$deviceAddress$endpoint")
+            val url = URL("http://$deviceAddress:8080$endpoint")
             val connection = withContext(Dispatchers.IO) {
                 url.openConnection()
             } as HttpURLConnection
@@ -275,7 +275,7 @@ class Device(addr: String) {
     }
     private suspend fun getEndpoint(deviceAddress: String, endpoint: String): Result<String> {
         return try {
-            val url = URL("http://$deviceAddress$endpoint")
+            val url = URL("http://$deviceAddress:8080$endpoint")
             val connection = withContext(Dispatchers.IO) { url.openConnection() } as HttpURLConnection
             connection.requestMethod = "GET"
             connection.connectTimeout = 5000
@@ -350,7 +350,7 @@ private fun downloadEndpoint(context: Context, deviceAddress: String, endpoint: 
             filename = "gnome.db"
         }
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val request = DownloadManager.Request(Uri.parse("http://$deviceAddress$endpoint"))
+        val request = DownloadManager.Request(Uri.parse("http://$deviceAddress:8080$endpoint"))
             .setTitle(filename)
             .setDescription("Downloading Sensor Data...")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)

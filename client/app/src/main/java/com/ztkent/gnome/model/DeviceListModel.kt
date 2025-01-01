@@ -80,7 +80,7 @@ open class DeviceListModel(sunlightActivity: SunlightActivity) : ViewModel() {
                     loadedDevices.find {  it.macAddresses.isNotEmpty() && remDevice.macAddresses.isNotEmpty() && it.macAddresses[0] == remDevice.macAddresses[0] }?.device_prefs_name = remDevice.device_prefs_name
                 }
             }
-
+            // TODO: Scan available BT Devices
             _devices.value = DeviceLoadState.Success(loadedDevices)
         } catch (e: Exception) {
             _devices.value = DeviceLoadState.Error(e)
