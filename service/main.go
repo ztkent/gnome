@@ -27,14 +27,6 @@ func main() {
 		log.Fatalf("Failed to connect to the sqlite database: %v", err)
 	}
 
-	// This process will run in the background, and allow us to manage the internet connection via bluetooth
-	go func() {
-		err = tools.ManageWIFI()
-		if err != nil {
-			log.Printf("Failed to manage internet connection: %v", err)
-		}
-	}()
-
 	// Connect and start the Sunlight Meter
 	startSunLightMeter(gnomeDB, pid)
 	return
