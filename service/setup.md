@@ -82,31 +82,22 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
+`sudo vim /etc/systemd/system/pifi.service`
+
 ```shell
 [Unit]
-Description=OBEX Object Push daemon
-Before=bluetooth.service
-
-[Service]
-ExecStart=/usr/lib/bluetooth/obexd -a -r /home/gnome/transfers
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-
-sudo bash -c 'echo "[Unit]
-Description=Gnome Service
+Description=PiFi Service
 After=network.target
 
 [Service]
-ExecStart=/home/gnome/gnome/service/gnome
-Environment=\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/usr/libexec/bluetooth\"
-WorkingDirectory=/home/gnome/gnome/service
+ExecStart=<path-to-pifi-binary>
+Environment="PATH=/usr/bin:/usr/sbin"
+WorkingDirectory=<directory-of-pifi-binary>
 User=root
 Restart=always
 
 [Install]
-WantedBy=multi-user.target" > /etc/systemd/system/gnome.service'
+WantedBy=multi-user.target
 ```
 
 Reload systemd to recognize the new service:
