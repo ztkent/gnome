@@ -37,7 +37,7 @@ Connect remotely to:
 - Download historical data as a SQLite DB.
 - Check device wifi-signal strength.
 
-### Dashboard:
+### Dashboard
 
 The "Sunlight Dashboard" is a web app that displays the current light conditions and historical data.  
 
