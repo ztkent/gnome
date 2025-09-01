@@ -227,25 +227,22 @@ func (m *SLMeter) GetSensorStatus() (Status, error) {
 // Read from LuxResultsChan, write the results to sqlite
 func (m *SLMeter) MonitorAndRecordResults() {
 	log.Println("Monitoring for new messages...")
-	for {
-		select {
-		case result := <-m.LuxResultsChan:
-			log.Println(fmt.Sprintf("- JobID: %s, Lux: %.5f", result.JobID, result.Lux))
-			if math.IsInf(result.Lux, 1) {
-				log.Println("Lux is invalid, skipping record")
-				continue
-			}
-			_, err := m.ResultsDB.Exec(
-				"INSERT INTO sunlight (job_id, lux, full_spectrum, visible, infrared) VALUES (?, ?, ?, ?, ?)",
-				result.JobID,
-				fmt.Sprintf("%.5f", result.Lux),
-				fmt.Sprintf("%.5e", result.FullSpectrum),
-				fmt.Sprintf("%.5e", result.Visible),
-				fmt.Sprintf("%.5e", result.Infrared),
-			)
-			if err != nil {
-				log.Println(err)
-			}
+	for result := range m.LuxResultsChan {
+		log.Printf("- JobID: %s, Lux: %.5f", result.JobID, result.Lux)
+		if math.IsInf(result.Lux, 1) {
+			log.Println("Lux is invalid, skipping record")
+			continue
+		}
+		_, err := m.ResultsDB.Exec(
+			"INSERT INTO sunlight (job_id, lux, full_spectrum, visible, infrared) VALUES (?, ?, ?, ?, ?)",
+			result.JobID,
+			fmt.Sprintf("%.5f", result.Lux),
+			fmt.Sprintf("%.5e", result.FullSpectrum),
+			fmt.Sprintf("%.5e", result.Visible),
+			fmt.Sprintf("%.5e", result.Infrared),
+		)
+		if err != nil {
+			log.Println(err)
 		}
 	}
 }

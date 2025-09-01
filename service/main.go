@@ -29,7 +29,6 @@ func main() {
 
 	// Connect and start the Sunlight Meter
 	startSunLightMeter(gnomeDB, pid)
-	return
 }
 
 func startSunLightMeter(gnomeDB *sql.DB, pid int) {

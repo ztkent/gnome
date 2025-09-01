@@ -54,7 +54,7 @@ Local Build:
   go build -x -v -gcflags="all=-N -l" -o gnome
 ```
 
-## Run at Startup
+### Run at Startup
 
 Create a new service file in /etc/systemd/system.
 
@@ -92,3 +92,7 @@ Start the service immediately:
 
 Check the status of the service:
 `sudo systemctl status gnome.service`
+
+### Remote Wifi Management
+
+Use [PiFi](https://github.com/ztkent/pifi) to manage WiFi connections on the Raspberry Pi.
