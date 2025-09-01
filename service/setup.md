@@ -1,14 +1,15 @@
 # Setup Instructions
 
 ## Configure the Pi
-### Update the system
-```shell
+
+```sh
 # Install dependencies
 sudo apt update
 sudo apt install git make vim
 
 curl -OL https://golang.org/dl/go1.23.4.linux-arm64.tar.gz &&
-tar -C /usr/local -xzf go1.23.4.linux-arm64.tar.gz
+tar -C /home/gnome -xzf go1.23.4.linux-arm64.tar.gz
+
 
 sudo apt update
 sudo apt install gh
@@ -16,32 +17,27 @@ gh auth login
 ```
 
 ### Set GOPATH, GOCACHE, and GOBIN
-```shell
+
+```sh
 echo "export GOPATH=/home/gnome/go" >> ~/.bashrc
-echo "export GOROOT=/usr/local/go" >> ~/.bashrc
+echo "export GOROOT=/home/gnome/go" >> ~/.bashrc
 echo "export GOCACHE=\$HOME/.cache/go-build" >> ~/.bashrc
 echo "export GOBIN=\$GOROOT/bin" >> ~/.bashrc
 echo "export PATH=\$PATH:\$GOBIN:\$GOPATH" >> ~/.bashrc
 source /home/gnome/.bashrc
 ```
 
-### Add OBEXD
-```shell
-sudo apt-get update
-sudo apt install bluez-obexd
-echo 'export PATH=$PATH:/usr/libexec/bluetooth' >> ~/.bashrc
-source /home/gnome/.bashrc
-```
+### Enable I2C Interface: Use the raspi-config tool to enable the I2C interface
 
-### Enable I2C Interface: Use the raspi-config tool to enable the I2C interface.
-```shell
+```sh
 - sudo raspi-config
 - Interfacing Options > I2C > Yes
 - reboot
 ```
 
 ### Clone, Build
-```shell
+
+```sh
 git clone https://github.com/ztkent/gnome.git
 
 Cross Compile:
@@ -59,40 +55,25 @@ Local Build:
 ```
 
 ## Run at Startup
+
 Create a new service file in /etc/systemd/system.
-```
+
+```sh
 gnome.service:
 sudo nano /etc/systemd/system/gnome.service
 ```
 
 Add the following content to the service file:
-```shell
+
+```sh
 [Unit]
 Description=Gnome Service
 After=network.target
 
 [Service]
-ExecStart=/home/sunlight/gnome/service/gnome
-Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games:/usr/local/go/bin:/usr/libexec/bluetooth"
-WorkingDirectory=/home/sunlight/gnome/service
-User=root
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-`sudo vim /etc/systemd/system/pifi.service`
-
-```shell
-[Unit]
-Description=PiFi Service
-After=network.target
-
-[Service]
-ExecStart=<path-to-pifi-binary>
-Environment="PATH=/usr/bin:/usr/sbin"
-WorkingDirectory=<directory-of-pifi-binary>
+ExecStart=/home/gnome/gnome/service/gnome
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games:/home/gnome/go/bin:/usr/libexec/bluetooth"
+WorkingDirectory=/home/gnome/gnome/service
 User=root
 Restart=always
 
