@@ -6,7 +6,7 @@ Used for garden automation, data collection and sensor visualization.
 
 The Gnome project is a distributed garden monitoring system that combines:
 
-- **Embedded Service**: Runs on Raspberry Pi devices with TSL2591 light sensors
+- **Embedded Service**: Runs on a Raspberry Pi with configured sensors
 - **Android App**: Mobile interface for device discovery, monitoring, and control
 - **Web Dashboard**: Browser-based interface for data visualization and device management
 
@@ -37,7 +37,7 @@ The Gnome project is a distributed garden monitoring system that combines:
 Embedded Go service that runs on Raspberry Pi devices:
 
 - **Hardware Interface**: Communicates with TSL2591 light sensor via I2C
-- **Data Collection**: Periodic sensor readings with automatic gain adjustment
+- **Data Collection**: Periodic sensor readings with automatic adjustments
 - **Storage**: SQLite database for historical data
 - **API**: RESTful endpoints for remote access
 - **Dashboard**: Web interface for device management
