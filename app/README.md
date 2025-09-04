@@ -1,16 +1,16 @@
 # Gnome - Android App
 
-Android mobile application for connecting to and monitoring Gnome light sensor devices on your local network.
+Android mobile application for connecting to and monitoring Gnome sensor devices on your local network.
 
 ## Overview
 
-The Gnome Android app provides a mobile interface to discover, connect to, and monitor Gnome devices running the embedded service. The app allows you to view real-time light sensor data, control recording jobs, and visualize historical data directly from your Android device.
+The Gnome app provides a mobile interface to discover, connect to, and monitor Gnome devices running the embedded service. The app allows you to view real-time sensor data, control recording jobs, and visualize historical data directly from your Android device.
 
 ## Features
 
 - **Device Discovery**: Automatically discover Gnome devices on your local network
-- **Real-time Monitoring**: View live light sensor readings and conditions
-- **Data Visualization**: Interactive charts showing historical light data
+- **Real-time Monitoring**: View live sensor readings and conditions
+- **Data Visualization**: Interactive charts showing historical sensor data
 - **Remote Control**: Start/stop recording jobs on connected devices
 - **Data Export**: Download and export sensor data
 - **Network Status**: Monitor device connectivity and WiFi signal strength

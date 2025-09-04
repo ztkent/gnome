@@ -1,10 +1,12 @@
 # Gnome - Garden Monitoring System
 
-A comprehensive garden monitoring solution consisting of embedded sensor devices and a mobile application for real-time automation, data collection and sensor visualization.
+Garden monitoring project consisting of embedded sensor devices and a mobile application.  
+
+Used for garden automation, data collection and sensor visualization.
 
 ## Overview
 
-The Gnome project is a distributed light sensing system that combines:
+The Gnome project is a distributed garden monitoring system that combines:
 
 - **Embedded Service**: Runs on Raspberry Pi devices with TSL2591 light sensors
 - **Android App**: Mobile interface for device discovery, monitoring, and control
