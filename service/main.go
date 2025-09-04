@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -92,20 +91,9 @@ func defineRoutes(r *chi.Mux, meter *gnome.SLMeter) {
 
 	// Main dashboard route
 	r.Get("/", meter.Dashboard())
-	
-	// Route for service identification (moved to /id only)
+
+	// Route for service identification
 	r.Get("/id", meter.ID())
-
-	// Serve static files
-	workDir, _ := os.Getwd()
-	filesDir := filepath.Join(workDir, "internal", "sunlightmeter")
-	FileServer(r, "/static/", http.Dir(filesDir))
-}
-
-func FileServer(r chi.Router, path string, root http.FileSystem) {
-	r.Get(path+"*", func(w http.ResponseWriter, r *http.Request) {
-		http.StripPrefix(path, http.FileServer(root)).ServeHTTP(w, r)
-	})
 }
 
 func handleServerPanic(next http.Handler) http.Handler {

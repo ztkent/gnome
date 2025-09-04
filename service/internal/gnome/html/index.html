@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gnome - Garden Monitoring Dashboard</title>
-    <!-- HTMX functionality replaced with vanilla JavaScript -->
     <style>
         * {
             margin: 0;
@@ -113,7 +112,7 @@
         }
         
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #3c3c3eff 0%, #a1a0a2ff 100%);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -253,14 +252,12 @@
     </div>
     
     <script>
-        // Dashboard functionality using vanilla JavaScript instead of HTMX
         class Dashboard {
             constructor() {
                 this.loadAll();
                 this.setupAutoRefresh();
                 this.setupEventDelegation();
             }
-            
             async loadContent(url, targetId) {
                 try {
                     const response = await fetch(url);
@@ -318,8 +315,6 @@
                 });
             }
         }
-        
-        // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', () => {
             window.dashboard = new Dashboard();
         });
