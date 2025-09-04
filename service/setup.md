@@ -5,8 +5,8 @@
 sudo apt update
 sudo apt install git make vim
 
-curl -OL https://golang.org/dl/go1.23.4.linux-arm64.tar.gz &&
-tar -C /home/gnome -xzf go1.23.4.linux-arm64.tar.gz
+curl -OL https://golang.org/dl/go1.25.1.linux-arm64.tar.gz &&
+tar -C /home/gnome -xzf go1.25.1.linux-arm64.tar.gz
 
 sudo apt update
 ```
