@@ -15,6 +15,11 @@ import (
 //go:embed html/*
 var templateFiles embed.FS
 
+// GetTemplateFiles returns the embedded file system for template files
+func (m *SLMeter) GetTemplateFiles() embed.FS {
+	return templateFiles
+}
+
 func (m *SLMeter) Start() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := m.StartSensor(); err != nil {
