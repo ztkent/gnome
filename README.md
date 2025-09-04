@@ -79,7 +79,9 @@ Kotlin/Compose mobile application:
 - **Interactive Charts**: Historical data plotting and analysis
 - **Real-time Displays**: Live sensor readings and status
 - **Export Options**: Download data in multiple formats
-- **Mobile Responsive**: Works on Android devices and web browsers
+
+<img width="794" height="775" alt="image" src="https://github.com/user-attachments/assets/eeaab95e-ad17-480a-8917-d13ee8731149" />
+
 
 ## Troubleshooting
 
