@@ -281,6 +281,14 @@
             </div>
         </div>
         
+        <!-- Historical Graph Section -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 16px;">
+            <h2>📊 Historical Sensor Data (Last 24 Hours)</h2>
+            <div id="historical-graph">
+                <div class="loading">Loading historical data...</div>
+            </div>
+        </div>
+        
         <div class="auto-refresh">
             Dashboard auto-refreshes every 15-30 seconds
         </div>
@@ -311,6 +319,7 @@
                 this.loadContent('/dashboard/signal-strength', 'signal-strength');
                 this.loadContent('/dashboard/controls', 'controls');
                 this.loadContent('/dashboard/system-info', 'system-info');
+                this.loadContent('/dashboard/historical-graph', 'historical-graph');
             }
             
             setupAutoRefresh() {

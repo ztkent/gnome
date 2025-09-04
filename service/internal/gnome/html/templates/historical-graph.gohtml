@@ -1,0 +1,164 @@
+<div style="position: relative; width: 100%; height: 400px;">
+    <canvas id="historicalChart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+(function() {
+    const ctx = document.getElementById('historicalChart').getContext('2d');
+    let chart;
+
+    function initChart() {
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Lux',
+                        data: [],
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Visible Light',
+                        data: [],
+                        borderColor: '#2196F3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Infrared',
+                        data: [],
+                        borderColor: '#FF9800',
+                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Full Spectrum',
+                        data: [],
+                        borderColor: '#9C27B0',
+                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                        tension: 0.1,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#f8f9fa',
+                            usePointStyle: true
+                        }
+                    },
+                    title: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: '#495057'
+                        },
+                        ticks: {
+                            color: '#adb5bd',
+                            maxTicksLimit: 10
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#495057'
+                        },
+                        ticks: {
+                            color: '#adb5bd'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    }
+
+    function formatTimeLabel(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    function loadGraphData() {
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - (24 * 60 * 60 * 1000)); // Last 24 hours
+        
+        const startDateStr = startDate.toISOString();
+        const endDateStr = endDate.toISOString();
+        
+        fetch(`/api/v1/graph?start=${encodeURIComponent(startDateStr)}&end=${encodeURIComponent(endDateStr)}`)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (!data || data.length === 0) {
+                    // Show empty state
+                    chart.data.labels = ['No data available'];
+                    chart.data.datasets.forEach(dataset => {
+                        dataset.data = [0];
+                    });
+                    chart.update();
+                    return;
+                }
+
+                // Process data for chart - limit to reasonable number of points
+                const maxPoints = 50;
+                const step = Math.max(1, Math.floor(data.length / maxPoints));
+                const sampledData = data.filter((_, index) => index % step === 0);
+
+                const labels = sampledData.map(item => formatTimeLabel(item.created_at));
+                const luxData = sampledData.map(item => item.lux || 0);
+                const visibleData = sampledData.map(item => item.visible || 0);
+                const infraredData = sampledData.map(item => item.infrared || 0);
+                const fullSpectrumData = sampledData.map(item => item.full_spectrum || 0);
+
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = luxData;
+                chart.data.datasets[1].data = visibleData;
+                chart.data.datasets[2].data = infraredData;
+                chart.data.datasets[3].data = fullSpectrumData;
+                
+                chart.update('none'); // No animation for better performance
+            })
+            .catch(error => {
+                console.error('Failed to load graph data:', error);
+                // Show error state
+                chart.data.labels = ['Error loading data'];
+                chart.data.datasets.forEach(dataset => {
+                    dataset.data = [0];
+                });
+                chart.update();
+            });
+    }
+
+    // Initialize chart when script loads
+    initChart();
+    loadGraphData();
+
+    // Set up periodic refresh (every 60 seconds)
+    setInterval(loadGraphData, 60000);
+})();
+</script>

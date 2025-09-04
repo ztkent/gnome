@@ -87,6 +87,7 @@ func defineRoutes(r *chi.Mux, meter *gnome.SLMeter) {
 		r.Get("/signal-strength", meter.DashboardSignalStrength())
 		r.Get("/controls", meter.DashboardControls())
 		r.Get("/system-info", meter.DashboardSystemInfo())
+		r.Get("/historical-graph", meter.DashboardHistoricalGraph())
 	})
 
 	// Main dashboard route
