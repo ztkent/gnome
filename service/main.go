@@ -56,6 +56,7 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 
 	// Lets start the sensor off the jump, if we can.
 	go slMeter.StartSensor()
+
 	// Default to an HTTP server
 	app_port := "8080"
 	log.Printf("Starting HTTP server on port %s", app_port)

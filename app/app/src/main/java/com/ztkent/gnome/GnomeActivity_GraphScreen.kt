@@ -72,7 +72,7 @@ import com.ztkent.gnome.ui.theme.InfraredLightColor
 import com.ztkent.gnome.ui.theme.LuxChartColor
 import com.ztkent.gnome.ui.theme.NotificationBarColor
 import com.ztkent.gnome.ui.theme.PPFDBarColor
-import com.ztkent.gnome.ui.theme.SunlightMeterTheme
+import com.ztkent.gnome.ui.theme.GnomeTheme
 import com.ztkent.gnome.ui.theme.VisibleLightColor
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -721,7 +721,7 @@ suspend fun fetchGraphData(context: Context, device: Device): List<Device.GraphD
 @Preview(showBackground = true)
 @Composable
 fun GraphScreenPreview() {
-    SunlightMeterTheme {
+    GnomeTheme {
         val navController = rememberNavController()
         GraphScreen(navController =navController, viewModel = DeviceListModelPreview(), deviceAddr = "192.168.1.9")
     }

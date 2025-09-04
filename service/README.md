@@ -4,10 +4,6 @@ Embeded service that runs on each of the Gnome devices.
 
 ## How It Works
 
-- Establishes a connection to the internet
-  - Enables Bluetooth + File Transfer
-  - Accepts credentials from user device
-  - Attempts connection
 - Validates a connection to the TSL2591 sensor
 - Periodically takes readings from the TSL2591 sensor
 - Manages a SQLite database to store sensor readings
@@ -39,7 +35,7 @@ Connect remotely to:
 
 ### Dashboard
 
-The "Sunlight Dashboard" is a web app that displays the current light conditions and historical data.  
+The "Gnome Dashboard" is a web app that displays the current light conditions and historical data.  
 
 - Visualize historical light conditions
 - Control the sensor

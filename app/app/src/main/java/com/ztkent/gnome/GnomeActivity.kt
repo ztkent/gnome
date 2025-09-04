@@ -19,7 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ztkent.gnome.model.DeviceListModel
-import com.ztkent.gnome.ui.theme.SunlightMeterTheme
+import com.ztkent.gnome.ui.theme.GnomeTheme
 
 class SharedState {
     var refreshing by mutableStateOf(false)
@@ -30,7 +30,7 @@ class GnomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SunlightMeterTheme {
+            GnomeTheme {
                 val navController = rememberNavController() // Create NavController here
                 val viewModel = DeviceListModel(this@GnomeActivity)
 //                ScanBluetoothDevices(this@GnomeActivity)

@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.ztkent.gnome.ui.theme.SunlightMeterTheme
+import com.ztkent.gnome.ui.theme.GnomeTheme
 
 class LandingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,7 +27,7 @@ class LandingActivity : ComponentActivity() {
             // Display splash screen and set first_launch to false
             enableEdgeToEdge()
             setContent {
-                SunlightMeterTheme {
+                GnomeTheme {
                     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                         ImageSplashScreen(
                             modifier = Modifier.padding(innerPadding)

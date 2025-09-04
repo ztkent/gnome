@@ -71,6 +71,7 @@ import com.ztkent.gnome.model.DeviceLoadState
 import com.ztkent.gnome.ui.theme.BG1
 import com.ztkent.gnome.ui.theme.BG2
 import com.ztkent.gnome.ui.theme.DIVIDER_COLOR
+import com.ztkent.gnome.ui.theme.GnomeTheme
 import com.ztkent.gnome.ui.theme.LuxColorDarkOvercastGradient
 import com.ztkent.gnome.ui.theme.LuxColorDarkTwilightGradient
 import com.ztkent.gnome.ui.theme.LuxColorDirectSunlightGradient
@@ -87,7 +88,6 @@ import com.ztkent.gnome.ui.theme.LuxDisabledGradient
 import com.ztkent.gnome.ui.theme.LuxUnknownGradient
 import com.ztkent.gnome.ui.theme.NotificationBarColor
 import com.ztkent.gnome.ui.theme.SELECTED_TAB_COLOR
-import com.ztkent.gnome.ui.theme.SunlightMeterTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -930,7 +930,7 @@ fun EmptyDeviceItem(device: Device, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    SunlightMeterTheme {
+    GnomeTheme {
         val navController = rememberNavController()
         HomeScreen(viewModel = DeviceListModelPreview(), navController = navController)
     }
