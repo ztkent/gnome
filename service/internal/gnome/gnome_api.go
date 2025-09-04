@@ -43,7 +43,7 @@ func (m *SLMeter) CurrentConditions() http.HandlerFunc {
 		if m.TSL2591 == nil {
 			ServeResponse(w, r, "The sensor is not connected", http.StatusBadRequest)
 			return
-		} else if !m.Enabled {
+		} else if !m.TSL2591.Enabled {
 			ServeResponse(w, r, "The sensor is not enabled", http.StatusBadRequest)
 			return
 		}
@@ -210,6 +210,131 @@ func (m *SLMeter) ServeResultsJSON() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(data)
+	}
+}
+
+// Environmental sensor API endpoints
+
+func (m *SLMeter) StartEnvironmental() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := m.StartEnvironmentalSensor(); err != nil {
+			ServeResponse(w, r, err.Error(), http.StatusBadRequest)
+			return
+		}
+		ServeResponse(w, r, "Environmental Monitoring Started", http.StatusOK)
+	}
+}
+
+func (m *SLMeter) StopEnvironmental() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := m.StopEnvironmentalSensor(); err != nil {
+			ServeResponse(w, r, err.Error(), http.StatusBadRequest)
+			return
+		}
+		ServeResponse(w, r, "Environmental Monitoring Stopped", http.StatusOK)
+	}
+}
+
+// Serve data about the most recent environmental entry saved to the db
+func (m *SLMeter) CurrentEnvironmentalConditions() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if m.BME280 == nil {
+			ServeResponse(w, r, "The environmental sensor is not connected", http.StatusBadRequest)
+			return
+		} else if !m.BME280.Enabled {
+			ServeResponse(w, r, "The environmental sensor is not enabled", http.StatusBadRequest)
+			return
+		}
+
+		conditions, err := m.GetCurrentEnvironmentalConditions()
+		if err != nil {
+			log.Println(err)
+			ServeResponse(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		conditionsData, err := json.Marshal(conditions)
+		if err != nil {
+			log.Println(err)
+			ServeResponse(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		ServeResponse(w, r, string(conditionsData), http.StatusOK)
+	}
+}
+
+// Serve environmental data as JSON for graphing
+func (m *SLMeter) ServeEnvironmentalResultsJSON() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		startDate := time.Now().UTC().Add(-8 * time.Hour)
+		endDate := time.Now().UTC()
+
+		startDateStr := r.FormValue("start")
+		endDateStr := r.FormValue("end")
+		if startDateStr != "" && endDateStr != "" {
+			var err error
+			startDate, err = time.Parse(time.RFC3339, startDateStr)
+			if err != nil {
+				http.Error(w, "Invalid start date", http.StatusBadRequest)
+				return
+			}
+			endDate, err = time.Parse(time.RFC3339, endDateStr)
+			if err != nil {
+				http.Error(w, "Invalid end date", http.StatusBadRequest)
+				return
+			}
+		}
+
+		data, err := tools.ExportEnvironmentalToJSON(GNOME_DB_PATH, startDate, endDate)
+		if err != nil {
+			http.Error(w, "Failed to export environmental JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(data))
+	}
+}
+
+// Serve environmental data as CSV for download
+func (m *SLMeter) ServeEnvironmentalResultsCSV() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		csvData, err := tools.ExportEnvironmentalToCSV(GNOME_DB_PATH)
+		if err != nil {
+			http.Error(w, "Failed to export environmental CSV", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", "attachment; filename=environmental.csv")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(csvData))
+	}
+}
+
+// EnvironmentalStatus returns the connection and enabled status of the environmental sensor
+func (m *SLMeter) EnvironmentalStatus() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		status, err := m.GetEnvironmentalSensorStatus()
+		if err != nil {
+			log.Println(err)
+			ServeResponse(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		statusData, err := json.Marshal(status)
+		if err != nil {
+			log.Println(err)
+			ServeResponse(w, r, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		ServeResponse(w, r, string(statusData), http.StatusOK)
 	}
 }
 

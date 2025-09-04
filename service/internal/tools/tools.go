@@ -195,3 +195,92 @@ func ExportToJSON(dbFile string, start time.Time, end time.Time) ([]map[string]i
 
 	return results, nil
 }
+
+// ExportEnvironmentalToCSV exports environmental data to CSV format as a string
+func ExportEnvironmentalToCSV(dbFile string) (string, error) {
+	db, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to open database: %w", err)
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`SELECT id, job_id, temperature, humidity, pressure, created_at FROM environmental`)
+	if err != nil {
+		return "", fmt.Errorf("failed to query database: %w", err)
+	}
+	defer rows.Close()
+
+	csvData := "id,job_id,temperature,humidity,pressure,created_at\n"
+
+	for rows.Next() {
+		var id int
+		var jobID, temperature, humidity, pressure, createdAt string
+
+		if err := rows.Scan(&id, &jobID, &temperature, &humidity, &pressure, &createdAt); err != nil {
+			return "", fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		csvData += fmt.Sprintf("%d,%s,%s,%s,%s,%s\n", 
+			id, jobID, temperature, humidity, pressure, createdAt)
+	}
+
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("row iteration error: %w", err)
+	}
+
+	return csvData, nil
+}
+
+// ExportEnvironmentalToJSON exports environmental data to JSON format
+func ExportEnvironmentalToJSON(dbFile string, start time.Time, end time.Time) (string, error) {
+	db, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to open database: %w", err)
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`SELECT id, job_id, temperature, humidity, pressure, created_at FROM environmental WHERE created_at BETWEEN ? AND ?`, start.UTC(), end.UTC())
+	if err != nil {
+		return "", fmt.Errorf("failed to query database: %w", err)
+	}
+	defer rows.Close()
+
+	var results []map[string]interface{}
+
+	for rows.Next() {
+		var id int
+		var jobID, temperature, humidity, pressure, createdAt string
+
+		if err := rows.Scan(&id, &jobID, &temperature, &humidity, &pressure, &createdAt); err != nil {
+			return "", fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		record := map[string]interface{}{
+			"id":          id,
+			"job_id":      jobID,
+			"temperature": temperature,
+			"humidity":    humidity,
+			"pressure":    pressure,
+			"created_at":  createdAt,
+		}
+
+		results = append(results, record)
+	}
+
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("row iteration error: %w", err)
+	}
+
+	// Convert results to JSON string
+	jsonData := "["
+	for i, record := range results {
+		if i > 0 {
+			jsonData += ","
+		}
+		jsonData += fmt.Sprintf(`{"id":%d,"job_id":"%s","temperature":"%s","humidity":"%s","pressure":"%s","created_at":"%s"}`,
+			record["id"], record["job_id"], record["temperature"], record["humidity"], record["pressure"], record["created_at"])
+	}
+	jsonData += "]"
+
+	return jsonData, nil
+}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ztkent/gnome/internal/gnome/bme280"
 	"github.com/ztkent/gnome/internal/gnome/tsl2591"
 )
 
@@ -24,10 +25,13 @@ const (
 
 type SLMeter struct {
 	*tsl2591.TSL2591
-	LuxResultsChan chan LuxResults
-	ResultsDB      *sql.DB
-	cancel         context.CancelFunc
-	Pid            int
+	*bme280.BME280
+	LuxResultsChan         chan LuxResults
+	EnvironmentalResultsChan chan EnvironmentalResults
+	ResultsDB              *sql.DB
+	cancel                 context.CancelFunc
+	cancelEnvironmental    context.CancelFunc
+	Pid                    int
 }
 
 type LuxResults struct {
@@ -36,6 +40,13 @@ type LuxResults struct {
 	Visible      float64
 	FullSpectrum float64
 	JobID        string
+}
+
+type EnvironmentalResults struct {
+	Temperature float64
+	Humidity    float64
+	Pressure    float64
+	JobID       string
 }
 
 type Conditions struct {
@@ -51,7 +62,19 @@ type Conditions struct {
 	AverageLuxInRange     float64 `json:"averageLuxInRange"`
 }
 
+type EnvironmentalConditions struct {
+	JobID       string  `json:"jobID"`
+	Temperature float64 `json:"temperature"`
+	Humidity    float64 `json:"humidity"`
+	Pressure    float64 `json:"pressure"`
+}
+
 type Status struct {
+	Connected bool `json:"connected"`
+	Enabled   bool `json:"enabled"`
+}
+
+type EnvironmentalStatus struct {
 	Connected bool `json:"connected"`
 	Enabled   bool `json:"enabled"`
 }
@@ -66,7 +89,7 @@ func (m *SLMeter) StartSensor() error {
 	if m.TSL2591 == nil {
 		return fmt.Errorf("sensor is not connected")
 	}
-	if m.Enabled {
+	if m.TSL2591.Enabled {
 		return fmt.Errorf("sensor is already started")
 	}
 
@@ -75,7 +98,7 @@ func (m *SLMeter) StartSensor() error {
 	m.cancel = cancel
 
 	// Enable sensor
-	m.Enable()
+	m.TSL2591.Enable()
 
 	// Initializing Sensor Optimal Gain
 	log.Printf("Setting sensor initial gain & integration time")
@@ -85,7 +108,7 @@ func (m *SLMeter) StartSensor() error {
 	log.Printf("Current Sensor Settings: Gain: %s, Timing: %s", m.GetGain(), m.GetTiming())
 
 	go func() {
-		defer m.Disable()
+		defer m.TSL2591.Disable()
 		jobID := uuid.New().String()
 		ticker := time.NewTicker(RECORD_INTERVAL)
 		isLowLight := true
@@ -160,12 +183,12 @@ func (m *SLMeter) StopSensor() error {
 	if m.TSL2591 == nil {
 		return fmt.Errorf("sensor is not connected")
 	}
-	if !m.Enabled {
+	if !m.TSL2591.Enabled {
 		return fmt.Errorf("sensor is already stopped")
 	}
 
 	m.cancel()
-	m.Disable()
+	m.TSL2591.Disable()
 	return nil
 }
 
@@ -203,7 +226,7 @@ func (m *SLMeter) GetSignalStrength() (SignalStrength, error) {
 
 // GetCurrentConditions returns the most recent sensor readings
 func (m *SLMeter) GetCurrentConditions() (Conditions, error) {
-	if m.TSL2591 == nil || !m.Enabled {
+	if m.TSL2591 == nil || !m.TSL2591.Enabled {
 		return Conditions{}, nil
 	}
 
@@ -226,7 +249,7 @@ func (m *SLMeter) GetSensorStatus() (Status, error) {
 	}
 
 	status.Connected = true
-	status.Enabled = m.Enabled
+	status.Enabled = m.TSL2591.Enabled
 	return status, nil
 }
 
@@ -246,6 +269,130 @@ func (m *SLMeter) MonitorAndRecordResults() {
 			fmt.Sprintf("%.5e", result.FullSpectrum),
 			fmt.Sprintf("%.5e", result.Visible),
 			fmt.Sprintf("%.5e", result.Infrared),
+		)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+// StartEnvironmentalSensor starts the BME280 sensor and collects environmental data
+func (m *SLMeter) StartEnvironmentalSensor() error {
+	if m.BME280 == nil {
+		return fmt.Errorf("environmental sensor is not connected")
+	}
+	if m.BME280.Enabled {
+		return fmt.Errorf("environmental sensor is already started")
+	}
+
+	// Create context with cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	m.cancelEnvironmental = cancel
+
+	// Enable sensor
+	if err := m.BME280.Enable(); err != nil {
+		return fmt.Errorf("failed to enable environmental sensor: %w", err)
+	}
+
+	log.Printf("Starting environmental sensor monitoring")
+
+	go func() {
+		defer m.BME280.Disable()
+		jobID := uuid.New().String()
+		ticker := time.NewTicker(RECORD_INTERVAL)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Environmental sensor job cancelled, stopping sensor")
+				return
+			default:
+			}
+
+			data, err := m.BME280.ReadSensorData()
+			if err != nil {
+				log.Printf("Failed to read environmental data: %s", err)
+				m.EnvironmentalResultsChan <- EnvironmentalResults{JobID: jobID}
+				<-ticker.C
+				continue
+			}
+
+			m.EnvironmentalResultsChan <- EnvironmentalResults{
+				Temperature: data.Temperature,
+				Humidity:    data.Humidity,
+				Pressure:    data.Pressure,
+				JobID:       jobID,
+			}
+			<-ticker.C
+		}
+	}()
+
+	return nil
+}
+
+// StopEnvironmentalSensor stops the BME280 sensor
+func (m *SLMeter) StopEnvironmentalSensor() error {
+	if m.BME280 == nil {
+		return fmt.Errorf("environmental sensor is not connected")
+	}
+	if !m.BME280.Enabled {
+		return fmt.Errorf("environmental sensor is already stopped")
+	}
+
+	if m.cancelEnvironmental != nil {
+		m.cancelEnvironmental()
+	}
+	return m.BME280.Disable()
+}
+
+// GetCurrentEnvironmentalConditions returns the most recent environmental sensor readings
+func (m *SLMeter) GetCurrentEnvironmentalConditions() (EnvironmentalConditions, error) {
+	if m.BME280 == nil || !m.BME280.Enabled {
+		return EnvironmentalConditions{}, nil
+	}
+
+	conditions := EnvironmentalConditions{}
+	row := m.ResultsDB.QueryRow("SELECT job_id, temperature, humidity, pressure FROM environmental ORDER BY id DESC LIMIT 1")
+	err := row.Scan(&conditions.JobID, &conditions.Temperature, &conditions.Humidity, &conditions.Pressure)
+	if err != nil {
+		return EnvironmentalConditions{}, err
+	}
+
+	return conditions, nil
+}
+
+// GetEnvironmentalSensorStatus returns the connection and enabled status of the environmental sensor
+func (m *SLMeter) GetEnvironmentalSensorStatus() (EnvironmentalStatus, error) {
+	status := EnvironmentalStatus{}
+	if m.BME280 == nil {
+		status.Connected = false
+		return status, nil
+	}
+
+	status.Connected = true
+	status.Enabled = m.BME280.Enabled
+	return status, nil
+}
+
+// MonitorAndRecordEnvironmentalResults reads from EnvironmentalResultsChan and writes to sqlite
+func (m *SLMeter) MonitorAndRecordEnvironmentalResults() {
+	log.Println("Monitoring for new environmental messages...")
+	for result := range m.EnvironmentalResultsChan {
+		log.Printf("- JobID: %s, Temp: %.2f°C, Humidity: %.2f%%, Pressure: %.2f Pa", 
+			result.JobID, result.Temperature, result.Humidity, result.Pressure)
+		
+		if math.IsInf(result.Temperature, 0) || math.IsInf(result.Humidity, 0) || math.IsInf(result.Pressure, 0) {
+			log.Println("Environmental data is invalid, skipping record")
+			continue
+		}
+		
+		_, err := m.ResultsDB.Exec(
+			"INSERT INTO environmental (job_id, temperature, humidity, pressure) VALUES (?, ?, ?, ?)",
+			result.JobID,
+			fmt.Sprintf("%.2f", result.Temperature),
+			fmt.Sprintf("%.2f", result.Humidity),
+			fmt.Sprintf("%.2f", result.Pressure),
 		)
 		if err != nil {
 			log.Println(err)

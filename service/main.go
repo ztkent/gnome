@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ztkent/gnome/internal/gnome"
+	"github.com/ztkent/gnome/internal/gnome/bme280"
 	"github.com/ztkent/gnome/internal/gnome/tsl2591"
 	"github.com/ztkent/gnome/internal/tools"
 )
@@ -41,11 +42,19 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 		log.Printf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 
+	// Connect the BME280 environmental sensor
+	envDevice, err := bme280.NewBME280("/dev/i2c-1", bme280.BME280_I2C_ADDR_PRIMARY)
+	if err != nil {
+		log.Printf("Failed to connect to the BME280 sensor: %v", err)
+	}
+
 	slMeter := gnome.SLMeter{
-		TSL2591:        device,
-		ResultsDB:      gnomeDB,
-		LuxResultsChan: make(chan gnome.LuxResults),
-		Pid:            pid,
+		TSL2591:                  device,
+		BME280:                   envDevice,
+		ResultsDB:                gnomeDB,
+		LuxResultsChan:           make(chan gnome.LuxResults),
+		EnvironmentalResultsChan: make(chan gnome.EnvironmentalResults),
+		Pid:                      pid,
 	}
 
 	// Start a new chi router
@@ -56,6 +65,11 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 
 	// Lets start the sensor off the jump, if we can.
 	go slMeter.StartSensor()
+	
+	// Start environmental sensor if available
+	if envDevice != nil {
+		go slMeter.StartEnvironmentalSensor()
+	}
 
 	// Default to an HTTP server
 	app_port := "8080"
@@ -69,6 +83,11 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 func defineRoutes(r *chi.Mux, meter *gnome.SLMeter) {
 	// Listen for any result messages from our jobs, record them in sqlite
 	go meter.MonitorAndRecordResults()
+	
+	// Monitor environmental results if BME280 is available
+	if meter.BME280 != nil {
+		go meter.MonitorAndRecordEnvironmentalResults()
+	}
 
 	// Sunlight API, these serve a JSON response
 	r.Route("/api/v1", func(r chi.Router) {
@@ -79,6 +98,14 @@ func defineRoutes(r *chi.Mux, meter *gnome.SLMeter) {
 		r.Get("/export", meter.ServeResultsDB())
 		r.Get("/csv", meter.ServeResultsCSV())
 		r.Get("/graph", meter.ServeResultsJSON())
+		
+		// Environmental API endpoints
+		r.Get("/environmental/start", meter.StartEnvironmental())
+		r.Get("/environmental/stop", meter.StopEnvironmental())
+		r.Get("/environmental/status", meter.EnvironmentalStatus())
+		r.Get("/environmental/current-conditions", meter.CurrentEnvironmentalConditions())
+		r.Get("/environmental/csv", meter.ServeEnvironmentalResultsCSV())
+		r.Get("/environmental/graph", meter.ServeEnvironmentalResultsJSON())
 	})
 
 	// Route for service identification
