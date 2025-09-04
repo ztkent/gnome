@@ -6,15 +6,15 @@ sudo apt update
 sudo apt install git make vim
 
 curl -OL https://golang.org/dl/go1.25.1.linux-arm64.tar.gz &&
-tar -C /home/gnome -xzf go1.25.1.linux-arm64.tar.gz
+tar -C /usr/local -xzf go1.25.1.linux-arm64.tar.gz
 
 sudo apt update
 ```
 
 ## Set GOPATH, GOCACHE, and GOBIN
 ```sh
-export GOPATH=$HOME
-export GOROOT=$HOME/go
+export GOPATH=/usr/local
+export GOROOT=/usr/local/go
 export GOBIN=$GOROOT/bin
 export PATH=$PATH:$GOBIN
 source /home/gnome/.bashrc
