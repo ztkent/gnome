@@ -1,0 +1,28 @@
+<div class="metric">
+    <span class="metric-label">
+        <span class="status-indicator {{if .Status.Connected}}status-connected{{else}}status-disconnected{{end}}"></span>
+        Sensor
+    </span>
+    <span class="metric-value">{{if .Status.Connected}}Connected{{else}}Disconnected{{end}}</span>
+</div>
+<div class="metric">
+    <span class="metric-label">
+        <span class="status-indicator {{if .Status.Enabled}}status-enabled{{else}}status-disabled{{end}}"></span>
+        Status
+    </span>
+    <span class="metric-value">{{if .Status.Enabled}}Recording{{else}}Stopped{{end}}</span>
+</div>
+<div class="metric">
+    <span class="metric-label">Service</span>
+    <span class="metric-value">{{.ServiceName}}</span>
+</div>
+<div class="metric">
+    <span class="metric-label">IP Address</span>
+    <span class="metric-value">{{.OutboundIP}}</span>
+</div>
+{{if .Errors}}
+<div class="metric">
+    <span class="metric-label error">Errors</span>
+    <span class="metric-value error">{{len .Errors}} issues detected</span>
+</div>
+{{end}}

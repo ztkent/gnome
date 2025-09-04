@@ -4,11 +4,9 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"math"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/ztkent/gnome/internal/tools"
@@ -215,34 +213,7 @@ func (m *SLMeter) ServeResultsJSON() http.HandlerFunc {
 
 // Populate the response div with a message, or reply with a JSON message
 func ServeResponse(w http.ResponseWriter, r *http.Request, message string, status int) {
-	if strings.Contains(r.URL.Path, "/api/v1/") {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-		json.NewEncoder(w).Encode(map[string]string{"message": message})
-		return
-	}
-
-	tmpl, err := parseTemplateFile("html/response.gohtml")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = tmpl.Execute(w, message)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func parseTemplateFile(path string) (*template.Template, error) {
-	content, err := templateFiles.ReadFile(path)
-	if err != nil {
-		log.Fatalf("failed to read embedded template: %v", err)
-	}
-
-	tmpl, err := template.New("results").Parse(string(content))
-	if err != nil {
-		log.Fatalf("failed to parse template: %v", err)
-	}
-	return tmpl, nil
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"message": message})
 }

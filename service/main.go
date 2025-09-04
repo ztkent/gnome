@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -81,20 +80,20 @@ func defineRoutes(r *chi.Mux, meter *gnome.SLMeter) {
 		r.Get("/graph", meter.ServeResultsJSON())
 	})
 
-	// Route for service identification
-	r.Get("/", meter.ID())
-	r.Get("/id", meter.ID())
-
-	// Serve static files
-	workDir, _ := os.Getwd()
-	filesDir := filepath.Join(workDir, "internal", "sunlightmeter")
-	FileServer(r, "/", http.Dir(filesDir))
-}
-
-func FileServer(r chi.Router, path string, root http.FileSystem) {
-	r.Get(path+"*", func(w http.ResponseWriter, r *http.Request) {
-		http.StripPrefix(path, http.FileServer(root)).ServeHTTP(w, r)
+	// Dashboard routes
+	r.Route("/dashboard", func(r chi.Router) {
+		r.Get("/device-status", meter.DashboardDeviceStatus())
+		r.Get("/current-conditions", meter.DashboardCurrentConditions())
+		r.Get("/signal-strength", meter.DashboardSignalStrength())
+		r.Get("/controls", meter.DashboardControls())
+		r.Get("/system-info", meter.DashboardSystemInfo())
 	})
+
+	// Main dashboard route
+	r.Get("/", meter.Dashboard())
+
+	// Route for service identification
+	r.Get("/id", meter.ID())
 }
 
 func handleServerPanic(next http.Handler) http.Handler {

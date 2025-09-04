@@ -1,0 +1,20 @@
+{{range .MACAddresses}}
+<div class="metric">
+    <span class="metric-label">🔗 MAC Address</span>
+    <span class="metric-value" style="font-family: monospace; font-size: 0.9rem;">{{.}}</span>
+</div>
+{{else}}
+<div class="metric">
+    <span class="metric-label error">🔗 MAC Address</span>
+    <span class="metric-value error">Not available</span>
+</div>
+{{end}}
+
+{{if .Errors}}
+{{range $key, $value := .Errors}}
+<div class="metric">
+    <span class="metric-label error">⚠️ {{$key}}</span>
+    <span class="metric-value error">Error</span>
+</div>
+{{end}}
+{{end}}
