@@ -1,7 +1,5 @@
 # Gnome - Garden Monitoring System
 
-Garden monitoring project consisting of embedded sensor devices and a mobile application.  
-
 Used for garden automation, data collection and sensor visualization.
 
 ## Overview
@@ -43,7 +41,6 @@ Embedded Go service that runs on Raspberry Pi devices:
 - **Storage**: SQLite database for historical data
 - **API**: RESTful endpoints for remote access
 - **Dashboard**: Web interface for device management
-- **Security**: Self-signed SSL certificates for secure communication
 
 ### Android App (`/app`)
 
