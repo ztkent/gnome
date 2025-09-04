@@ -18,6 +18,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/io/i2c"
+	"golang.org/x/exp/io/spi"
 )
 
 var l *logrus.Logger
@@ -71,6 +72,7 @@ type calibrationData struct {
 type BME280 struct {
 	Enabled      bool
 	Device       *i2c.Device
+	SPIDevice    *spi.Device
 	Calibration  calibrationData
 	TempSampling byte
 	PressSampling byte
@@ -78,6 +80,7 @@ type BME280 struct {
 	Mode         byte
 	Filter       byte
 	StandbyTime  byte
+	IsSPI        bool
 	*sync.Mutex
 }
 
@@ -106,6 +109,7 @@ func NewBME280(i2cPath string, address int) (*BME280, error) {
 
 	bme := &BME280{
 		Device:        device,
+		SPIDevice:     nil,
 		Mutex:         &sync.Mutex{},
 		Enabled:       false,
 		TempSampling:  BME280_SAMPLING_X1,
@@ -114,6 +118,7 @@ func NewBME280(i2cPath string, address int) (*BME280, error) {
 		Mode:          BME280_MODE_NORMAL,
 		Filter:        BME280_FILTER_OFF,
 		StandbyTime:   BME280_STANDBY_MS_1000,
+		IsSPI:         false,
 	}
 
 	// Read and verify chip ID
@@ -139,10 +144,95 @@ func NewBME280(i2cPath string, address int) (*BME280, error) {
 	return bme, nil
 }
 
+// NewBME280SPI creates a new BME280 sensor instance via SPI
+func NewBME280SPI(spiPath string, speed int) (*BME280, error) {
+	if spiPath == "" {
+		// spidev0.0 is the default SPI device for the Raspberry Pi
+		spiPath = "/dev/spidev0.0"
+	}
+	
+	if speed == 0 {
+		speed = 1000000 // 1MHz default
+	}
+
+	device, err := spi.Open(&spi.Devfs{Dev: spiPath})
+	if err != nil {
+		return nil, fmt.Errorf("failed to open SPI device: %w", err)
+	}
+
+	bme := &BME280{
+		Device:        nil,
+		SPIDevice:     device,
+		Mutex:         &sync.Mutex{},
+		Enabled:       false,
+		TempSampling:  BME280_SAMPLING_X1,
+		PressSampling: BME280_SAMPLING_X1,
+		HumidSampling: BME280_SAMPLING_X1,
+		Mode:          BME280_MODE_NORMAL,
+		Filter:        BME280_FILTER_OFF,
+		StandbyTime:   BME280_STANDBY_MS_1000,
+		IsSPI:         true,
+	}
+
+	// Read and verify chip ID
+	if err := bme.verifyChipID(); err != nil {
+		return nil, err
+	}
+
+	// Soft reset the sensor
+	if err := bme.reset(); err != nil {
+		return nil, err
+	}
+
+	// Read calibration data
+	if err := bme.readCalibrationData(); err != nil {
+		return nil, err
+	}
+
+	// Configure the sensor with default settings
+	if err := bme.configure(); err != nil {
+		return nil, err
+	}
+
+	return bme, nil
+}
+
+// writeReg writes data to a register via I2C or SPI
+func (bme *BME280) writeReg(reg byte, data []byte) error {
+	if bme.IsSPI {
+		// For SPI, the register address needs the write bit cleared (bit 7 = 0)
+		writeData := make([]byte, len(data)+1)
+		writeData[0] = reg & 0x7F // Clear write bit for SPI
+		copy(writeData[1:], data)
+		err := bme.SPIDevice.Tx(writeData, nil)
+		return err
+	} else {
+		return bme.Device.WriteReg(reg, data)
+	}
+}
+
+// readReg reads data from a register via I2C or SPI
+func (bme *BME280) readReg(reg byte, data []byte) error {
+	if bme.IsSPI {
+		// For SPI, the register address needs the read bit set (bit 7 = 1)
+		writeData := make([]byte, len(data)+1)
+		writeData[0] = reg | 0x80 // Set read bit for SPI
+		readData := make([]byte, len(data)+1)
+		err := bme.SPIDevice.Tx(writeData, readData)
+		if err != nil {
+			return err
+		}
+		copy(data, readData[1:]) // Skip the first byte (dummy)
+		return nil
+	} else {
+		return bme.Device.ReadReg(reg, data)
+	}
+}
+
 // verifyChipID reads and verifies the BME280 chip ID
 func (bme *BME280) verifyChipID() error {
 	buf := make([]byte, 1)
-	err := bme.Device.ReadReg(BME280_REGISTER_CHIPID, buf)
+	err := bme.readReg(BME280_REGISTER_CHIPID, buf)
 	if err != nil {
 		return fmt.Errorf("failed to read chip ID: %w", err)
 	}
@@ -156,14 +246,14 @@ func (bme *BME280) verifyChipID() error {
 
 // reset performs a soft reset of the sensor
 func (bme *BME280) reset() error {
-	return bme.Device.WriteReg(BME280_REGISTER_SOFTRESET, []byte{0xB6})
+	return bme.writeReg(BME280_REGISTER_SOFTRESET, []byte{0xB6})
 }
 
 // readCalibrationData reads all calibration coefficients from the sensor
 func (bme *BME280) readCalibrationData() error {
 	// Temperature calibration data (0x88-0x8D)
 	tempData := make([]byte, 6)
-	if err := bme.Device.ReadReg(BME280_REGISTER_DIG_T1, tempData); err != nil {
+	if err := bme.readReg(BME280_REGISTER_DIG_T1, tempData); err != nil {
 		return fmt.Errorf("failed to read temperature calibration: %w", err)
 	}
 	
@@ -173,7 +263,7 @@ func (bme *BME280) readCalibrationData() error {
 
 	// Pressure calibration data (0x8E-0x9F)
 	pressData := make([]byte, 18)
-	if err := bme.Device.ReadReg(BME280_REGISTER_DIG_P1, pressData); err != nil {
+	if err := bme.readReg(BME280_REGISTER_DIG_P1, pressData); err != nil {
 		return fmt.Errorf("failed to read pressure calibration: %w", err)
 	}
 	
@@ -189,14 +279,14 @@ func (bme *BME280) readCalibrationData() error {
 
 	// Humidity calibration data H1 (0xA1)
 	h1Data := make([]byte, 1)
-	if err := bme.Device.ReadReg(BME280_REGISTER_DIG_H1, h1Data); err != nil {
+	if err := bme.readReg(BME280_REGISTER_DIG_H1, h1Data); err != nil {
 		return fmt.Errorf("failed to read humidity calibration H1: %w", err)
 	}
 	bme.Calibration.digH1 = h1Data[0]
 
 	// Humidity calibration data H2-H6 (0xE1-0xE7)
 	humidData := make([]byte, 7)
-	if err := bme.Device.ReadReg(BME280_REGISTER_DIG_H2, humidData); err != nil {
+	if err := bme.readReg(BME280_REGISTER_DIG_H2, humidData); err != nil {
 		return fmt.Errorf("failed to read humidity calibration H2-H6: %w", err)
 	}
 	
@@ -213,19 +303,19 @@ func (bme *BME280) readCalibrationData() error {
 func (bme *BME280) configure() error {
 	// Set humidity sampling first (must be done before ctrl_meas)
 	humidCtrl := bme.HumidSampling
-	if err := bme.Device.WriteReg(BME280_REGISTER_CONTROLHUMID, []byte{humidCtrl}); err != nil {
+	if err := bme.writeReg(BME280_REGISTER_CONTROLHUMID, []byte{humidCtrl}); err != nil {
 		return fmt.Errorf("failed to set humidity control: %w", err)
 	}
 
 	// Set config register (standby time, filter, SPI interface)
 	config := (bme.StandbyTime << 5) | (bme.Filter << 2)
-	if err := bme.Device.WriteReg(BME280_REGISTER_CONFIG, []byte{config}); err != nil {
+	if err := bme.writeReg(BME280_REGISTER_CONFIG, []byte{config}); err != nil {
 		return fmt.Errorf("failed to set config register: %w", err)
 	}
 
 	// Set ctrl_meas register (pressure sampling, temperature sampling, mode)
 	ctrlMeas := (bme.TempSampling << 5) | (bme.PressSampling << 2) | bme.Mode
-	if err := bme.Device.WriteReg(BME280_REGISTER_CONTROL, []byte{ctrlMeas}); err != nil {
+	if err := bme.writeReg(BME280_REGISTER_CONTROL, []byte{ctrlMeas}); err != nil {
 		return fmt.Errorf("failed to set control register: %w", err)
 	}
 
@@ -256,7 +346,7 @@ func (bme *BME280) Disable() error {
 
 	// Set to sleep mode
 	ctrlMeas := (bme.TempSampling << 5) | (bme.PressSampling << 2) | BME280_MODE_SLEEP
-	if err := bme.Device.WriteReg(BME280_REGISTER_CONTROL, []byte{ctrlMeas}); err != nil {
+	if err := bme.writeReg(BME280_REGISTER_CONTROL, []byte{ctrlMeas}); err != nil {
 		return fmt.Errorf("failed to disable sensor: %w", err)
 	}
 
@@ -276,7 +366,7 @@ func (bme *BME280) ReadSensorData() (EnvironmentalData, error) {
 	// If in forced mode, trigger a measurement
 	if bme.Mode == BME280_MODE_FORCED {
 		ctrlMeas := (bme.TempSampling << 5) | (bme.PressSampling << 2) | BME280_MODE_FORCED
-		if err := bme.Device.WriteReg(BME280_REGISTER_CONTROL, []byte{ctrlMeas}); err != nil {
+		if err := bme.writeReg(BME280_REGISTER_CONTROL, []byte{ctrlMeas}); err != nil {
 			return EnvironmentalData{}, fmt.Errorf("failed to trigger measurement: %w", err)
 		}
 
@@ -286,7 +376,7 @@ func (bme *BME280) ReadSensorData() (EnvironmentalData, error) {
 
 	// Read all sensor data (pressure, temperature, humidity)
 	data := make([]byte, 8)
-	if err := bme.Device.ReadReg(BME280_REGISTER_PRESSUREDATA, data); err != nil {
+	if err := bme.readReg(BME280_REGISTER_PRESSUREDATA, data); err != nil {
 		return EnvironmentalData{}, fmt.Errorf("failed to read sensor data: %w", err)
 	}
 

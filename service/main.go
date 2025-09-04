@@ -42,10 +42,16 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 		log.Printf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 
-	// Connect the BME280 environmental sensor
+	// Connect the BME280 environmental sensor (try I2C first, then SPI)
 	envDevice, err := bme280.NewBME280("/dev/i2c-1", bme280.BME280_I2C_ADDR_PRIMARY)
 	if err != nil {
-		log.Printf("Failed to connect to the BME280 sensor: %v", err)
+		log.Printf("Failed to connect to BME280 via I2C: %v", err)
+		log.Printf("Trying BME280 via SPI...")
+		envDevice, err = bme280.NewBME280SPI("/dev/spidev0.0", 1000000)
+		if err != nil {
+			log.Printf("Failed to connect to BME280 via SPI: %v", err)
+			envDevice = nil
+		}
 	}
 
 	slMeter := gnome.SLMeter{

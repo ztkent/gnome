@@ -82,13 +82,15 @@ func (m *SLMeter) SignalStrength() http.HandlerFunc {
 }
 
 type ServiceResponse struct {
-	ServiceName    string            `json:"service_name"`
-	OutboundIP     string            `json:"outbound_ip"`
-	MACAddresses   []string          `json:"mac_addresses"`
-	SignalStrength SignalStrength    `json:"signal_strength"`
-	Conditions     Conditions        `json:"conditions"`
-	Status         Status            `json:"status"`
-	Errors         map[string]string `json:"errors,omitempty"`
+	ServiceName              string                   `json:"service_name"`
+	OutboundIP               string                   `json:"outbound_ip"`
+	MACAddresses             []string                 `json:"mac_addresses"`
+	SignalStrength           SignalStrength           `json:"signal_strength"`
+	Conditions               Conditions               `json:"conditions"`
+	Status                   Status                   `json:"status"`
+	EnvironmentalConditions  EnvironmentalConditions  `json:"environmental_conditions"`
+	EnvironmentalStatus      EnvironmentalStatus      `json:"environmental_status"`
+	Errors                   map[string]string        `json:"errors,omitempty"`
 }
 
 func (m *SLMeter) ID() http.HandlerFunc {
@@ -140,6 +142,28 @@ func (m *SLMeter) ID() http.HandlerFunc {
 			response.Status = Status{Connected: false, Enabled: false}
 		} else {
 			response.Status = status
+		}
+
+		// Add environmental sensor information
+		envConditions, err := m.GetCurrentEnvironmentalConditions()
+		if err != nil {
+			response.Errors["environmental_conditions"] = err.Error()
+			response.EnvironmentalConditions = EnvironmentalConditions{}
+		} else {
+			response.EnvironmentalConditions = EnvironmentalConditions{
+				JobID:       envConditions.JobID,
+				Temperature: sanitizeFloat64(envConditions.Temperature),
+				Humidity:    sanitizeFloat64(envConditions.Humidity),
+				Pressure:    sanitizeFloat64(envConditions.Pressure),
+			}
+		}
+
+		envStatus, err := m.GetEnvironmentalSensorStatus()
+		if err != nil {
+			response.Errors["environmental_status"] = err.Error()
+			response.EnvironmentalStatus = EnvironmentalStatus{Connected: false, Enabled: false}
+		} else {
+			response.EnvironmentalStatus = envStatus
 		}
 
 		w.Header().Set("Content-Type", "application/json")
