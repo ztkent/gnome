@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.SunlightMeter" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Gnome" parent="android:Theme.Material.Light.NoActionBar">
     </style>
-    <style name="Base.Theme.SunlightMeter" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.Gnome" parent="Theme.Material3.DayNight.NoActionBar">
     </style>
 </resources>

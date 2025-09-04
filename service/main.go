@@ -11,8 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ztkent/gnome/internal/gnome"
-	"github.com/ztkent/gnome/internal/sunlightmeter"
-	"github.com/ztkent/gnome/internal/sunlightmeter/tsl2591"
+	"github.com/ztkent/gnome/internal/gnome/tsl2591"
 	"github.com/ztkent/gnome/internal/tools"
 )
 
@@ -42,10 +41,10 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 		log.Printf("Failed to connect to the TSL2591 sensor: %v", err)
 	}
 
-	slMeter := sunlightmeter.SLMeter{
+	slMeter := gnome.SLMeter{
 		TSL2591:        device,
 		ResultsDB:      gnomeDB,
-		LuxResultsChan: make(chan sunlightmeter.LuxResults),
+		LuxResultsChan: make(chan gnome.LuxResults),
 		Pid:            pid,
 	}
 
@@ -66,7 +65,7 @@ func startSunLightMeter(gnomeDB *sql.DB, pid int) {
 	}
 }
 
-func defineRoutes(r *chi.Mux, meter *sunlightmeter.SLMeter) {
+func defineRoutes(r *chi.Mux, meter *gnome.SLMeter) {
 	// Listen for any result messages from our jobs, record them in sqlite
 	go meter.MonitorAndRecordResults()
 
@@ -101,7 +100,7 @@ func handleServerPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				sunlightmeter.ServeResponse(w, r, (fmt.Sprintf("%v", err)), http.StatusInternalServerError)
+				gnome.ServeResponse(w, r, (fmt.Sprintf("%v", err)), http.StatusInternalServerError)
 			}
 		}()
 		next.ServeHTTP(w, r)
