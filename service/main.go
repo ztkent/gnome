@@ -3,9 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -70,6 +72,7 @@ func defineRoutes(r *chi.Mux, meter *gnome.SLMeter) {
 	go meter.MonitorAndRecordResults()
 
 	// Sunlight API, these serve a JSON response
+	r.Get("/id", meter.ID())
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/start", meter.Start())
 		r.Get("/stop", meter.Stop())
@@ -81,19 +84,36 @@ func defineRoutes(r *chi.Mux, meter *gnome.SLMeter) {
 	})
 
 	// Dashboard routes
+	r.Get("/", meter.Dashboard())
 	r.Route("/dashboard", func(r chi.Router) {
 		r.Get("/device-status", meter.DashboardDeviceStatus())
 		r.Get("/current-conditions", meter.DashboardCurrentConditions())
 		r.Get("/signal-strength", meter.DashboardSignalStrength())
 		r.Get("/controls", meter.DashboardControls())
 		r.Get("/system-info", meter.DashboardSystemInfo())
+		r.Get("/historical-graph", meter.DashboardHistoricalGraph())
 	})
 
-	// Main dashboard route
-	r.Get("/", meter.Dashboard())
+	// Static files handler for JS, CSS and other assets
+	r.Get("/html/*", func(w http.ResponseWriter, r *http.Request) {
+		// Read the file from the embedded filesystem
+		fileSystem, err := fs.Sub(meter.GetTemplateFiles(), ".")
+		if err != nil {
+			http.Error(w, "File system error", http.StatusInternalServerError)
+			return
+		}
 
-	// Route for service identification
-	r.Get("/id", meter.ID())
+		// Set the correct MIME type based on file extension
+		filePath := strings.TrimPrefix(r.URL.Path, "/")
+		if strings.HasSuffix(filePath, ".js") {
+			w.Header().Set("Content-Type", "application/javascript")
+		} else if strings.HasSuffix(filePath, ".css") {
+			w.Header().Set("Content-Type", "text/css")
+		}
+
+		// Serve the file
+		http.FileServer(http.FS(fileSystem)).ServeHTTP(w, r)
+	})
 }
 
 func handleServerPanic(next http.Handler) http.Handler {

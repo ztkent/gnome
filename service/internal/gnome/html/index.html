@@ -218,6 +218,8 @@
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="/html/js/dashboard.js"></script>
 </head>
 <body>
     <div class="container">
@@ -281,75 +283,20 @@
             </div>
         </div>
         
+        <!-- Historical Graph Section -->
+        <div class="card" style="grid-column: 1 / -1; margin-top: 16px;">
+            <h2>Historical Sensor Data</h2>
+            <div id="historical-graph">
+                <div class="loading">Loading historical data...</div>
+            </div>
+        </div>
+        
         <div class="auto-refresh">
             Dashboard auto-refreshes every 15-30 seconds
         </div>
     </div>
     
     <script>
-        class Dashboard {
-            constructor() {
-                this.loadAll();
-                this.setupAutoRefresh();
-                this.setupEventDelegation();
-            }
-            async loadContent(url, targetId) {
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    const content = await response.text();
-                    document.getElementById(targetId).innerHTML = content;
-                } catch (error) {
-                    document.getElementById(targetId).innerHTML = '<div class="error">Failed to load data</div>';
-                    console.error(`Failed to load ${url}:`, error);
-                }
-            }
-            
-            loadAll() {
-                this.loadContent('/dashboard/device-status', 'device-status');
-                this.loadContent('/dashboard/current-conditions', 'current-conditions');
-                this.loadContent('/dashboard/signal-strength', 'signal-strength');
-                this.loadContent('/dashboard/controls', 'controls');
-                this.loadContent('/dashboard/system-info', 'system-info');
-            }
-            
-            setupAutoRefresh() {
-                // Device status - every 30s
-                setInterval(() => this.loadContent('/dashboard/device-status', 'device-status'), 30000);
-                
-                // Current conditions - every 15s
-                setInterval(() => this.loadContent('/dashboard/current-conditions', 'current-conditions'), 15000);
-                
-                // Signal strength - every 60s
-                setInterval(() => this.loadContent('/dashboard/signal-strength', 'signal-strength'), 60000);
-                
-                // System info - every 120s
-                setInterval(() => this.loadContent('/dashboard/system-info', 'system-info'), 120000);
-            }
-            
-            setupEventDelegation() {
-                document.addEventListener('click', async (e) => {
-                    if (e.target.hasAttribute('data-action')) {
-                        e.preventDefault();
-                        const action = e.target.getAttribute('data-action');
-                        const target = e.target.getAttribute('data-target') || 'controls';
-                        
-                        try {
-                            e.target.textContent = 'Loading...';
-                            const response = await fetch(action);
-                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                            
-                            // Reload the controls section
-                            await this.loadContent('/dashboard/controls', target);
-                        } catch (error) {
-                            console.error('Action failed:', error);
-                            e.target.textContent = 'Error';
-                            setTimeout(() => this.loadContent('/dashboard/controls', target), 1000);
-                        }
-                    }
-                });
-            }
-        }
         document.addEventListener('DOMContentLoaded', () => {
             window.dashboard = new Dashboard();
         });
