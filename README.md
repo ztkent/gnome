@@ -80,9 +80,6 @@ Kotlin/Compose mobile application:
 - **Real-time Displays**: Live sensor readings and status
 - **Export Options**: Download data in multiple formats
 
-<img width="794" height="775" alt="image" src="https://github.com/user-attachments/assets/eeaab95e-ad17-480a-8917-d13ee8731149" />
-
-
 ## Troubleshooting
 
 - **Device Not Found**: Check network connectivity and firewall settings
