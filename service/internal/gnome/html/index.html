@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gnome - Garden Monitoring Dashboard</title>
+    <!-- HTMX functionality replaced with vanilla JavaScript -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected { background-color: #4CAF50; }
+        .status-disconnected { background-color: #f44336; }
+        .status-enabled { background-color: #2196F3; }
+        .status-disabled { background-color: #FF9800; }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #f44336;
+            font-weight: 500;
+        }
+        
+        .auto-refresh {
+            text-align: center;
+            margin-top: 20px;
+            color: white;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 Gnome</h1>
+            <p>Garden Monitoring Dashboard</p>
+        </div>
+        
+        <div class="dashboard">
+            <!-- Device Status Card -->
+            <div class="card">
+                <h2>Device Status</h2>
+                <div id="device-status">
+                    <div class="loading">Loading device status...</div>
+                </div>
+            </div>
+            
+            <!-- Current Conditions Card -->
+            <div class="card">
+                <h2>Current Conditions</h2>
+                <div id="current-conditions">
+                    <div class="loading">Loading current conditions...</div>
+                </div>
+            </div>
+            
+            <!-- Signal Strength Card -->
+            <div class="card">
+                <h2>Network Status</h2>
+                <div id="signal-strength">
+                    <div class="loading">Loading network status...</div>
+                </div>
+            </div>
+            
+            <!-- Control Panel Card -->
+            <div class="card">
+                <h2>Control Panel</h2>
+                <div id="controls">
+                    <div class="loading">Loading controls...</div>
+                </div>
+            </div>
+            
+            <!-- Data Export Card -->
+            <div class="card">
+                <h2>Data Export</h2>
+                <div class="controls">
+                    <a href="/api/v1/export" class="btn" download>
+                        📁 Download Database
+                    </a>
+                    <a href="/api/v1/csv" class="btn btn-secondary" download>
+                        📊 Download CSV
+                    </a>
+                </div>
+            </div>
+            
+            <!-- System Information Card -->
+            <div class="card">
+                <h2>System Information</h2>
+                <div id="system-info">
+                    <div class="loading">Loading system information...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="auto-refresh">
+            🔄 Dashboard auto-refreshes every 15-30 seconds
+        </div>
+    </div>
+    
+    <script>
+        // Dashboard functionality using vanilla JavaScript instead of HTMX
+        class Dashboard {
+            constructor() {
+                this.loadAll();
+                this.setupAutoRefresh();
+                this.setupEventDelegation();
+            }
+            
+            async loadContent(url, targetId) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const content = await response.text();
+                    document.getElementById(targetId).innerHTML = content;
+                } catch (error) {
+                    document.getElementById(targetId).innerHTML = '<div class="error">Failed to load data</div>';
+                    console.error(`Failed to load ${url}:`, error);
+                }
+            }
+            
+            loadAll() {
+                this.loadContent('/dashboard/device-status', 'device-status');
+                this.loadContent('/dashboard/current-conditions', 'current-conditions');
+                this.loadContent('/dashboard/signal-strength', 'signal-strength');
+                this.loadContent('/dashboard/controls', 'controls');
+                this.loadContent('/dashboard/system-info', 'system-info');
+            }
+            
+            setupAutoRefresh() {
+                // Device status - every 30s
+                setInterval(() => this.loadContent('/dashboard/device-status', 'device-status'), 30000);
+                
+                // Current conditions - every 15s
+                setInterval(() => this.loadContent('/dashboard/current-conditions', 'current-conditions'), 15000);
+                
+                // Signal strength - every 60s
+                setInterval(() => this.loadContent('/dashboard/signal-strength', 'signal-strength'), 60000);
+                
+                // System info - every 120s
+                setInterval(() => this.loadContent('/dashboard/system-info', 'system-info'), 120000);
+            }
+            
+            setupEventDelegation() {
+                document.addEventListener('click', async (e) => {
+                    if (e.target.hasAttribute('data-action')) {
+                        e.preventDefault();
+                        const action = e.target.getAttribute('data-action');
+                        const target = e.target.getAttribute('data-target') || 'controls';
+                        
+                        try {
+                            e.target.textContent = 'Loading...';
+                            const response = await fetch(action);
+                            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                            
+                            // Reload the controls section
+                            await this.loadContent('/dashboard/controls', target);
+                        } catch (error) {
+                            console.error('Action failed:', error);
+                            e.target.textContent = 'Error';
+                            setTimeout(() => this.loadContent('/dashboard/controls', target), 1000);
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.dashboard = new Dashboard();
+        });
+    </script>
+</body>
+</html>
