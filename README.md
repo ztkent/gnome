@@ -1,4 +1,4 @@
-# Gnome - Garden Monitoring System
+# Gnome
 
 Used for garden automation, data collection and sensor visualization
 
@@ -42,6 +42,8 @@ Embedded Go service that runs on Raspberry Pi devices:
 - **API**: RESTful endpoints for remote access
 - **Dashboard**: Web interface for device management
   - Real-time data visualization and control
+
+<img width="725" height="675" alt="image" src="https://github.com/user-attachments/assets/2d2f56ec-88af-4710-82b0-0baafc4382d4" />
 
 ### Android App (`/app`)
 
