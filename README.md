@@ -1,33 +1,33 @@
 # Gnome - Garden Monitoring System
 
-Used for garden automation, data collection and sensor visualization.
+Used for garden automation, data collection and sensor visualization
 
 ## Overview
 
-The Gnome project is a distributed garden monitoring system that combines:
+Gnome is a distributed garden monitoring system that combines:
 
-- **Embedded Service**: Runs on a Raspberry Pi with configured sensors
-- **Android App**: Mobile interface for device discovery, monitoring, and control
+- **Embedded Devices**: Runs on a Raspberry Pi with configured sensors
 - **Web Dashboard**: Browser-based interface for data visualization and device management
+- **Android App**: Mobile interface for device discovery, monitoring, and control
 
 ## System Architecture
 
 ```text
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Android App   │    │  Gnome Device   │    │  Gnome Device   │
-│                 │    │  (Raspberry Pi) │    │  (Raspberry Pi) │
-│ - Device Scan   │◄──►│ - TSL2591       │    │ - TSL2591       │
-│ - Data Viz      │    │ - SQLite DB     │    │ - SQLite DB     │
-│ - Remote Control│    │ - REST API      │    │ - REST API      │
-│                 │    │ - Web Dashboard │    │ - Web Dashboard │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                        ┌─────────────────┐
-                        │  Local Network  │
-                        │    (WiFi)       │
-                        └─────────────────┘
+┌─────────────────┐    ┌────────────────────────┐  ┌────────────────────────┐
+│   Android App   │    │  Gnome Device          │  │  Gnome Device          │
+│                 │    │  (Raspberry Pi)        │  │  (Raspberry Pi)        │
+│ - Device Scan   │◄──►│ - TSL2591              │  │ - TSL2591              │
+│ - Data Viz      │    │ - SQLite DB            │  │ - SQLite DB            │
+│ - Remote Control│    │ - REST API             │  │ - REST API             │
+│                 │    │ - Web Dashboard [8080] │  │ - Web Dashboard [8080] │
+└─────────────────┘    └────────────────────────┘  └────────────────────────┘
+         │                          │                             │
+         └──────────────────────────┼─────────────────────────────┘
+                                    │
+                            ┌─────────────────┐
+                            │  Local Network  │
+                            │    (WiFi)       │
+                            └─────────────────┘
 ```
 
 ## Components
@@ -36,15 +36,16 @@ The Gnome project is a distributed garden monitoring system that combines:
 
 Embedded Go service that runs on Raspberry Pi devices:
 
-- **Hardware Interface**: Communicates with TSL2591 light sensor via I2C
+- **Hardware Interface**: Communicates with environmental sensors via I2C
 - **Data Collection**: Periodic sensor readings with automatic adjustments
 - **Storage**: SQLite database for historical data
 - **API**: RESTful endpoints for remote access
 - **Dashboard**: Web interface for device management
+  - Real-time data visualization and control
 
 ### Android App (`/app`)
 
-Kotlin/Compose mobile application:
+Kotlin mobile application:
 
 - **Network Discovery**: Automatic scanning for Gnome devices
 - **Real-time Monitoring**: Live sensor data display
@@ -56,7 +57,7 @@ Kotlin/Compose mobile application:
 
 ### Setting up a Gnome Device
 
-1. **TODO**
+1. Follow the instructions in the `/service/setup.md` file to configure the Raspberry Pi and sensors.
 
 ### Using the Android App
 
@@ -64,25 +65,3 @@ Kotlin/Compose mobile application:
 2. **Connect**: Ensure Android device is on same WiFi network
 3. **Discover**: App will automatically find Gnome devices
 4. **Monitor**: View real-time data and control recordings
-
-## Features
-
-### Light Monitoring
-
-- **Accurate Readings**: TSL2591 sensor with automatic gain adjustment
-- **Multiple Metrics**: Lux, infrared, visible light measurements
-- **Historical Data**: SQLite storage with timestamp tracking
-- **Real-time Updates**: Live data streaming to connected clients
-
-### Data Visualization
-
-- **Interactive Charts**: Historical data plotting and analysis
-- **Real-time Displays**: Live sensor readings and status
-- **Export Options**: Download data in multiple formats
-
-## Troubleshooting
-
-- **Device Not Found**: Check network connectivity and firewall settings
-- **SSL Certificate Errors**: Accept self-signed certificates in browser/app
-- **Sensor Not Detected**: Verify I2C wiring and enable I2C on Raspberry Pi
-- **App Connection Issues**: Ensure devices are on same WiFi network

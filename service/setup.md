@@ -1,6 +1,7 @@
 # Setup Instructions
 
 ## Configure the Pi
+
 ```sh
 sudo apt update
 sudo apt install git make vim
@@ -12,6 +13,7 @@ sudo apt update
 ```
 
 ## Set GOPATH, GOCACHE, and GOBIN
+
 ```sh
 export GOPATH=/usr/local
 export GOROOT=/usr/local/go
@@ -20,31 +22,55 @@ export PATH=$PATH:$GOBIN
 source /home/gnome/.bashrc
 ```
 
-## Enable I2C Interface: Use the raspi-config tool to enable the I2C interface
+## Enable I2C Interface
+
+### Use the raspi-config tool to enable the I2C interface
+
 ```sh
 - sudo raspi-config
 - Interfacing Options > I2C > Yes
 - reboot
 ```
 
+## Configure the Sensors
+
+### Connecting the TSL2591 light sensor to the Pi
+
+- Vin to 3.3V
+- GND to GND
+- SDA to SDA
+- SCL to SCL
+
+### Verify Sensor Detection
+
+Run the following command to check if the sensor is detected on the I2C bus:
+
+```sh
+i2cdetect -y 1
+```
+
+You should see the sensor's address (usually 0x29) listed.
 
 ## Run at Startup
+
 Create a new service file in /etc/systemd/system.
+
 ```sh
 gnome.service:
 sudo nano /etc/systemd/system/gnome.service
 ```
 
 Add the following content to the service file:
+
 ```sh
 [Unit]
 Description=Gnome Service
 After=network.target
 
 [Service]
-ExecStart=/home/gnome/gnome/service/gnome
-Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/games:/usr/games:/home/gnome/go/bin:/usr/libexec/bluetooth"
-WorkingDirectory=/home/gnome/gnome/service
+ExecStart=$HOME/gnome
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin"
+WorkingDirectory=$HOME
 User=root
 Restart=always
 
@@ -66,4 +92,4 @@ Check the status of the service:
 
 ## Remote Wifi Management
 
-Use [PiFi](https://github.com/ztkent/pifi) to manage WiFi connections on the Raspberry Pi.
+You can use [PiFi](https://github.com/ztkent/pifi) to manage WiFi connections on the Raspberry Pi.
