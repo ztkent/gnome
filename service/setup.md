@@ -32,16 +32,21 @@ source /home/gnome/.bashrc
 - reboot
 ```
 
-## Configure the Sensors
+### Configure the Sensors
 
-### Connecting the TSL2591 light sensor to the Pi
+<details>
+<summary> Connecting the TSL2591 light sensor</summary>
+
+For the first sensor, we can use the default hardware i2c pins. These are preferred as they are typically faster and more reliable.
+
+#### Lux Wiring
 
 - Vin to 3.3V
 - GND to GND
 - SDA to SDA
 - SCL to SCL
 
-### Verify Sensor Detection
+#### Verify Lux Sensor Detection
 
 Run the following command to check if the sensor is detected on the I2C bus:
 
@@ -50,8 +55,56 @@ i2cdetect -y 1
 ```
 
 You should see the sensor's address (usually 0x29) listed.
+</details>
 
-## Run at Startup
+<details>
+<summary> Connecting the BEM Temperature and Humidity Sensor </summary>
+
+For the second sensor, we will have to use software I2C.
+
+#### Enable Software I2C, Pins 16/18 (GPIO 23/24)
+
+```sh
+sudo vim /boot/firmware/config.txt
+```
+
+Add the following to the bottom of the file
+
+```text
+[all]
+# Enable software I2C bus on GPIO23 (SDA) and GPIO24 (SCL)
+dtoverlay=i2c-gpio,bus=2,i2c_gpio_sda=23,i2c_gpio_scl=24
+
+# Enable internal pull-ups for the I2C-gpio pins
+gpio=23,24=pu
+```
+
+Or on an older (Broadcom) Pi:
+
+```text
+[all]
+# Enable software I2C bus on GPIO23 (SDA) and GPIO24 (SCL)
+dtoverlay=i2c-gpio,bus=2,i2c_gpio_sda=23,i2c_gpio_scl=24,i2c_gpio_pullup=yes
+```
+
+#### BEM Wiring
+
+- Vin to 3.3V (Pin 17)
+- GND to GND (Pin 20)
+- SDA to GPIO 23 (Pin 16)
+- SCL to GPIO 24 (Pin 18)
+
+#### Verify BEM Sensor Detection
+
+Run the following command to check if the sensor is detected on the I2C bus:
+
+```sh
+i2cdetect -y 2
+```
+
+</details>
+
+### Run at Startup
 
 Create a new service file in /etc/systemd/system.
 
@@ -78,18 +131,14 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-Reload systemd to recognize the new service:
-`sudo systemctl daemon-reload`
+| Step | Command | Description |
+|------|---------|-------------|
+| 1 | `sudo systemctl daemon-reload` | Reload systemd to recognize the new service |
+| 2 | `sudo systemctl enable gnome.service` | Enable the service to start on boot |
+| 3 | `sudo systemctl start gnome.service` | Start the service immediately |
+| 4 | `sudo systemctl status gnome.service` | Check the status of the service |
 
-Enable the service to start on boot:
-`sudo systemctl enable gnome.service`
 
-Start the service immediately:
-`sudo systemctl start gnome.service`
-
-Check the status of the service:
-`sudo systemctl status gnome.service`
-
-## Remote Wifi Management
+### Remote Wifi Management
 
 You can use [PiFi](https://github.com/ztkent/pifi) to manage WiFi connections on the Raspberry Pi.
