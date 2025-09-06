@@ -72,7 +72,7 @@ func NewBME280(oversamplingSettings byte, filterCoeff byte, path string) (*BME28
 	}
 
 	// Initialize the sensor
-	if err := bme.Init(); err != nil {
+	if err := bme.init(); err != nil {
 		device.Close()
 		return nil, fmt.Errorf("failed to initialize BME280: %w", err)
 	}
@@ -82,7 +82,7 @@ func NewBME280(oversamplingSettings byte, filterCoeff byte, path string) (*BME28
 }
 
 // Init initializes the BME280 sensor
-func (b *BME280) Init() error {
+func (b *BME280) init() error {
 	b.Lock()
 	defer b.Unlock()
 
@@ -407,12 +407,21 @@ func (b *BME280) GetCalibrationData() CalibrationData {
 }
 
 // ReadTemperature reads and returns compensated temperature in Celsius
-func (b *BME280) ReadTemperature() (float32, error) {
+func (b *BME280) ReadTemperatureCelsius() (float32, error) {
 	data, err := b.ReadAll()
 	if err != nil {
 		return 0, err
 	}
 	return data.Temperature, nil
+}
+
+// ReadTemperature reads and returns compensated temperature in Fahrenheit
+func (b *BME280) ReadTemperature() (float32, error) {
+	celsius, err := b.ReadTemperatureCelsius()
+	if err != nil {
+		return 0, err
+	}
+	return celsius*9/5 + 32, nil
 }
 
 // ReadHumidity reads and returns compensated humidity in %RH

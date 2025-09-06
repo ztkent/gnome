@@ -46,7 +46,7 @@ func TestBME280BasicFunctionality(t *testing.T) {
 
 	// Test power mode operations
 	t.Log("Testing power mode operations...")
-	
+
 	// Get current power mode
 	currentMode, err := bme.GetPowerMode()
 	if err != nil {
@@ -58,27 +58,27 @@ func TestBME280BasicFunctionality(t *testing.T) {
 	// Test setting power modes
 	modes := []byte{BME280_POWERMODE_SLEEP, BME280_POWERMODE_FORCED, BME280_POWERMODE_NORMAL}
 	modeNames := []string{"Sleep", "Forced", "Normal"}
-	
+
 	for i, mode := range modes {
 		err := bme.SetPowerMode(mode)
 		if err != nil {
 			t.Errorf("Failed to set power mode %s: %v", modeNames[i], err)
 			continue
 		}
-		
+
 		// Verify the mode was set
 		actualMode, err := bme.GetPowerMode()
 		if err != nil {
 			t.Errorf("Failed to read power mode: %v", err)
 			continue
 		}
-		
+
 		if actualMode != mode {
 			t.Errorf("Power mode mismatch: expected 0x%02X, got 0x%02X", mode, actualMode)
 		} else {
 			t.Logf("Successfully set power mode to %s (0x%02X)", modeNames[i], mode)
 		}
-		
+
 		time.Sleep(10 * time.Millisecond)
 	}
 
@@ -126,7 +126,7 @@ func TestBME280SensorReadings(t *testing.T) {
 
 	// Test individual sensor readings
 	t.Log("Reading individual sensors...")
-	
+
 	temp, err := bme.ReadTemperature()
 	if err != nil {
 		t.Errorf("Failed to read temperature: %v", err)
@@ -217,7 +217,7 @@ func TestBME280Configuration(t *testing.T) {
 			t.Errorf("Failed to set oversampling to %dx: %v", mode, err)
 			continue
 		}
-		
+
 		settings := bme.GetSettings()
 		if settings.OversamplingP != mode || settings.OversamplingT != mode || settings.OversamplingH != mode {
 			t.Errorf("Oversampling settings not applied correctly")
@@ -241,7 +241,7 @@ func TestBME280Configuration(t *testing.T) {
 			t.Errorf("Failed to set filter coefficient to %d: %v", coeff, err)
 			continue
 		}
-		
+
 		settings := bme.GetSettings()
 		if settings.Filter != coeff {
 			t.Errorf("Filter setting not applied correctly")
@@ -266,7 +266,7 @@ func TestBME280Configuration(t *testing.T) {
 			t.Errorf("Failed to set standby time: %v", err)
 			continue
 		}
-		
+
 		settings := bme.GetSettings()
 		if settings.StandbyTime != standby {
 			t.Errorf("Standby time setting not applied correctly")
@@ -376,7 +376,7 @@ func ExampleBME280_advanced() {
 	// Configure high precision settings
 	err = bme.SetOversamplingSettings(
 		BME280_OVERSAMPLING_16X, // Pressure: highest precision
-		BME280_OVERSAMPLING_2X,  // Temperature: moderate precision  
+		BME280_OVERSAMPLING_2X,  // Temperature: moderate precision
 		BME280_OVERSAMPLING_1X,  // Humidity: standard precision
 	)
 	if err != nil {

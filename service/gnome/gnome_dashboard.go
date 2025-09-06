@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/ztkent/gnome/internal/tools"
+	"github.com/ztkent/gnome/tools"
 )
 
 // Dashboard route handlers

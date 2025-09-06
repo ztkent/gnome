@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/ztkent/gnome/internal/gnome/drivers/tsl2591"
+	"github.com/ztkent/gnome/drivers/tsl2591"
 )
 
 const (

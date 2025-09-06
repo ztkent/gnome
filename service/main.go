@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/ztkent/gnome/internal/gnome"
-	"github.com/ztkent/gnome/internal/gnome/drivers/tsl2591"
-	"github.com/ztkent/gnome/internal/tools"
+	"github.com/ztkent/gnome/drivers/tsl2591"
+	"github.com/ztkent/gnome/gnome"
+	"github.com/ztkent/gnome/tools"
 )
 
 func main() {

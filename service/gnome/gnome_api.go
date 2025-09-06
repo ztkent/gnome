@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ztkent/gnome/internal/tools"
+	"github.com/ztkent/gnome/tools"
 )
 
 //go:embed html/*
